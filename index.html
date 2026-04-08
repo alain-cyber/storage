@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Frontier Self Storage — Performance Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0d0f0e;
+    --surface: #141714;
+    --surface2: #1a1d1a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8ebe6;
+    --text2: #8a9088;
+    --text3: #5a5e58;
+    --green: #4caf7d;
+    --green-dim: rgba(76,175,125,0.12);
+    --red: #e05a4e;
+    --red-dim: rgba(224,90,78,0.12);
+    --amber: #d4a843;
+    --amber-dim: rgba(212,168,67,0.12);
+    --blue: #5b9cf6;
+    --blue-dim: rgba(91,156,246,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .header {
+    padding: 2rem 2.5rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .header-left p {
+    font-size: 0.75rem;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-top: 0.4rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .last-updated {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text3);
+    letter-spacing: 0.05em;
+  }
+
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    gap: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .loading-ring {
+    width: 48px; height: 48px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .dashboard { padding: 2rem 2.5rem; position: relative; z-index: 1; }
+
+  /* Metric cards */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.2s;
+    cursor: default;
+  }
+
+  .metric-card:hover { border-color: var(--border2); }
+  .metric-card.visible { opacity: 1; transform: translateY(0); }
+
+  .metric-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0.6rem;
+  }
+
+  .metric-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .metric-delta {
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .delta-up { color: var(--green); }
+  .delta-down { color: var(--red); }
+  .delta-neutral { color: var(--text3); }
+
+  .metric-card.accent-green { border-color: rgba(76,175,125,0.2); background: linear-gradient(135deg, var(--surface) 0%, rgba(76,175,125,0.05) 100%); }
+  .metric-card.accent-red { border-color: rgba(224,90,78,0.2); background: linear-gradient(135deg, var(--surface) 0%, rgba(224,90,78,0.05) 100%); }
+  .metric-card.accent-amber { border-color: rgba(212,168,67,0.2); background: linear-gradient(135deg, var(--surface) 0%, rgba(212,168,67,0.05) 100%); }
+
+  /* Charts */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .charts-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .chart-card.visible { opacity: 1; transform: translateY(0); }
+
+  .chart-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+
+  .chart-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .chart-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    color: var(--text);
+    line-height: 1;
+    margin-top: 0.25rem;
+  }
+
+  .chart-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+
+  .chart-wrap { position: relative; }
+
+  /* Unit type table */
+  .unit-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .unit-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 0 0 0.75rem;
+    text-align: left;
+    font-weight: 400;
+  }
+
+  .unit-table td {
+    padding: 0.6rem 0;
+    border-top: 1px solid var(--border);
+    color: var(--text2);
+  }
+
+  .unit-table td:first-child { color: var(--text); font-weight: 600; }
+
+  .occ-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .occ-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border2);
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .occ-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--green);
+    transition: width 1s ease;
+  }
+
+  .occ-pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* Bottom row */
+  .charts-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Delinquency list */
+  .delinq-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+  }
+
+  .delinq-item:last-child { border-bottom: none; }
+  .delinq-label { color: var(--text2); font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.05em; }
+  .delinq-val { color: var(--text); font-family: 'DM Serif Display', serif; font-size: 1.1rem; }
+  .delinq-val.warn { color: var(--amber); }
+  .delinq-val.danger { color: var(--red); }
+
+  /* Trend sparkline */
+  .trend-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem;
+  }
+
+  .trend-row:last-child { border-bottom: none; }
+  .trend-label { color: var(--text2); }
+  .trend-val { color: var(--text); font-family: 'DM Mono', monospace; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-top: 1px solid var(--border);
+    position: relative;
+    z-index: 1;
+  }
+
+  .error-msg {
+    text-align: center;
+    padding: 4rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--red);
+    font-size: 0.8rem;
+  }
+
+  @media (max-width: 768px) {
+    .header { padding: 1.5rem; flex-direction: column; align-items: flex-start; gap: 1rem; }
+    .dashboard { padding: 1rem 1.5rem; }
+    .charts-grid, .charts-grid-2, .charts-grid-3 { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<header class="header">
+  <div class="header-left">
+    <h1>New Frontier Self Storage</h1>
+    <p>308 Southwest Drive · Cheyenne, WY · Performance Dashboard</p>
+  </div>
+  <div class="header-right">
+    <div class="status-dot"></div>
+    <span class="last-updated" id="lastUpdated">Loading...</span>
+  </div>
+</header>
+
+<div id="loadingState" class="loading">
+  <div class="loading-ring"></div>
+  <p>Fetching live data from Google Sheets...</p>
+</div>
+
+<div id="dashboard" class="dashboard" style="display:none">
+
+  <!-- Metric Cards -->
+  <div class="metrics-grid" id="metricsGrid"></div>
+
+  <!-- Main charts row -->
+  <div class="charts-grid">
+    <div class="chart-card" id="occChartCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Occupancy trend</div>
+          <div class="chart-value" id="currentOcc">—</div>
+        </div>
+        <span class="chart-badge badge-green" id="occBadge">Unit %</span>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="occChart"></canvas></div>
+    </div>
+
+    <div class="chart-card" id="unitTypeCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Unit type performance</div>
+          <div class="chart-value">Today</div>
+        </div>
+      </div>
+      <table class="unit-table">
+        <thead>
+          <tr><th>Type</th><th>Occupancy</th><th>Avg Rent</th></tr>
+        </thead>
+        <tbody id="unitTypeBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Revenue + Activity -->
+  <div class="charts-grid-2">
+    <div class="chart-card" id="revenueChartCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Monthly receipts (MTD peak)</div>
+          <div class="chart-value" id="currentRevenue">—</div>
+        </div>
+        <span class="chart-badge badge-green" id="revBadge">YTD</span>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="revenueChart"></canvas></div>
+    </div>
+
+    <div class="chart-card" id="activityChartCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Move-ins vs move-outs</div>
+          <div class="chart-value" id="netActivity">—</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="activityChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Delinquency + Tenure + Leads -->
+  <div class="charts-grid-3">
+    <div class="chart-card" id="delinqCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Delinquency</div>
+          <div class="chart-value" id="delinqTotal">—</div>
+        </div>
+        <span class="chart-badge badge-amber" id="delinqBadge">—</span>
+      </div>
+      <div id="delinqList"></div>
+      <div class="chart-wrap" style="height:130px;margin-top:1rem"><canvas id="delinqChart"></canvas></div>
+    </div>
+
+    <div class="chart-card" id="tenureCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Tenant tenure</div>
+          <div class="chart-value" id="totalTenants">—</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="tenureChart"></canvas></div>
+    </div>
+
+    <div class="chart-card" id="leadsCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Lead conversion (MTD)</div>
+          <div class="chart-value" id="convRate">—</div>
+        </div>
+      </div>
+      <div id="leadsList"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="footer">
+  New Frontier Self Storage · Data source: Millie Storage Data · Auto-refreshes on load
+</footer>
+
+<script>
+const SHEET_ID = '1-wdEhwQP0jCSsWdbVsM5pmq3muB8jsgCsqOK2Bq2WuY';
+const API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+const GREEN = '#4caf7d';
+const RED = '#e05a4e';
+const AMBER = '#d4a843';
+const BLUE = '#5b9cf6';
+const SURFACE2 = '#1a1d1a';
+const TEXT2 = '#8a9088';
+
+Chart.defaults.color = TEXT2;
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+function fmt(n, prefix='', suffix='') {
+  if (n == null || isNaN(n)) return '—';
+  return prefix + n.toLocaleString(undefined, {maximumFractionDigits:1}) + suffix;
+}
+
+function fmtCurrency(n) {
+  if (n == null || isNaN(n)) return '—';
+  return '$' + Math.round(n).toLocaleString();
+}
+
+async function fetchData() {
+  const res = await fetch(API_URL);
+  const text = await res.text();
+  const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
+  const cols = json.table.cols.map(c => c.label);
+  const rows = json.table.rows.map(r => {
+    const obj = {};
+    r.c.forEach((cell, i) => { obj[cols[i]] = cell ? cell.v : null; });
+    return obj;
+  });
+  return rows;
+}
+
+function getMonthlyPeak(rows, col) {
+  const byMonth = {};
+  rows.forEach(r => {
+    if (!r['Report Date'] || r[col] == null) return;
+    const d = new Date(r['Report Date']);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!byMonth[key] || r[col] > byMonth[key]) byMonth[key] = r[col];
+  });
+  return Object.entries(byMonth).sort(([a],[b]) => a.localeCompare(b));
+}
+
+function getQuarterlyAvg(rows, col) {
+  const byQ = {};
+  rows.forEach(r => {
+    if (!r['Report Date'] || r[col] == null) return;
+    const d = new Date(r['Report Date']);
+    const q = Math.floor(d.getMonth()/3)+1;
+    const key = `${d.getFullYear()} Q${q}`;
+    if (!byQ[key]) byQ[key] = [];
+    byQ[key].push(r[col]);
+  });
+  return Object.entries(byQ)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([k,v]) => [k, v.reduce((a,b)=>a+b,0)/v.length]);
+}
+
+function makeChart(id, type, labels, datasets, options={}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  return new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...options.tooltip } },
+      scales: type === 'doughnut' ? {} : {
+        x: { grid: { display: false }, ticks: { maxRotation: 45, ...options.xTicks } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ...options.yScale }
+      },
+      ...options.extra
+    }
+  });
+}
+
+function animateIn(ids) {
+  ids.forEach((id, i) => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('visible');
+    }, i * 80);
+  });
+}
+
+async function render() {
+  try {
+    const rows = await fetchData();
+    if (!rows.length) throw new Error('No data');
+
+    // Sort by date
+    rows.sort((a,b) => new Date(a['Report Date']) - new Date(b['Report Date']));
+    const latest = rows[rows.length - 1];
+    const prev = rows[rows.length - 8] || rows[0];
+
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+
+    const latestDate = new Date(latest['Report Date']);
+    document.getElementById('lastUpdated').textContent =
+      latestDate.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+
+    // ── METRIC CARDS ──────────────────────────────────────────
+    const occDelta = ((latest['Unit Occupancy %'] || 0) - (prev['Unit Occupancy %'] || 0)).toFixed(1);
+    const revDelta = ((latest['Total Receipts MTD'] || 0) - (prev['Total Receipts MTD'] || 0));
+    const delinqDelta = ((latest['Delinquent Amount Total'] || 0) - (prev['Delinquent Amount Total'] || 0));
+
+    const metrics = [
+      { label: 'Unit occupancy', value: fmt(latest['Unit Occupancy %'], '', '%'), delta: occDelta, positive: occDelta >= 0, accent: 'accent-green' },
+      { label: 'Area occupancy', value: fmt(latest['Area Occupancy %'], '', '%'), delta: null, accent: '' },
+      { label: 'Occupied units', value: fmt(latest['Occupied Units']), delta: `of ${latest['Total Units']} total`, accent: '' },
+      { label: 'MTD receipts', value: fmtCurrency(latest['Total Receipts MTD']), delta: revDelta >= 0 ? `+${fmtCurrency(revDelta)} vs 7d ago` : `${fmtCurrency(revDelta)} vs 7d ago`, positive: revDelta >= 0, accent: 'accent-green' },
+      { label: 'YTD receipts', value: fmtCurrency(latest['Total Receipts YTD']), delta: null, accent: '' },
+      { label: 'Delinquent', value: fmtCurrency(latest['Delinquent Amount Total']), delta: delinqDelta <= 0 ? `${fmtCurrency(delinqDelta)} improved` : `+${fmtCurrency(delinqDelta)} increased`, positive: delinqDelta <= 0, accent: delinqDelta > 1000 ? 'accent-red' : 'accent-amber' },
+      { label: 'Overlocked units', value: fmt(latest['Overlocked Units']), delta: null, accent: latest['Overlocked Units'] > 20 ? 'accent-red' : '' },
+      { label: 'Move-ins MTD', value: fmt(latest['Move-Ins MTD']), delta: `${fmt(latest['Move-Outs MTD'])} move-outs`, accent: '' },
+    ];
+
+    const grid = document.getElementById('metricsGrid');
+    metrics.forEach((m, i) => {
+      const card = document.createElement('div');
+      card.className = `metric-card ${m.accent}`;
+      card.id = `metric-${i}`;
+      const deltaClass = m.delta == null ? '' : (m.positive === true ? 'delta-up' : m.positive === false ? 'delta-down' : 'delta-neutral');
+      card.innerHTML = `
+        <div class="metric-label">${m.label}</div>
+        <div class="metric-value">${m.value}</div>
+        ${m.delta != null ? `<div class="metric-delta ${deltaClass}">${m.delta}</div>` : ''}
+      `;
+      grid.appendChild(card);
+    });
+
+    animateIn(metrics.map((_,i) => `metric-${i}`));
+
+    // ── OCCUPANCY CHART ──────────────────────────────────────
+    const occData = getQuarterlyAvg(rows, 'Unit Occupancy %');
+    const occLabels = occData.map(([k]) => k);
+    const occVals = occData.map(([,v]) => +v.toFixed(1));
+
+    document.getElementById('currentOcc').textContent = fmt(latest['Unit Occupancy %'], '', '%');
+
+    makeChart('occChart', 'line', occLabels, [{
+      data: occVals,
+      borderColor: GREEN,
+      backgroundColor: 'rgba(76,175,125,0.08)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 3,
+      pointBackgroundColor: GREEN,
+    }], {
+      yScale: { min: 65, max: 95, ticks: { callback: v => v + '%' } },
+      xTicks: { maxTicksLimit: 8 }
+    });
+
+    // ── UNIT TYPE TABLE ──────────────────────────────────────
+    const types = [
+      { name: 'Drive Up', occ: latest['Drive Up Unit Occ %'], rent: latest['Drive Up Avg Rent'] },
+      { name: 'Parking', occ: latest['Parking Unit Occ %'], rent: latest['Parking Avg Rent'] },
+      { name: 'Warehouse', occ: latest['Warehouse Unit Occ %'], rent: latest['Warehouse Avg Rent'] },
+      { name: 'Apartment', occ: latest['Apartment Unit Occ %'], rent: latest['Apartment Avg Rent'] },
+    ];
+
+    const tbody = document.getElementById('unitTypeBody');
+    types.forEach(t => {
+      const color = t.occ >= 90 ? GREEN : t.occ >= 75 ? AMBER : RED;
+      tbody.innerHTML += `
+        <tr>
+          <td>${t.name}</td>
+          <td>
+            <div class="occ-bar-wrap">
+              <div class="occ-bar"><div class="occ-bar-fill" style="width:${t.occ||0}%;background:${color}"></div></div>
+              <span class="occ-pct" style="color:${color}">${fmt(t.occ,'','%')}</span>
+            </div>
+          </td>
+          <td style="font-family:'DM Mono',monospace;font-size:0.75rem">${fmtCurrency(t.rent)}</td>
+        </tr>`;
+    });
+
+    // ── REVENUE CHART ────────────────────────────────────────
+    const revData = getMonthlyPeak(rows, 'Total Receipts MTD');
+    const revLabels = revData.map(([k]) => k.replace(/^\d{4}-/,''));
+    const revVals = revData.map(([,v]) => Math.round(v));
+
+    document.getElementById('currentRevenue').textContent = fmtCurrency(latest['Total Receipts YTD']);
+    document.getElementById('revBadge').textContent = 'YTD Total';
+
+    makeChart('revenueChart', 'bar', revLabels, [{
+      data: revVals,
+      backgroundColor: revVals.map(v => v === Math.max(...revVals) ? GREEN : 'rgba(76,175,125,0.25)'),
+      borderRadius: 4,
+      borderSkipped: false,
+    }], {
+      yScale: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } },
+      xTicks: { maxTicksLimit: 12 }
+    });
+
+    // ── ACTIVITY CHART ───────────────────────────────────────
+    const actData = getMonthlyPeak(rows.map(r => ({...r})), 'Move-Ins MTD');
+    const actLabels = actData.map(([k]) => k.replace(/^\d{4}-/,''));
+    const inVals = actData.map(([k]) => {
+      const month = rows.filter(r => r['Report Date'] && r['Report Date'].startsWith ? r['Report Date'] : '').filter(r => {
+        const d = new Date(r['Report Date']); 
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` === k;
+      });
+      const maxIn = month.reduce((m,r) => Math.max(m, r['Move-Ins MTD']||0), 0);
+      return maxIn;
+    });
+    const outVals = actData.map(([k]) => {
+      const month = rows.filter(r => {
+        if (!r['Report Date']) return false;
+        const d = new Date(r['Report Date']);
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` === k;
+      });
+      return month.reduce((m,r) => Math.max(m, r['Move-Outs MTD']||0), 0);
+    });
+
+    const netVal = (latest['Move-Ins MTD']||0) - (latest['Move-Outs MTD']||0);
+    document.getElementById('netActivity').textContent = (netVal >= 0 ? '+' : '') + netVal + ' net';
+
+    makeChart('activityChart', 'bar', actLabels, [
+      { data: inVals, backgroundColor: 'rgba(76,175,125,0.6)', borderRadius: 3, label: 'In' },
+      { data: outVals, backgroundColor: 'rgba(224,90,78,0.6)', borderRadius: 3, label: 'Out' },
+    ], {
+      xTicks: { maxTicksLimit: 12 },
+      extra: { plugins: { legend: { display: true, labels: { color: TEXT2, boxWidth: 10, padding: 16 } } } }
+    });
+
+    // ── DELINQUENCY ──────────────────────────────────────────
+    const delinqAmt = latest['Delinquent Amount Total'] || 0;
+    document.getElementById('delinqTotal').textContent = fmtCurrency(delinqAmt);
+    document.getElementById('delinqBadge').textContent = `${latest['Delinquent Units >30 Days'] || 0} units`;
+
+    document.getElementById('delinqList').innerHTML = `
+      <div class="delinq-item"><span class="delinq-label">Overlocked</span><span class="delinq-val ${latest['Overlocked Units']>15?'warn':''}">${latest['Overlocked Units']||0}</span></div>
+      <div class="delinq-item"><span class="delinq-label">Past due rent</span><span class="delinq-val">${fmtCurrency(latest['Past Due Rent'])}</span></div>
+      <div class="delinq-item"><span class="delinq-label">0-10 days</span><span class="delinq-val">tracked</span></div>
+    `;
+
+    const delinqTrend = getQuarterlyAvg(rows, 'Delinquent Amount Total');
+    makeChart('delinqChart', 'line', delinqTrend.map(([k])=>k), [{
+      data: delinqTrend.map(([,v])=>Math.round(v)),
+      borderColor: AMBER,
+      backgroundColor: 'rgba(212,168,67,0.08)',
+      fill: true, tension: 0.4, pointRadius: 2,
+    }], {
+      yScale: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } },
+      xTicks: { maxTicksLimit: 6 }
+    });
+
+    // ── TENURE CHART ─────────────────────────────────────────
+    const tenureLabels = ['0-6mo', '6-12mo', '12-18mo', '18-24mo', '>24mo'];
+    const tenureVals = [
+      latest['Tenants 0-6 Months'] || 0,
+      latest['Tenants 6-12 Months'] || 0,
+      latest['Tenants 12-18 Months'] || 0,
+      latest['Tenants 18-24 Months'] || 0,
+      latest['Tenants >24 Months'] || 0,
+    ];
+    const totalT = tenureVals.reduce((a,b)=>a+b,0);
+    document.getElementById('totalTenants').textContent = totalT + ' tenants';
+
+    makeChart('tenureChart', 'doughnut', tenureLabels, [{
+      data: tenureVals,
+      backgroundColor: [RED, AMBER, BLUE, GREEN, 'rgba(255,255,255,0.15)'],
+      borderWidth: 0,
+      hoverOffset: 4,
+    }], {
+      extra: {
+        plugins: {
+          legend: { display: true, position: 'right', labels: { color: TEXT2, boxWidth: 10, padding: 12, font: { size: 10 } } }
+        },
+        cutout: '60%'
+      }
+    });
+
+    // ── LEADS ────────────────────────────────────────────────
+    const totalLeads = latest['Total Leads MTD'] || 0;
+    const converted = latest['Leads Converted MTD'] || 0;
+    const convPct = totalLeads > 0 ? Math.round(converted/totalLeads*100) : 0;
+    document.getElementById('convRate').textContent = convPct + '%';
+
+    document.getElementById('leadsList').innerHTML = `
+      <div class="trend-row"><span class="trend-label">Total leads</span><span class="trend-val">${totalLeads}</span></div>
+      <div class="trend-row"><span class="trend-label">Converted</span><span class="trend-val" style="color:${GREEN}">${converted}</span></div>
+      <div class="trend-row"><span class="trend-label">SpareFoot</span><span class="trend-val">${latest['SpareFoot Leads MTD']||0}</span></div>
+      <div class="trend-row"><span class="trend-label">Phone</span><span class="trend-val">${latest['Phone Leads MTD']||0}</span></div>
+      <div class="trend-row"><span class="trend-label">Web</span><span class="trend-val">${latest['Web Leads MTD']||0}</span></div>
+      <div class="trend-row"><span class="trend-label">Walk-in</span><span class="trend-val">${latest['Walk-In Leads MTD']||0}</span></div>
+      <div class="trend-row"><span class="trend-label">Waiting list</span><span class="trend-val" style="color:${AMBER}">${latest['Waiting List']||0}</span></div>
+    `;
+
+    animateIn(['occChartCard','unitTypeCard','revenueChartCard','activityChartCard','delinqCard','tenureCard','leadsCard']);
+
+  } catch(e) {
+    document.getElementById('loadingState').innerHTML = `<div class="error-msg">Failed to load data — make sure the Google Sheet is set to "Anyone with link can view".<br><br>${e.message}</div>`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>

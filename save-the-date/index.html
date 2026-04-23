@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Allegra &amp; Joel — Save the Date</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Parisienne&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a1a1a;
+    --paper:#fbfaf6;
+    --line:rgba(0,0,0,.12);
+    --muted:#6b6b66;
+    --accent:#b08a4a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 800px at 20% -10%, #eae3d4 0%, transparent 60%),
+      radial-gradient(1200px 800px at 100% 100%, #dce3dd 0%, transparent 60%),
+      #f3efe6;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:3rem 1rem 4rem;
+  }
+
+  .page-head{
+    text-align:center;
+    margin-bottom:2rem;
+    max-width:640px;
+  }
+  .page-head h1{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:500;
+    font-size:1.6rem;
+    letter-spacing:.02em;
+  }
+  .page-head p{
+    font-size:.85rem;
+    color:var(--muted);
+    margin-top:.4rem;
+  }
+
+  /* ---------- Card ---------- */
+  .card-wrap{
+    display:flex;
+    gap:2.5rem;
+    align-items:flex-start;
+    max-width:1100px;
+    width:100%;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+
+  .card{
+    width:min(420px, 92vw);
+    background:#fdfcf8;
+    padding:1.5rem 1.5rem 1.75rem;
+    box-shadow:
+      0 1px 0 rgba(0,0,0,.04),
+      0 20px 40px -20px rgba(0,0,0,.25),
+      0 40px 80px -40px rgba(0,0,0,.25);
+    border:1px solid rgba(0,0,0,.04);
+    position:relative;
+  }
+
+  .card-title{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:500;
+    text-align:center;
+    letter-spacing:.12em;
+    font-size:2.1rem;
+    color:#111;
+    margin-bottom:1rem;
+  }
+  .card-title .the{
+    font-style:italic;
+    font-weight:400;
+    letter-spacing:.02em;
+    font-size:1.5rem;
+    padding:0 .25rem;
+  }
+
+  /* ---------- Photo ---------- */
+  .photo{
+    position:relative;
+    width:100%;
+    aspect-ratio: 3 / 4;
+    overflow:hidden;
+    background:#e8e6df;
+    border-radius:2px;
+  }
+  .photo .layer{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    user-select:none;
+    -webkit-user-drag:none;
+  }
+
+  /* Placeholder artwork (lake + mountains) */
+  .placeholder{
+    position:absolute;inset:0;
+    background:
+      linear-gradient(to bottom, #cfd8dc 0%, #b8c5ca 35%, #7b8f89 60%, #5c746c 100%);
+  }
+  .placeholder::before,
+  .placeholder::after{
+    content:"";
+    position:absolute;
+    left:0;right:0;
+  }
+  .placeholder::before{
+    top:28%;
+    height:38%;
+    background:
+      linear-gradient(180deg, rgba(95,120,110,.9), rgba(60,85,75,.95)),
+      radial-gradient(120% 80% at 50% 100%, #3e5a4e, #233a32);
+    clip-path: polygon(0% 100%, 8% 62%, 18% 78%, 28% 48%, 40% 70%, 52% 40%, 64% 66%, 74% 52%, 86% 72%, 100% 55%, 100% 100%);
+    opacity:.9;
+  }
+  .placeholder::after{
+    top:64%;
+    bottom:0;
+    background:linear-gradient(180deg, #7ba0a0, #4d6d72);
+  }
+  .placeholder .silhouette{
+    position:absolute;
+    bottom:6%;
+    left:50%;
+    transform:translateX(-50%);
+    width:55%;
+    height:55%;
+    background:
+      radial-gradient(40% 55% at 38% 35%, #2b2b2b 60%, transparent 61%),
+      radial-gradient(40% 55% at 62% 38%, #3a3a3a 60%, transparent 61%),
+      radial-gradient(70% 50% at 50% 85%, #2d2d2d 60%, transparent 61%);
+    filter:blur(.3px);
+    opacity:.85;
+  }
+  .placeholder .ph-label{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    font-family:'Inter',sans-serif;
+    font-size:.72rem;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.9);
+    background:rgba(0,0,0,.25);
+    padding:.4rem .7rem;
+    border-radius:2px;
+    backdrop-filter:blur(2px);
+  }
+
+  /* Person overlays - draggable & resizable */
+  .person{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    width:45%;
+    height:auto;
+    max-height:95%;
+    object-fit:contain;
+    cursor:grab;
+    touch-action:none;
+    z-index:3;
+    filter:drop-shadow(0 6px 12px rgba(0,0,0,.25));
+  }
+  .person.dragging{cursor:grabbing}
+  .person[data-role="guy"]{left:38%}
+  .person[data-role="girl"]{left:62%}
+
+  /* ---------- Text block ---------- */
+  .names{
+    font-family:'Parisienne', cursive;
+    font-size:2.6rem;
+    text-align:center;
+    margin:1.1rem 0 .4rem;
+    line-height:1;
+    color:#1a1a1a;
+  }
+  .subline{
+    font-family:'Cormorant Garamond',serif;
+    font-style:italic;
+    text-align:center;
+    font-size:1.05rem;
+    color:#2a2a2a;
+  }
+  .date{
+    font-family:'Cormorant Garamond',serif;
+    text-align:center;
+    font-size:1.05rem;
+    margin-top:.15rem;
+  }
+  .loc{
+    text-align:center;
+    margin-top:.9rem;
+    font-family:'Cormorant Garamond',serif;
+    font-size:.95rem;
+    letter-spacing:.04em;
+    color:#1a1a1a;
+  }
+  .loc svg{
+    width:12px;height:12px;
+    vertical-align:-1px;
+    margin-right:.35rem;
+    opacity:.8;
+  }
+
+  /* editable text affordance */
+  [contenteditable="true"]{
+    outline:none;
+    transition:background .15s;
+    border-radius:2px;
+  }
+  [contenteditable="true"]:hover{background:rgba(176,138,74,.08)}
+  [contenteditable="true"]:focus{background:rgba(176,138,74,.14)}
+
+  /* ---------- Controls panel ---------- */
+  .controls{
+    width:min(360px, 92vw);
+    background:#fdfcf8;
+    padding:1.5rem;
+    border:1px solid var(--line);
+    box-shadow:0 10px 30px -15px rgba(0,0,0,.2);
+  }
+  .controls h2{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:500;
+    font-size:1.2rem;
+    margin-bottom:.25rem;
+  }
+  .controls .hint{
+    font-size:.78rem;
+    color:var(--muted);
+    margin-bottom:1.25rem;
+  }
+
+  .group{
+    border-top:1px solid var(--line);
+    padding:1rem 0;
+  }
+  .group:last-child{border-bottom:1px solid var(--line)}
+  .group h3{
+    font-size:.72rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:.6rem;
+    font-weight:600;
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.4rem;
+    width:100%;
+    padding:.6rem .8rem;
+    background:#1a1a1a;
+    color:#fdfcf8;
+    border:none;
+    font-family:'Inter',sans-serif;
+    font-size:.8rem;
+    letter-spacing:.06em;
+    cursor:pointer;
+    transition:background .15s, transform .1s;
+    border-radius:2px;
+  }
+  .btn:hover{background:#2c2c2c}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:#1a1a1a;border:1px solid var(--line)}
+  .btn.ghost:hover{background:rgba(0,0,0,.04)}
+  .btn.accent{background:var(--accent)}
+  .btn.accent:hover{background:#9a7640}
+
+  .btn-row{display:flex;gap:.5rem;margin-top:.5rem}
+  .btn-row .btn{font-size:.72rem;padding:.5rem}
+
+  .slider-row{
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+    margin-top:.5rem;
+  }
+  .slider-row label{
+    font-size:.7rem;
+    color:var(--muted);
+    width:38px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+  }
+  input[type=range]{flex:1;accent-color:var(--accent)}
+
+  input[type=file]{display:none}
+
+  .swatch{
+    display:inline-block;
+    width:10px;height:10px;
+    border-radius:50%;
+    margin-right:.4rem;
+    vertical-align:middle;
+  }
+  .swatch.guy{background:#5b9cf6}
+  .swatch.girl{background:#e49bcf}
+
+  footer{
+    margin-top:2.5rem;
+    font-size:.7rem;
+    color:var(--muted);
+    text-align:center;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+  }
+
+  @media (max-width: 780px){
+    .card-wrap{flex-direction:column;align-items:center}
+  }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Save the Date — Photo Editor</h1>
+  <p>Swap the whole photo, or replace the person on the left or right with your own image. Drag a person to reposition, use the slider to resize.</p>
+</div>
+
+<div class="card-wrap">
+
+  <!-- ===== CARD ===== -->
+  <div class="card" id="card">
+    <div class="card-title">SAVE <span class="the">the</span> DATE</div>
+
+    <div class="photo" id="photo">
+      <!-- base photo layer -->
+      <img id="baseImg" class="layer" alt="" style="display:none">
+      <div id="placeholder" class="placeholder">
+        <div class="silhouette"></div>
+        <div class="ph-label">Upload your photo</div>
+      </div>
+
+      <!-- draggable person overlays (hidden until user uploads) -->
+      <img id="guyImg"  class="person" data-role="guy"  alt="" style="display:none">
+      <img id="girlImg" class="person" data-role="girl" alt="" style="display:none">
+    </div>
+
+    <div class="names" contenteditable="true" spellcheck="false">Allegra &amp; Joel</div>
+    <div class="subline" contenteditable="true" spellcheck="false">Legal &lsquo;I do&rsquo; &amp; Engagement Party</div>
+    <div class="date" contenteditable="true" spellcheck="false">June 25, 2026</div>
+    <div class="loc">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+      <span contenteditable="true" spellcheck="false">Toronto, CA</span>
+    </div>
+  </div>
+
+  <!-- ===== CONTROLS ===== -->
+  <div class="controls">
+    <h2>Customize</h2>
+    <p class="hint">All edits happen in your browser — nothing is uploaded.</p>
+
+    <div class="group">
+      <h3>Main photo</h3>
+      <button class="btn" onclick="document.getElementById('baseFile').click()">Replace full photo</button>
+      <div class="btn-row">
+        <button class="btn ghost" onclick="clearBase()">Reset to placeholder</button>
+      </div>
+      <input type="file" id="baseFile" accept="image/*">
+    </div>
+
+    <div class="group">
+      <h3><span class="swatch guy"></span>Replace the guy</h3>
+      <p class="hint" style="margin-bottom:.4rem">Works best with a transparent PNG cutout.</p>
+      <button class="btn" onclick="document.getElementById('guyFile').click()">Upload guy image</button>
+      <div class="slider-row">
+        <label>Size</label>
+        <input type="range" id="guySize" min="10" max="100" value="45" disabled>
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost" onclick="removePerson('guy')">Remove</button>
+      </div>
+      <input type="file" id="guyFile" accept="image/*">
+    </div>
+
+    <div class="group">
+      <h3><span class="swatch girl"></span>Replace the girl</h3>
+      <p class="hint" style="margin-bottom:.4rem">Works best with a transparent PNG cutout.</p>
+      <button class="btn" onclick="document.getElementById('girlFile').click()">Upload girl image</button>
+      <div class="slider-row">
+        <label>Size</label>
+        <input type="range" id="girlSize" min="10" max="100" value="45" disabled>
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost" onclick="removePerson('girl')">Remove</button>
+      </div>
+      <input type="file" id="girlFile" accept="image/*">
+    </div>
+
+    <div class="group">
+      <button class="btn accent" onclick="downloadCard()">Download card as image</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>Made with love · June 25, 2026</footer>
+
+<script>
+  const photo = document.getElementById('photo');
+  const placeholder = document.getElementById('placeholder');
+  const baseImg = document.getElementById('baseImg');
+  const guyImg  = document.getElementById('guyImg');
+  const girlImg = document.getElementById('girlImg');
+
+  function readImage(file, target, onReady){
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      target.src = e.target.result;
+      target.style.display = 'block';
+      if(onReady) onReady();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Main photo swap
+  document.getElementById('baseFile').addEventListener('change', e => {
+    readImage(e.target.files[0], baseImg, () => {
+      placeholder.style.display = 'none';
+    });
+  });
+  function clearBase(){
+    baseImg.removeAttribute('src');
+    baseImg.style.display = 'none';
+    placeholder.style.display = 'block';
+  }
+
+  // Person overlays
+  function setupPerson(role){
+    const fileInput = document.getElementById(role + 'File');
+    const sizeInput = document.getElementById(role + 'Size');
+    const img = role === 'guy' ? guyImg : girlImg;
+
+    fileInput.addEventListener('change', e => {
+      readImage(e.target.files[0], img, () => {
+        sizeInput.disabled = false;
+        sizeInput.value = 45;
+        img.style.width = '45%';
+      });
+    });
+    sizeInput.addEventListener('input', () => {
+      img.style.width = sizeInput.value + '%';
+    });
+  }
+  setupPerson('guy');
+  setupPerson('girl');
+
+  function removePerson(role){
+    const img = role === 'guy' ? guyImg : girlImg;
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    img.style.left = role === 'guy' ? '38%' : '62%';
+    img.style.top = '50%';
+    img.style.transform = 'translate(-50%,-50%)';
+    document.getElementById(role + 'Size').disabled = true;
+  }
+
+  // Drag to reposition person overlays
+  function makeDraggable(el){
+    let startX, startY, startLeft, startTop, pRect;
+    function onDown(e){
+      if(el.style.display === 'none') return;
+      e.preventDefault();
+      const pt = 'touches' in e ? e.touches[0] : e;
+      pRect = photo.getBoundingClientRect();
+      startX = pt.clientX;
+      startY = pt.clientY;
+      const cs = getComputedStyle(el);
+      // Convert current left/top (%) to px
+      startLeft = (parseFloat(el.style.left) || 50) / 100 * pRect.width;
+      startTop  = (parseFloat(el.style.top)  || 50) / 100 * pRect.height;
+      el.classList.add('dragging');
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchmove', onMove, {passive:false});
+      window.addEventListener('touchend', onUp);
+    }
+    function onMove(e){
+      e.preventDefault();
+      const pt = 'touches' in e ? e.touches[0] : e;
+      const dx = pt.clientX - startX;
+      const dy = pt.clientY - startY;
+      const newLeftPx = startLeft + dx;
+      const newTopPx  = startTop  + dy;
+      el.style.left = (newLeftPx / pRect.width  * 100) + '%';
+      el.style.top  = (newTopPx  / pRect.height * 100) + '%';
+    }
+    function onUp(){
+      el.classList.remove('dragging');
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    }
+    el.addEventListener('mousedown', onDown);
+    el.addEventListener('touchstart', onDown, {passive:false});
+  }
+  makeDraggable(guyImg);
+  makeDraggable(girlImg);
+
+  // Download card as PNG (simple canvas snapshot of the photo + text overlay)
+  async function downloadCard(){
+    // Dynamic import of html2canvas from CDN
+    if(!window.html2canvas){
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload = res;
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    const card = document.getElementById('card');
+    const canvas = await html2canvas(card, {
+      backgroundColor:'#fdfcf8',
+      scale:2,
+      useCORS:true
+    });
+    const link = document.createElement('a');
+    link.download = 'save-the-date.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+</script>
+</body>
+</html>

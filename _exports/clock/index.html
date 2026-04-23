@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Clock & Weather</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f0e;
+    --surface: #141714;
+    --surface2: #1a1d1a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8ebe6;
+    --text2: #8a9088;
+    --text3: #5a5e58;
+    --green: #4caf7d;
+    --amber: #d4a843;
+    --blue: #5b9cf6;
+    --orange: #e08a4e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .header {
+    padding: 2rem 2.5rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 1;
+  }
+
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.4rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--text2);
+  }
+
+  .sub {
+    color: var(--text2);
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: 640px;
+  }
+
+  main {
+    padding: 2.5rem;
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .card:hover {
+    border-color: var(--border2);
+    transform: translateY(-2px);
+  }
+
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+  }
+
+  .city {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    line-height: 1.1;
+  }
+
+  .country {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+  }
+
+  .offset {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text2);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+
+  .time {
+    font-family: 'DM Mono', monospace;
+    font-size: 2.6rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .time .sec {
+    color: var(--text3);
+    font-size: 1.4rem;
+    margin-left: 0.25rem;
+  }
+
+  .date {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text2);
+    margin-top: 0.5rem;
+  }
+
+  .weather {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .weather-main {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .icon {
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .temp {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.8rem;
+    line-height: 1;
+  }
+
+  .conditions {
+    font-size: 0.75rem;
+    color: var(--text2);
+    margin-top: 0.25rem;
+    text-transform: capitalize;
+  }
+
+  .meta {
+    text-align: right;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .meta span { color: var(--text3); }
+
+  .day-night {
+    position: absolute;
+    top: 0; right: 0;
+    width: 8px; height: 100%;
+    background: var(--surface2);
+  }
+
+  .day-night.day { background: linear-gradient(180deg, var(--amber), var(--orange)); }
+  .day-night.night { background: linear-gradient(180deg, #2a3550, #0f1422); }
+
+  .loading {
+    color: var(--text3);
+    font-style: italic;
+    font-size: 0.8rem;
+  }
+
+  .controls {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.2s ease;
+  }
+
+  .btn:hover { background: var(--surface2); }
+
+  .add-form {
+    display: none;
+    margin-top: 1rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .add-form.open { display: flex; }
+
+  .add-form input {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 0.55rem 0.75rem;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    min-width: 180px;
+  }
+
+  .add-form input:focus { outline: 1px solid var(--blue); }
+
+  .footer {
+    padding: 2rem 2.5rem;
+    border-top: 1px solid var(--border);
+    margin-top: 3rem;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+  }
+
+  .footer a { color: var(--text2); text-decoration: none; }
+  .footer a:hover { color: var(--text); }
+
+  .remove {
+    position: absolute;
+    top: 0.75rem; right: 1.5rem;
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease, color 0.2s ease;
+  }
+
+  .card:hover .remove { opacity: 1; }
+  .remove:hover { color: var(--text); }
+
+  /* Ferrari carousel */
+  .ferrari-carousel {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    transition: border-color 0.2s ease;
+  }
+
+  .ferrari-carousel:hover { border-color: #dc0000; }
+
+  .car-stage {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    align-items: stretch;
+    min-height: 240px;
+  }
+
+  .car-art {
+    background: linear-gradient(180deg, #1a1d1a 0%, #0d0f0e 100%);
+    padding: 2rem 4rem;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .car-art::before {
+    content: '';
+    position: absolute;
+    bottom: 18%; left: 15%; right: 15%;
+    height: 12px;
+    background: radial-gradient(ellipse at center, rgba(220,0,0,0.3), transparent 70%);
+    filter: blur(6px);
+  }
+
+  .car-art svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 180px;
+    transition: transform 0.4s ease, opacity 0.3s ease;
+  }
+
+  .car-info {
+    padding: 2rem 2.25rem;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .car-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: #dc0000;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .car-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.2rem;
+    line-height: 1;
+  }
+
+  .car-year {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text2);
+    letter-spacing: 0.2em;
+    margin-top: 0.5rem;
+  }
+
+  .car-specs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .car-specs > div { font-family: 'DM Mono', monospace; font-size: 0.8rem; }
+
+  .car-specs .label {
+    color: var(--text3);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+
+  .car-specs .val { color: var(--text); font-weight: 500; }
+
+  /* nav arrows */
+  .car-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    z-index: 3;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .car-nav:hover { background: #dc0000; border-color: #dc0000; }
+  .car-nav.prev { left: 0.85rem; }
+  .car-nav.next { right: 0.85rem; }
+
+  /* dots */
+  .car-dots {
+    position: absolute;
+    bottom: 0.85rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.4rem;
+    z-index: 3;
+  }
+
+  .car-dots button {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s ease, width 0.2s ease;
+  }
+
+  .car-dots button.active {
+    background: #dc0000;
+    width: 22px;
+    border-radius: 4px;
+  }
+
+  /* counter badge */
+  .car-counter {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text2);
+    background: rgba(0,0,0,0.45);
+    border: 1px solid var(--border);
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    letter-spacing: 0.1em;
+    z-index: 2;
+  }
+
+  @media (max-width: 700px) {
+    .car-stage { grid-template-columns: 1fr; }
+    .car-art { padding: 1.5rem 3rem; min-height: 160px; }
+    .car-info { border-left: none; border-top: 1px solid var(--border); padding: 1.25rem 1.25rem 2.25rem; }
+    .car-name { font-size: 1.6rem; }
+    .car-art svg { max-height: 130px; }
+  }
+
+  @media (max-width: 600px) {
+    .header { padding: 1.5rem; }
+    main { padding: 1.5rem; }
+    h1 { font-size: 1.8rem; }
+    .time { font-size: 2.2rem; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<header class="header">
+  <div class="eyebrow">// proof of concept</div>
+  <h1>World <em>Clock</em> & Weather</h1>
+  <p class="sub">Live local time and current conditions for cities around the world. Times update every second; weather refreshes every 10 minutes.</p>
+  <div class="controls">
+    <button class="btn" id="toggleAdd">+ Add City</button>
+    <button class="btn" id="resetCities">Reset</button>
+  </div>
+  <div class="add-form" id="addForm">
+    <input type="text" id="cityName" placeholder="City name (e.g. Reykjavík)">
+    <input type="text" id="countryCode" placeholder="Country (e.g. IS)">
+    <button class="btn" id="addCity">Add</button>
+  </div>
+</header>
+
+<main>
+  <div class="ferrari-carousel" id="ferrariCarousel" aria-label="Ferrari showcase">
+    <span class="car-counter" id="carCounter">1 / 6</span>
+    <button class="car-nav prev" id="carPrev" aria-label="Previous Ferrari">‹</button>
+    <button class="car-nav next" id="carNext" aria-label="Next Ferrari">›</button>
+    <div class="car-stage">
+      <div class="car-art" id="carArt"></div>
+      <div class="car-info" id="carInfo"></div>
+    </div>
+    <div class="car-dots" id="carDots"></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer class="footer">
+  Weather via <a href="https://open-meteo.com" target="_blank" rel="noopener">open-meteo.com</a> · Geocoding via Open-Meteo · No API key, no tracking
+</footer>
+
+<script>
+const DEFAULT_CITIES = [
+  { name: 'New York',   country: 'US', tz: 'America/New_York',     lat: 40.7128,  lon: -74.0060 },
+  { name: 'London',     country: 'GB', tz: 'Europe/London',        lat: 51.5074,  lon: -0.1278  },
+  { name: 'Paris',      country: 'FR', tz: 'Europe/Paris',         lat: 48.8566,  lon: 2.3522   },
+  { name: 'Dubai',      country: 'AE', tz: 'Asia/Dubai',           lat: 25.2048,  lon: 55.2708  },
+  { name: 'Tokyo',      country: 'JP', tz: 'Asia/Tokyo',           lat: 35.6762,  lon: 139.6503 },
+  { name: 'Sydney',     country: 'AU', tz: 'Australia/Sydney',     lat: -33.8688, lon: 151.2093 },
+  { name: 'San Francisco', country: 'US', tz: 'America/Los_Angeles', lat: 37.7749, lon: -122.4194 },
+  { name: 'São Paulo',  country: 'BR', tz: 'America/Sao_Paulo',    lat: -23.5505, lon: -46.6333 },
+];
+
+const STORAGE_KEY = 'world-clock-cities';
+const WEATHER_REFRESH_MS = 10 * 60 * 1000;
+
+// WMO weather code → { icon, label }
+const WMO = {
+  0:  ['☀️', 'clear sky'],
+  1:  ['🌤️', 'mainly clear'],
+  2:  ['⛅', 'partly cloudy'],
+  3:  ['☁️', 'overcast'],
+  45: ['🌫️', 'fog'],
+  48: ['🌫️', 'rime fog'],
+  51: ['🌦️', 'light drizzle'],
+  53: ['🌦️', 'drizzle'],
+  55: ['🌦️', 'dense drizzle'],
+  56: ['🌧️', 'freezing drizzle'],
+  57: ['🌧️', 'freezing drizzle'],
+  61: ['🌧️', 'light rain'],
+  63: ['🌧️', 'rain'],
+  65: ['🌧️', 'heavy rain'],
+  66: ['🌧️', 'freezing rain'],
+  67: ['🌧️', 'freezing rain'],
+  71: ['🌨️', 'light snow'],
+  73: ['🌨️', 'snow'],
+  75: ['❄️', 'heavy snow'],
+  77: ['🌨️', 'snow grains'],
+  80: ['🌦️', 'rain showers'],
+  81: ['🌧️', 'rain showers'],
+  82: ['⛈️', 'violent showers'],
+  85: ['🌨️', 'snow showers'],
+  86: ['🌨️', 'snow showers'],
+  95: ['⛈️', 'thunderstorm'],
+  96: ['⛈️', 'thunderstorm w/ hail'],
+  99: ['⛈️', 'severe thunderstorm'],
+};
+
+let cities = loadCities();
+
+function loadCities() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch (e) {}
+  return [...DEFAULT_CITIES];
+}
+
+function saveCities() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cities)); } catch (e) {}
+}
+
+function cityId(c) { return `${c.name}-${c.lat}-${c.lon}`.replace(/[^a-z0-9-]/gi, '_'); }
+
+function render() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = cities.map((c, idx) => {
+    const id = cityId(c);
+    return `
+      <div class="card" data-id="${id}">
+        <button class="remove" data-idx="${idx}" title="Remove">×</button>
+        <div class="day-night" id="dn-${id}"></div>
+        <div class="card-head">
+          <div>
+            <div class="city">${escapeHtml(c.name)}</div>
+            <div class="country">${escapeHtml(c.country || '')}</div>
+          </div>
+          <div class="offset" id="off-${id}">—</div>
+        </div>
+        <div class="time" id="t-${id}">--:--<span class="sec">--</span></div>
+        <div class="date" id="d-${id}">—</div>
+        <div class="weather" id="w-${id}">
+          <div class="weather-main">
+            <span class="icon">⋯</span>
+            <div>
+              <div class="temp loading">loading…</div>
+              <div class="conditions"></div>
+            </div>
+          </div>
+          <div class="meta"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.querySelectorAll('.remove').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = parseInt(e.target.dataset.idx);
+      cities.splice(idx, 1);
+      saveCities();
+      render();
+      updateClocks();
+      refreshAllWeather();
+    });
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+function updateClocks() {
+  const now = new Date();
+  cities.forEach(c => {
+    const id = cityId(c);
+    const tEl = document.getElementById(`t-${id}`);
+    const dEl = document.getElementById(`d-${id}`);
+    const offEl = document.getElementById(`off-${id}`);
+    const dnEl = document.getElementById(`dn-${id}`);
+    if (!tEl) return;
+
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: c.tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    }).formatToParts(now);
+    const get = t => parts.find(p => p.type === t)?.value || '--';
+    tEl.innerHTML = `${get('hour')}:${get('minute')}<span class="sec">:${get('second')}</span>`;
+
+    const dateStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: c.tz, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+    }).format(now);
+    dEl.textContent = dateStr;
+
+    // Compute UTC offset for this tz
+    const tzShort = new Intl.DateTimeFormat('en-US', {
+      timeZone: c.tz, timeZoneName: 'shortOffset'
+    }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value || '';
+    offEl.textContent = tzShort.replace('GMT', 'UTC');
+
+    // Day/night strip based on local hour
+    const hour = parseInt(get('hour'));
+    if (hour >= 6 && hour < 19) {
+      dnEl.className = 'day-night day';
+    } else {
+      dnEl.className = 'day-night night';
+    }
+  });
+}
+
+async function fetchWeather(c) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}` +
+              `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code` +
+              `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('weather fetch failed');
+    const data = await res.json();
+    return data.current;
+  } catch (e) {
+    console.error('Weather error for', c.name, e);
+    return null;
+  }
+}
+
+async function refreshAllWeather() {
+  await Promise.all(cities.map(async c => {
+    const id = cityId(c);
+    const wEl = document.getElementById(`w-${id}`);
+    if (!wEl) return;
+    const cur = await fetchWeather(c);
+    if (!cur) {
+      wEl.innerHTML = `<div class="weather-main"><span class="icon">⚠️</span><div><div class="temp" style="font-size:1rem">unavailable</div></div></div>`;
+      return;
+    }
+    const [icon, label] = WMO[cur.weather_code] || ['❔', 'unknown'];
+    const tempC = Math.round(cur.temperature_2m);
+    const tempF = Math.round(tempC * 9/5 + 32);
+    wEl.innerHTML = `
+      <div class="weather-main">
+        <span class="icon">${icon}</span>
+        <div>
+          <div class="temp">${tempC}°<span style="font-size:0.9rem;color:var(--text3)">C</span></div>
+          <div class="conditions">${label}</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div>${tempF}°F</div>
+        <div><span>RH</span> ${Math.round(cur.relative_humidity_2m)}%</div>
+        <div><span>WIND</span> ${Math.round(cur.wind_speed_10m)} km/h</div>
+      </div>
+    `;
+  }));
+}
+
+async function geocode(name, country) {
+  const q = encodeURIComponent(name);
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=5&language=en&format=json`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('geocoding failed');
+  const data = await res.json();
+  if (!data.results || !data.results.length) return null;
+  let match = data.results[0];
+  if (country) {
+    const cc = country.toUpperCase();
+    const better = data.results.find(r => (r.country_code || '').toUpperCase() === cc);
+    if (better) match = better;
+  }
+  return {
+    name: match.name,
+    country: match.country_code || '',
+    tz: match.timezone,
+    lat: match.latitude,
+    lon: match.longitude,
+  };
+}
+
+document.getElementById('toggleAdd').addEventListener('click', () => {
+  document.getElementById('addForm').classList.toggle('open');
+});
+
+document.getElementById('addCity').addEventListener('click', async () => {
+  const name = document.getElementById('cityName').value.trim();
+  const country = document.getElementById('countryCode').value.trim();
+  if (!name) return;
+  try {
+    const found = await geocode(name, country);
+    if (!found) { alert(`Couldn't find "${name}"`); return; }
+    cities.push(found);
+    saveCities();
+    document.getElementById('cityName').value = '';
+    document.getElementById('countryCode').value = '';
+    document.getElementById('addForm').classList.remove('open');
+    render();
+    updateClocks();
+    refreshAllWeather();
+  } catch (e) {
+    alert('Geocoding failed. Check your connection and try again.');
+  }
+});
+
+document.getElementById('resetCities').addEventListener('click', () => {
+  if (!confirm('Reset to default cities?')) return;
+  cities = [...DEFAULT_CITIES];
+  saveCities();
+  render();
+  updateClocks();
+  refreshAllWeather();
+});
+
+/* ---------- Ferrari gallery ---------- */
+
+// Three reusable supercar silhouettes. Each takes a unique suffix so gradient
+// IDs don't collide when the same shape is rendered for multiple cards.
+function svgWedge(uid) {
+  return `
+<svg viewBox="0 0 400 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="body-${uid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff1a1a"/>
+      <stop offset="0.6" stop-color="#dc0000"/>
+      <stop offset="1" stop-color="#7a0000"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="200" cy="118" rx="160" ry="6" fill="rgba(0,0,0,0.6)"/>
+  <path d="M 25 95 L 60 70 L 130 55 L 170 38 L 250 38 L 305 60 L 365 75 L 375 95 Z"
+        fill="url(#body-${uid})" stroke="#3a0000" stroke-width="1.2"/>
+  <rect x="320" y="48" width="55" height="5" fill="#1a0000"/>
+  <rect x="345" y="48" width="6" height="14" fill="#1a0000"/>
+  <path d="M 145 55 L 175 42 L 245 42 L 270 60 Z" fill="#0a0a0a" opacity="0.85"/>
+  <path d="M 250 68 L 295 68 L 290 80 L 250 80 Z" fill="#1a0000"/>
+  <rect x="22" y="92" width="355" height="4" fill="#0a0a0a"/>
+  <circle cx="95" cy="98" r="20" fill="#0a0a0a"/>
+  <circle cx="95" cy="98" r="11" fill="#1f1f1f" stroke="#666" stroke-width="1"/>
+  <circle cx="95" cy="98" r="3" fill="#dc0000"/>
+  <circle cx="305" cy="98" r="20" fill="#0a0a0a"/>
+  <circle cx="305" cy="98" r="11" fill="#1f1f1f" stroke="#666" stroke-width="1"/>
+  <circle cx="305" cy="98" r="3" fill="#dc0000"/>
+  <path d="M 35 85 L 55 80 L 55 88 L 35 90 Z" fill="#fff8c8" opacity="0.7"/>
+  <rect x="362" y="78" width="10" height="5" fill="#ff3a3a"/>
+</svg>`;
+}
+
+function svgHyper(uid) {
+  return `
+<svg viewBox="0 0 400 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="body-${uid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff2424"/>
+      <stop offset="0.55" stop-color="#dc0000"/>
+      <stop offset="1" stop-color="#5a0000"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="200" cy="118" rx="165" ry="6" fill="rgba(0,0,0,0.6)"/>
+  <path d="M 20 95
+           C 25 80, 55 70, 95 65
+           C 130 50, 170 40, 220 40
+           C 270 40, 320 55, 360 70
+           C 380 78, 382 90, 378 95 Z"
+        fill="url(#body-${uid})" stroke="#3a0000" stroke-width="1.2"/>
+  <path d="M 130 60 C 160 38, 240 38, 290 58 L 280 70 L 145 70 Z" fill="#0a0a0a" opacity="0.9"/>
+  <path d="M 235 72 L 295 72 L 285 86 L 235 86 Z" fill="#1a0000"/>
+  <path d="M 305 58 L 355 60 L 355 64 L 305 64 Z" fill="#1a0000"/>
+  <rect x="20" y="92" width="360" height="4" fill="#0a0a0a"/>
+  <circle cx="95" cy="98" r="22" fill="#0a0a0a"/>
+  <circle cx="95" cy="98" r="12" fill="#1f1f1f" stroke="#888" stroke-width="1"/>
+  <circle cx="95" cy="98" r="3" fill="#dc0000"/>
+  <circle cx="310" cy="98" r="22" fill="#0a0a0a"/>
+  <circle cx="310" cy="98" r="12" fill="#1f1f1f" stroke="#888" stroke-width="1"/>
+  <circle cx="310" cy="98" r="3" fill="#dc0000"/>
+  <path d="M 28 80 Q 50 72 70 78 L 70 86 Q 50 84 30 88 Z" fill="#fff8c8" opacity="0.6"/>
+  <rect x="358" y="76" width="14" height="4" fill="#ff3a3a"/>
+</svg>`;
+}
+
+function svgBarchetta(uid) {
+  return `
+<svg viewBox="0 0 400 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="body-${uid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff1818"/>
+      <stop offset="0.55" stop-color="#dc0000"/>
+      <stop offset="1" stop-color="#600000"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="200" cy="118" rx="160" ry="6" fill="rgba(0,0,0,0.6)"/>
+  <path d="M 22 92
+           C 28 82, 60 75, 110 72
+           L 160 60
+           L 250 60
+           L 290 72
+           C 330 76, 365 82, 378 92 Z"
+        fill="url(#body-${uid})" stroke="#3a0000" stroke-width="1.2"/>
+  <path d="M 250 60 C 260 50, 280 50, 290 62 L 285 72 L 250 72 Z" fill="#1a0000"/>
+  <path d="M 165 62 L 245 62 L 240 72 L 175 72 Z" fill="#0a0a0a"/>
+  <path d="M 200 76 L 245 76 L 240 86 L 200 86 Z" fill="#1a0000"/>
+  <rect x="22" y="89" width="358" height="4" fill="#0a0a0a"/>
+  <circle cx="100" cy="96" r="20" fill="#0a0a0a"/>
+  <circle cx="100" cy="96" r="11" fill="#1f1f1f" stroke="#777" stroke-width="1"/>
+  <circle cx="100" cy="96" r="3" fill="#dc0000"/>
+  <circle cx="310" cy="96" r="20" fill="#0a0a0a"/>
+  <circle cx="310" cy="96" r="11" fill="#1f1f1f" stroke="#777" stroke-width="1"/>
+  <circle cx="310" cy="96" r="3" fill="#dc0000"/>
+  <ellipse cx="42" cy="84" rx="10" ry="4" fill="#fff8c8" opacity="0.7"/>
+  <rect x="360" y="78" width="14" height="5" fill="#ff3a3a"/>
+</svg>`;
+}
+
+const FERRARIS = [
+  { name: 'F40',           year: '1987', shape: svgWedge,     hp: '478 hp', top: '324 km/h', engine: '2.9L V8 TT' },
+  { name: 'F50',           year: '1995', shape: svgBarchetta, hp: '513 hp', top: '325 km/h', engine: '4.7L V12'   },
+  { name: 'Enzo',          year: '2002', shape: svgHyper,     hp: '651 hp', top: '350 km/h', engine: '6.0L V12'   },
+  { name: 'LaFerrari',     year: '2013', shape: svgHyper,     hp: '950 hp', top: '350 km/h', engine: '6.3L V12 + e' },
+  { name: 'SF90 Stradale', year: '2019', shape: svgWedge,     hp: '986 hp', top: '340 km/h', engine: '4.0L V8 PHEV' },
+  { name: 'Daytona SP3',   year: '2021', shape: svgBarchetta, hp: '828 hp', top: '340 km/h', engine: '6.5L V12'   },
+];
+
+let carIdx = 0;
+let carTimer = null;
+
+function renderFerrariSlide() {
+  const f = FERRARIS[carIdx];
+  const art = document.getElementById('carArt');
+  const info = document.getElementById('carInfo');
+  const counter = document.getElementById('carCounter');
+  if (!art || !info) return;
+
+  art.innerHTML = f.shape(carIdx);
+  info.innerHTML = `
+    <div class="car-eyebrow">// Maranello</div>
+    <div class="car-name">${escapeHtml(f.name)}</div>
+    <div class="car-year">${escapeHtml(f.year)}</div>
+    <div class="car-specs">
+      <div><div class="label">Power</div><div class="val">${escapeHtml(f.hp)}</div></div>
+      <div><div class="label">Top Speed</div><div class="val">${escapeHtml(f.top)}</div></div>
+      <div><div class="label">Engine</div><div class="val">${escapeHtml(f.engine)}</div></div>
+    </div>
+  `;
+  counter.textContent = `${carIdx + 1} / ${FERRARIS.length}`;
+
+  document.querySelectorAll('#carDots button').forEach((b, i) => {
+    b.classList.toggle('active', i === carIdx);
+  });
+}
+
+function buildFerrariDots() {
+  const dots = document.getElementById('carDots');
+  if (!dots) return;
+  dots.innerHTML = FERRARIS.map((_, i) =>
+    `<button data-i="${i}" aria-label="Show Ferrari ${i + 1}"></button>`
+  ).join('');
+  dots.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => {
+      carIdx = parseInt(b.dataset.i);
+      renderFerrariSlide();
+      restartCarTimer();
+    });
+  });
+}
+
+function nextCar() { carIdx = (carIdx + 1) % FERRARIS.length; renderFerrariSlide(); }
+function prevCar() { carIdx = (carIdx - 1 + FERRARIS.length) % FERRARIS.length; renderFerrariSlide(); }
+
+function restartCarTimer() {
+  if (carTimer) clearInterval(carTimer);
+  carTimer = setInterval(() => { nextCar(); }, 6000);
+}
+
+function setupFerrariCarousel() {
+  buildFerrariDots();
+  renderFerrariSlide();
+  document.getElementById('carNext').addEventListener('click', () => { nextCar(); restartCarTimer(); });
+  document.getElementById('carPrev').addEventListener('click', () => { prevCar(); restartCarTimer(); });
+
+  // touch swipe
+  const stage = document.getElementById('ferrariCarousel');
+  let startX = null;
+  stage.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+  stage.addEventListener('touchend', e => {
+    if (startX === null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 40) { dx < 0 ? nextCar() : prevCar(); restartCarTimer(); }
+    startX = null;
+  });
+
+  // keyboard arrows
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { nextCar(); restartCarTimer(); }
+    if (e.key === 'ArrowLeft')  { prevCar(); restartCarTimer(); }
+  });
+
+  restartCarTimer();
+}
+
+// boot
+render();
+setupFerrariCarousel();
+updateClocks();
+refreshAllWeather();
+setInterval(updateClocks, 1000);
+setInterval(refreshAllWeather, WEATHER_REFRESH_MS);
+</script>
+</body>
+</html>

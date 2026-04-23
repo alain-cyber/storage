@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMO Dashboard — POC</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0d0f0e;
+    --surface: #141714;
+    --surface2: #1a1d1a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8ebe6;
+    --text2: #8a9088;
+    --text3: #5a5e58;
+    --green: #4caf7d;
+    --green-dim: rgba(76,175,125,0.12);
+    --red: #e05a4e;
+    --red-dim: rgba(224,90,78,0.12);
+    --amber: #d4a843;
+    --amber-dim: rgba(212,168,67,0.12);
+    --blue: #5b9cf6;
+    --blue-dim: rgba(91,156,246,0.12);
+    --purple: #b57dd6;
+    --purple-dim: rgba(181,125,214,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .header {
+    padding: 2rem 2.5rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .header-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .header-left p {
+    font-size: 0.75rem;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-top: 0.4rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .header-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+  .nav { display: flex; gap: 0.75rem; }
+  .nav a {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    text-decoration: none;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .nav a:hover { color: var(--text); border-color: var(--border2); }
+  .nav a.active { color: var(--text); border-color: var(--border2); background: var(--surface); }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .last-updated {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text3);
+    letter-spacing: 0.05em;
+  }
+
+  .dashboard { padding: 2rem 2.5rem; position: relative; z-index: 1; }
+
+  .section { margin-bottom: 2.5rem; }
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+  }
+  .section-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    transition: border-color 0.2s;
+  }
+  .metric-card:hover { border-color: var(--border2); }
+  .metric-card.placeholder {
+    background: repeating-linear-gradient(135deg, var(--surface) 0 12px, var(--surface2) 12px 24px);
+    opacity: 0.65;
+  }
+
+  .metric-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0.6rem;
+  }
+
+  .metric-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.9rem;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .metric-delta {
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+  }
+  .delta-up { color: var(--green); }
+  .delta-down { color: var(--red); }
+  .delta-neutral { color: var(--text3); }
+
+  .charts-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+
+  .chart-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .chart-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    line-height: 1;
+    margin-top: 0.25rem;
+  }
+
+  .chart-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.05em;
+  }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-blue { background: var(--blue-dim); color: var(--blue); }
+  .badge-purple { background: var(--purple-dim); color: var(--purple); }
+  .badge-ghost { background: rgba(255,255,255,0.05); color: var(--text3); border: 1px dashed var(--border2); }
+
+  .chart-wrap { position: relative; }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .data-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 0 0 0.75rem;
+    text-align: left;
+    font-weight: 400;
+  }
+  .data-table td {
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .data-table td:first-child { color: var(--text); font-weight: 600; }
+  .data-table td.num { font-family: 'DM Mono', monospace; text-align: right; }
+
+  .placeholder-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text3);
+    margin-top: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-top: 1px solid var(--border);
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 768px) {
+    .header { padding: 1.5rem; flex-direction: column; align-items: flex-start; }
+    .dashboard { padding: 1rem 1.5rem; }
+    .charts-grid-2 { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<header class="header">
+  <div class="header-left">
+    <h1>CMO Dashboard</h1>
+    <p>Marketing performance · Proof of concept</p>
+  </div>
+  <div class="header-right">
+    <div class="status-dot"></div>
+    <span class="last-updated" id="lastUpdated">Loading...</span>
+  </div>
+</header>
+
+<div class="dashboard">
+
+  <section class="section" id="overviewSection">
+    <div class="section-head">
+      <div class="section-title">Overview</div>
+      <div class="section-meta">Cross-channel KPIs</div>
+    </div>
+    <div class="metrics-grid" id="overviewGrid"></div>
+  </section>
+
+  <section class="section" id="adsSection">
+    <div class="section-head">
+      <div class="section-title">Paid — Google Ads</div>
+      <div class="section-meta" id="adsMeta">—</div>
+    </div>
+    <div class="metrics-grid" id="adsKpis"></div>
+    <div class="charts-grid-2" style="margin-top:1rem">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Spend trend</div>
+            <div class="chart-value" id="adsSpend">—</div>
+          </div>
+          <span class="chart-badge badge-blue">Daily</span>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="adsChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Top campaigns</div>
+            <div class="chart-value">By spend</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Campaign</th><th class="num">Spend</th><th class="num">Clicks</th><th class="num">Conv</th></tr></thead>
+          <tbody id="adsCampaigns"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="seoSection">
+    <div class="section-head">
+      <div class="section-title">SEO — Search Console</div>
+      <div class="section-meta" id="seoMeta">—</div>
+    </div>
+    <div class="metrics-grid" id="seoKpis"></div>
+    <div class="charts-grid-2" style="margin-top:1rem">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Clicks vs impressions</div>
+            <div class="chart-value" id="seoClicks">—</div>
+          </div>
+          <span class="chart-badge badge-green">Trend</span>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="seoChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Top queries</div>
+            <div class="chart-value">By clicks</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Query</th><th class="num">Clicks</th><th class="num">Impr</th><th class="num">Pos</th></tr></thead>
+          <tbody id="seoQueries"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="gaSection">
+    <div class="section-head">
+      <div class="section-title">Web — Google Analytics</div>
+      <div class="section-meta" id="gaMeta">—</div>
+    </div>
+    <div class="metrics-grid" id="gaKpis"></div>
+    <div class="charts-grid-2" style="margin-top:1rem">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Sessions trend</div>
+            <div class="chart-value" id="gaSessions">—</div>
+          </div>
+          <span class="chart-badge badge-amber">Daily</span>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="gaChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Channel mix</div>
+            <div class="chart-value">Sessions</div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="gaChannelChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="callsSection">
+    <div class="section-head">
+      <div class="section-title">Calls — Aircall</div>
+      <div class="section-meta" id="callsMeta">—</div>
+    </div>
+    <div class="metrics-grid" id="callsKpis"></div>
+    <div class="charts-grid-2" style="margin-top:1rem">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Calls per day</div>
+            <div class="chart-value" id="callsTotal">—</div>
+          </div>
+          <span class="chart-badge badge-blue">Volume</span>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="callsChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Answered vs missed</div>
+            <div class="chart-value" id="callsAnsweredPct">—</div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="callsDonut"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div class="section-title">Social</div>
+      <div class="section-meta">Placeholder · Not connected</div>
+    </div>
+    <div class="metrics-grid" id="socialGrid"></div>
+    <div class="placeholder-hint">
+      Stubbed metrics. Connect LinkedIn Page Insights, Meta Graph API, X API, TikTok Business API, YouTube Analytics to replace.
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div class="section-title">Email / Lifecycle</div>
+      <div class="section-meta">Placeholder · Not connected</div>
+    </div>
+    <div class="metrics-grid" id="emailGrid"></div>
+    <div class="placeholder-hint">
+      Stubbed metrics. Connect HubSpot, Mailchimp, or Klaviyo to populate.
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div class="section-title">Content / Blog</div>
+      <div class="section-meta">Placeholder · Not connected</div>
+    </div>
+    <div class="metrics-grid" id="contentGrid"></div>
+    <div class="placeholder-hint">
+      Stubbed metrics. Connect your CMS (WordPress, Webflow, Contentful) plus GA content grouping.
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">
+  CMO POC · Data may be partial · Connect missing sources to replace placeholders
+</footer>
+
+<script id="appScript">
+const SHEETS = {
+  ads:     { id: '1oR4yEYbOYkzQcOyyMliKe__4KErtKFZyCnGDnjKI_JE', label: 'Google Ads' },
+  gsc:     { id: '1UZ7fp46L83YdPEcjEp7Zdl4-8-taK5zMueZNd1pI7k8', label: 'Search Console' },
+  ga:      { id: '1gZ_ahjqHMMSmqF2av0pOV2nkLj0oA5IVGqTHm6w7_nw', label: 'Google Analytics' },
+  aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall' },
+};
+
+const GREEN = '#4caf7d';
+const RED = '#e05a4e';
+const AMBER = '#d4a843';
+const BLUE = '#5b9cf6';
+const PURPLE = '#b57dd6';
+const TEXT2 = '#8a9088';
+
+Chart.defaults.color = TEXT2;
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const fmt = (n, p='', s='') => (n==null||isNaN(n)) ? '—' : p + Number(n).toLocaleString(undefined,{maximumFractionDigits:1}) + s;
+const fmtCur = n => (n==null||isNaN(n)) ? '—' : '$' + Math.round(n).toLocaleString();
+const fmtPct = n => (n==null||isNaN(n)) ? '—' : Number(n).toFixed(1) + '%';
+
+async function fetchSheet(id) {
+  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
+  const cols = json.table.cols.map(c => c.label || c.id);
+  return json.table.rows.map(r => {
+    const o = {};
+    r.c.forEach((cell,i) => { o[cols[i]] = cell ? cell.v : null; });
+    return o;
+  });
+}
+
+async function loadChannel(key, mockFn) {
+  try {
+    const rows = await fetchSheet(SHEETS[key].id);
+    if (!rows || !rows.length) throw new Error('empty');
+    return { rows, source: 'live' };
+  } catch (e) {
+    return { rows: mockFn(), source: 'demo' };
+  }
+}
+
+function badge(kind, text) {
+  return `<span class="chart-badge badge-${kind}">${text}</span>`;
+}
+
+function sourceTag(source) {
+  return source === 'live'
+    ? badge('green', 'LIVE')
+    : badge('ghost', 'DEMO');
+}
+
+function makeChart(id, type, labels, datasets, opts={}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  return new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: opts.legend || { display: false } },
+      scales: type === 'doughnut' ? {} : {
+        x: { grid: { display: false }, ticks: { maxRotation: 45, ...opts.xTicks } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ...opts.yScale },
+      },
+      ...opts.extra,
+    },
+  });
+}
+
+function renderKpis(gridId, items) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = items.map(m => `
+    <div class="metric-card${m.placeholder ? ' placeholder' : ''}">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value">${m.value}</div>
+      ${m.delta != null ? `<div class="metric-delta ${m.deltaClass||'delta-neutral'}">${m.delta}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+/* ── Mock generators (used when a sheet is unreachable) ─────────── */
+function days(n) {
+  const out = [];
+  const today = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    out.push(d.toISOString().slice(0,10));
+  }
+  return out;
+}
+function jitter(base, amp) { return Math.max(0, Math.round(base + (Math.random()-0.5)*amp)); }
+
+function mockAds() {
+  return days(30).map(d => ({
+    Date: d,
+    Spend: jitter(220, 80),
+    Impressions: jitter(9000, 2500),
+    Clicks: jitter(240, 70),
+    Conversions: jitter(7, 4),
+    Campaign: ['Brand','Storage-Cheyenne','Competitor','Remarketing'][Math.floor(Math.random()*4)],
+  }));
+}
+function mockGsc() {
+  return days(30).map(d => ({
+    Date: d,
+    Clicks: jitter(180, 70),
+    Impressions: jitter(5200, 1400),
+    'Avg Position': +(4 + Math.random()*3).toFixed(1),
+    Query: ['storage cheyenne','self storage wy','climate controlled storage','parking storage','rv storage'][Math.floor(Math.random()*5)],
+  }));
+}
+function mockGa() {
+  const chans = ['Organic','Paid','Direct','Referral','Social','Email'];
+  return days(30).map(d => ({
+    Date: d,
+    Sessions: jitter(780, 220),
+    Users: jitter(620, 180),
+    'Engagement Rate': +(52 + Math.random()*18).toFixed(1),
+    Channel: chans[Math.floor(Math.random()*chans.length)],
+  }));
+}
+function mockAircall() {
+  return days(30).map(d => {
+    const total = jitter(42, 14);
+    const missed = jitter(7, 4);
+    return {
+      Date: d,
+      'Total Calls': total,
+      Answered: Math.max(0, total - missed),
+      Missed: missed,
+      'Avg Duration (s)': jitter(180, 60),
+    };
+  });
+}
+
+/* ── Aggregation helpers ────────────────────────────────────────── */
+const sum = (rows, col) => rows.reduce((a,r) => a + (Number(r[col])||0), 0);
+const avg = (rows, col) => rows.length ? sum(rows,col)/rows.length : 0;
+const byDay = (rows, col) => {
+  const m = {};
+  rows.forEach(r => {
+    const d = r.Date;
+    if (!d) return;
+    const k = typeof d === 'string' ? d.slice(0,10) : new Date(d).toISOString().slice(0,10);
+    m[k] = (m[k]||0) + (Number(r[col])||0);
+  });
+  return Object.entries(m).sort(([a],[b]) => a.localeCompare(b));
+};
+const topN = (rows, groupCol, valCol, n=5) => {
+  const m = {};
+  rows.forEach(r => {
+    const k = r[groupCol] || '—';
+    m[k] = m[k] || { _n: 0 };
+    m[k][valCol] = (m[k][valCol]||0) + (Number(r[valCol])||0);
+    m[k]._n += 1;
+  });
+  return Object.entries(m)
+    .sort(([,a],[,b]) => (b[valCol]||0) - (a[valCol]||0))
+    .slice(0, n)
+    .map(([name, v]) => ({ name, ...v }));
+};
+
+/* ── Overview + orchestrator ────────────────────────────────────── */
+async function render() {
+  const [ads, gsc, ga, ac] = await Promise.all([
+    loadChannel('ads', mockAds),
+    loadChannel('gsc', mockGsc),
+    loadChannel('ga', mockGa),
+    loadChannel('aircall', mockAircall),
+  ]);
+
+  document.getElementById('lastUpdated').textContent =
+    new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+
+  renderOverview(ads, gsc, ga, ac);
+  renderAds(ads);
+  renderSeo(gsc);
+  renderGa(ga);
+  renderCalls(ac);
+  renderPlaceholders();
+}
+
+function renderOverview(ads, gsc, ga, ac) {
+  const spend = sum(ads.rows, 'Spend');
+  const impr = sum(ads.rows, 'Impressions') + sum(gsc.rows, 'Impressions');
+  const clicks = sum(ads.rows, 'Clicks') + sum(gsc.rows, 'Clicks');
+  const sessions = sum(ga.rows, 'Sessions');
+  const calls = sum(ac.rows, 'Total Calls');
+  const conv = sum(ads.rows, 'Conversions');
+  const cpl = conv > 0 ? spend / conv : null;
+  renderKpis('overviewGrid', [
+    { label: 'Ad Spend (30d)', value: fmtCur(spend) },
+    { label: 'Impressions', value: fmt(impr) },
+    { label: 'Clicks', value: fmt(clicks) },
+    { label: 'Web Sessions', value: fmt(sessions) },
+    { label: 'Calls', value: fmt(calls) },
+    { label: 'Conversions', value: fmt(conv) },
+    { label: 'Cost / Lead', value: cpl ? fmtCur(cpl) : '—' },
+  ]);
+}
+
+function renderAds({ rows, source }) {
+  document.getElementById('adsMeta').innerHTML = `${SHEETS.ads.label} · ${source === 'live' ? 'Live' : 'Demo data'}`;
+  const spend = sum(rows, 'Spend');
+  const clicks = sum(rows, 'Clicks');
+  const impr = sum(rows, 'Impressions');
+  const conv = sum(rows, 'Conversions');
+  const ctr = impr > 0 ? (clicks/impr*100) : 0;
+  const cpc = clicks > 0 ? (spend/clicks) : 0;
+  const cpa = conv > 0 ? (spend/conv) : 0;
+  renderKpis('adsKpis', [
+    { label: 'Spend (30d)', value: fmtCur(spend) },
+    { label: 'Clicks', value: fmt(clicks) },
+    { label: 'CTR', value: fmtPct(ctr) },
+    { label: 'CPC', value: fmtCur(cpc) },
+    { label: 'Conversions', value: fmt(conv) },
+    { label: 'CPA', value: conv ? fmtCur(cpa) : '—' },
+  ]);
+  document.getElementById('adsSpend').textContent = fmtCur(spend);
+
+  const daily = byDay(rows, 'Spend');
+  makeChart('adsChart', 'line', daily.map(([k]) => k.slice(5)), [{
+    data: daily.map(([,v]) => +v.toFixed(2)),
+    borderColor: BLUE,
+    backgroundColor: 'rgba(91,156,246,0.1)',
+    fill: true, tension: 0.35, pointRadius: 2, pointBackgroundColor: BLUE,
+  }], { yScale: { ticks: { callback: v => '$'+v } }, xTicks: { maxTicksLimit: 8 } });
+
+  const top = topN(rows, 'Campaign', 'Spend', 5);
+  document.getElementById('adsCampaigns').innerHTML = top.map(t => `
+    <tr>
+      <td>${t.name}</td>
+      <td class="num">${fmtCur(t.Spend)}</td>
+      <td class="num">${fmt(t.Clicks)}</td>
+      <td class="num">${fmt(t.Conversions)}</td>
+    </tr>`).join('');
+}
+
+function renderSeo({ rows, source }) {
+  document.getElementById('seoMeta').innerHTML = `${SHEETS.gsc.label} · ${source === 'live' ? 'Live' : 'Demo data'}`;
+  const clicks = sum(rows, 'Clicks');
+  const impr = sum(rows, 'Impressions');
+  const ctr = impr > 0 ? clicks/impr*100 : 0;
+  const pos = avg(rows, 'Avg Position');
+  renderKpis('seoKpis', [
+    { label: 'Clicks (30d)', value: fmt(clicks) },
+    { label: 'Impressions', value: fmt(impr) },
+    { label: 'CTR', value: fmtPct(ctr) },
+    { label: 'Avg Position', value: pos ? pos.toFixed(1) : '—' },
+  ]);
+  document.getElementById('seoClicks').textContent = fmt(clicks);
+
+  const c = byDay(rows, 'Clicks');
+  const i = byDay(rows, 'Impressions');
+  makeChart('seoChart', 'line', c.map(([k]) => k.slice(5)), [
+    { data: c.map(([,v]) => v), borderColor: GREEN, backgroundColor:'rgba(76,175,125,0.1)', fill:true, tension: 0.35, pointRadius: 2, yAxisID:'y', label:'Clicks' },
+    { data: i.map(([,v]) => v), borderColor: AMBER, borderDash:[4,4], pointRadius: 0, tension: 0.35, yAxisID:'y1', label:'Impressions' },
+  ], {
+    legend: { display: true, labels: { color: TEXT2, boxWidth: 10, padding: 12 } },
+    extra: { scales: {
+      x: { grid: { display:false } },
+      y: { grid: { color: 'rgba(255,255,255,0.04)' } },
+      y1:{ position: 'right', grid: { display: false } },
+    } },
+  });
+
+  const top = topN(rows, 'Query', 'Clicks', 5);
+  document.getElementById('seoQueries').innerHTML = top.map(t => `
+    <tr>
+      <td>${t.name}</td>
+      <td class="num">${fmt(t.Clicks)}</td>
+      <td class="num">${fmt(t.Impressions)}</td>
+      <td class="num">${t['Avg Position'] ? (t['Avg Position']/t._n).toFixed(1) : '—'}</td>
+    </tr>`).join('');
+}
+
+function renderGa({ rows, source }) {
+  document.getElementById('gaMeta').innerHTML = `${SHEETS.ga.label} · ${source === 'live' ? 'Live' : 'Demo data'}`;
+  const sessions = sum(rows, 'Sessions');
+  const users = sum(rows, 'Users');
+  const eng = avg(rows, 'Engagement Rate');
+  renderKpis('gaKpis', [
+    { label: 'Sessions (30d)', value: fmt(sessions) },
+    { label: 'Users', value: fmt(users) },
+    { label: 'Engagement', value: fmtPct(eng) },
+    { label: 'Pages / Session', value: '—' },
+  ]);
+  document.getElementById('gaSessions').textContent = fmt(sessions);
+
+  const daily = byDay(rows, 'Sessions');
+  makeChart('gaChart', 'line', daily.map(([k]) => k.slice(5)), [{
+    data: daily.map(([,v]) => v),
+    borderColor: AMBER,
+    backgroundColor: 'rgba(212,168,67,0.1)',
+    fill: true, tension: 0.35, pointRadius: 2, pointBackgroundColor: AMBER,
+  }], { xTicks: { maxTicksLimit: 8 } });
+
+  const channels = topN(rows, 'Channel', 'Sessions', 6);
+  makeChart('gaChannelChart', 'doughnut', channels.map(c => c.name), [{
+    data: channels.map(c => c.Sessions),
+    backgroundColor: [GREEN, BLUE, AMBER, PURPLE, RED, 'rgba(255,255,255,0.15)'],
+    borderWidth: 0,
+  }], { extra: { cutout: '60%', plugins: { legend: { display:true, position:'right', labels:{ color: TEXT2, boxWidth:10, padding:10, font:{ size:10 } } } } } });
+}
+
+function renderCalls({ rows, source }) {
+  document.getElementById('callsMeta').innerHTML = `${SHEETS.aircall.label} · ${source === 'live' ? 'Live' : 'Demo data'}`;
+  const total = sum(rows, 'Total Calls');
+  const answered = sum(rows, 'Answered');
+  const missed = sum(rows, 'Missed');
+  const ansPct = total ? answered/total*100 : 0;
+  const dur = avg(rows, 'Avg Duration (s)');
+  renderKpis('callsKpis', [
+    { label: 'Total Calls (30d)', value: fmt(total) },
+    { label: 'Answered', value: fmt(answered) },
+    { label: 'Missed', value: fmt(missed) },
+    { label: 'Answer Rate', value: fmtPct(ansPct) },
+    { label: 'Avg Duration', value: dur ? Math.round(dur) + 's' : '—' },
+  ]);
+  document.getElementById('callsTotal').textContent = fmt(total);
+  document.getElementById('callsAnsweredPct').textContent = fmtPct(ansPct);
+
+  const daily = byDay(rows, 'Total Calls');
+  makeChart('callsChart', 'bar', daily.map(([k]) => k.slice(5)), [{
+    data: daily.map(([,v]) => v),
+    backgroundColor: 'rgba(91,156,246,0.55)', borderRadius: 3,
+  }], { xTicks: { maxTicksLimit: 10 } });
+
+  makeChart('callsDonut', 'doughnut', ['Answered','Missed'], [{
+    data: [answered, missed],
+    backgroundColor: [GREEN, RED],
+    borderWidth: 0,
+  }], { extra: { cutout: '65%', plugins: { legend: { display:true, position:'right', labels:{ color: TEXT2, boxWidth:10, padding:10 } } } } });
+}
+
+function renderPlaceholders() {
+  renderKpis('socialGrid', [
+    { label: 'LinkedIn followers', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'Meta followers', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'X followers', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'TikTok followers', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'YouTube subs', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'Engagement rate', value: '—', delta: 'Not connected', placeholder: true },
+  ]);
+  renderKpis('emailGrid', [
+    { label: 'Subscribers', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'Sends (30d)', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'Open rate', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'Click rate', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'Unsubscribes', value: '—', delta: 'Not connected', placeholder: true },
+  ]);
+  renderKpis('contentGrid', [
+    { label: 'Posts published (30d)', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'Blog sessions', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'Avg time on page', value: '—', delta: 'Not connected', placeholder: true },
+    { label: 'Top post CTR', value: '—', delta: 'Not connected', placeholder: true },
+  ]);
+}
+
+render();
+</script>
+</body>
+</html>

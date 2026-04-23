@@ -13,9 +13,9 @@
     --surface2: #1a1d1a;
     --border: rgba(255,255,255,0.07);
     --border2: rgba(255,255,255,0.12);
-    --text: #e8ebe6;
-    --text2: #8a9088;
-    --text3: #5a5e58;
+    --text: #eef1ec;
+    --text2: #b6bcb3;
+    --text3: #8e948c;
     --green: #4caf7d;
     --green-dim: rgba(76,175,125,0.12);
     --red: #e05a4e;
@@ -793,7 +793,7 @@
         <span class="chart-badge badge-red">Routing</span>
       </div>
       <table class="data-table">
-        <thead><tr><th>Date</th><th class="num">Calls</th><th class="num">Missed</th><th class="num">Miss %</th></tr></thead>
+        <thead id="callsWorstHead"><tr><th>Date</th><th class="num">Calls</th><th class="num">Missed</th><th class="num">Miss %</th></tr></thead>
         <tbody id="callsWorst"></tbody>
       </table>
     </div>
@@ -851,7 +851,7 @@ const RED = '#e05a4e';
 const AMBER = '#d4a843';
 const BLUE = '#5b9cf6';
 const PURPLE = '#b57dd6';
-const TEXT2 = '#8a9088';
+const TEXT2 = '#b6bcb3';
 
 Chart.defaults.color = TEXT2;
 Chart.defaults.font.family = "'DM Mono', monospace";
@@ -865,13 +865,90 @@ const FORCE_DEMO = new URLSearchParams(location.search).get('demo') === '1';
 
 function coerceCell(v) {
   if (typeof v === 'string') {
-    const m = v.match(/^Date\((\d+),(\d+),(\d+)(?:,\d+,\d+,\d+)?\)$/);
+    const m = v.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/);
     if (m) {
-      const [, y, mo, d] = m;
-      return `${y}-${String(+mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const [, y, mo, d, h, mi, s] = m;
+      const dateStr = `${y}-${String(+mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      if (h != null) {
+        return `${dateStr}T${String(h).padStart(2,'0')}:${String(mi).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      }
+      return dateStr;
     }
   }
   return v;
+}
+
+/* ── Aircall brand + working-hours helpers ──────────────────────── */
+const LIQ_CALL_USERS = new Set(['Justin Prescott', 'LiquidateNow Department', 'Ashley Sheppard']);
+const AIRCALL_USER_COLS = ['User','Assignee','Agent','Department','Owner','Assigned User','Assigned','Handled By','Answered By'];
+const AIRCALL_TIME_COLS = ['Time','Timestamp','Started At','Start Time','Datetime','DateTime','Date Time','Call Time'];
+const WORK_HOURS = { start: 9, end: 18, workDays: [1,2,3,4,5] }; /* Mon-Fri 9am-6pm */
+
+function getFirstFieldValue(row, candidates) {
+  for (const c of candidates) {
+    if (row[c] != null && row[c] !== '') return row[c];
+  }
+  return null;
+}
+
+function inferCallBrand(row) {
+  if (row.brand) return row.brand;
+  const user = getFirstFieldValue(row, AIRCALL_USER_COLS);
+  if (user == null) return null;
+  return LIQ_CALL_USERS.has(String(user).trim()) ? 'liq' : 'via';
+}
+
+function parseCallDate(row) {
+  const t = getFirstFieldValue(row, AIRCALL_TIME_COLS);
+  if (t) {
+    const iso = typeof t === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(t) ? t
+              : typeof t === 'string' && /^\d{1,2}:\d{2}/.test(t)
+                ? `${row.Date || '1970-01-01'}T${t.length === 5 ? t + ':00' : t}`
+                : null;
+    if (iso) {
+      const d = new Date(iso);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  const dateOnly = row.Date;
+  if (dateOnly) {
+    const d = new Date(typeof dateOnly === 'string' ? dateOnly : dateOnly);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+function isCallInHours(row) {
+  const d = parseCallDate(row);
+  if (!d) return null;
+  const hasTimeInfo = getFirstFieldValue(row, AIRCALL_TIME_COLS) != null
+    || (typeof row.Date === 'string' && row.Date.includes('T'));
+  if (!hasTimeInfo) return null; /* date-only rows can't be hour-segmented */
+  const dow = d.getDay();
+  if (!WORK_HOURS.workDays.includes(dow)) return false;
+  const h = d.getHours();
+  return h >= WORK_HOURS.start && h < WORK_HOURS.end;
+}
+
+function normalizeAircallRows(rows, cols) {
+  if (!rows || !rows.length) return rows;
+  const hasStatus = cols.some(c => /^status$/i.test(c));
+  const hasTotal = cols.some(c => /^total calls$/i.test(c));
+  return rows.map(r => {
+    const out = { ...r };
+    if (!hasTotal && hasStatus) {
+      const status = String(r.Status || r.status || '').toLowerCase();
+      const missed = /miss|voicemail|no.answer/.test(status) ? 1 : 0;
+      out['Total Calls'] = 1;
+      out.Missed = missed;
+      out.Answered = missed ? 0 : 1;
+    }
+    if (!out.brand) {
+      const inferred = inferCallBrand(out);
+      if (inferred) out.brand = inferred;
+    }
+    return out;
+  });
 }
 
 async function fetchSheet(id) {
@@ -899,17 +976,20 @@ async function fetchSheet(id) {
 async function loadChannel(key, mockFn, requiredCols = []) {
   if (FORCE_DEMO) {
     const rows = mockFn();
-    return { rows, source: 'demo', cols: Object.keys(rows[0]||{}), reason: 'forced' };
+    const normalized = key === 'aircall' ? normalizeAircallRows(rows, Object.keys(rows[0]||{})) : rows;
+    return { rows: normalized, source: 'demo', cols: Object.keys(normalized[0]||{}), reason: 'forced' };
   }
   try {
     const { rows, cols } = await fetchSheet(SHEETS[key].id);
     if (!rows || !rows.length) throw new Error('empty');
     const missing = requiredCols.filter(c => !cols.includes(c));
     if (missing.length) throw new Error(`missing cols: ${missing.join(', ')}`);
-    return { rows, source: 'live', cols };
+    const normalized = key === 'aircall' ? normalizeAircallRows(rows, cols) : rows;
+    return { rows: normalized, source: 'live', cols };
   } catch (e) {
     const rows = mockFn();
-    return { rows, source: 'demo', cols: Object.keys(rows[0]||{}), reason: e.message };
+    const normalized = key === 'aircall' ? normalizeAircallRows(rows, Object.keys(rows[0]||{})) : rows;
+    return { rows: normalized, source: 'demo', cols: Object.keys(normalized[0]||{}), reason: e.message };
   }
 }
 
@@ -1130,18 +1210,56 @@ function mockGa() {
     Channel: pick(p.gaChannels),
   }));
 }
+/* Per-call mock: each row is one phone call, with Time + User + Status.
+   Aggregates (Total Calls / Answered / Missed) are 0/1 so the existing
+   sum()-based renderers keep working, and the new in-hours vs after-hours
+   split can be computed from Time + Date day-of-week. */
+const VIA_CALL_AGENTS = ['Maria Lopez', 'Derek Chen', 'Viatrading Sales', 'Sofia Ramirez', 'Jordan Wells'];
+const LIQ_CALL_AGENTS = Array.from(LIQ_CALL_USERS);
+
 function mockAircall() {
-  return forBrands(days(30), (d, brand, p) => {
-    const total = jitter(p.callsTotal, p.callsTotalJ);
-    const missed = Math.min(total, jitter(p.callsMissed, p.callsMissedJ));
-    return {
-      Date: d,
-      'Total Calls': total,
-      Answered: Math.max(0, total - missed),
-      Missed: missed,
-      'Avg Duration (s)': jitter(p.callsDur, p.callsDurJ),
-    };
+  const out = [];
+  const dayList = days(30);
+  dayList.forEach(dateStr => {
+    const dow = new Date(dateStr).getDay();
+    const isWeekday = WORK_HOURS.workDays.includes(dow);
+    ['via','liq'].forEach(brand => {
+      const p = BRAND_PROFILES[brand];
+      const total = Math.max(1, jitter(p.callsTotal, p.callsTotalJ));
+      /* Weekends are always "after-hours" by classification, so we only mint
+         in-hours timestamps on weekdays to keep the mock self-consistent with
+         isCallInHours. ~80% of weekday calls land in the 9-6 window. */
+      const inHoursShare = isWeekday ? 0.8 : 0;
+      const agents = brand === 'liq' ? LIQ_CALL_AGENTS : VIA_CALL_AGENTS;
+      /* miss rates by window: tune so via is borderline in-hours, liq is over */
+      const inMissRate  = brand === 'liq' ? 0.16 : 0.09;
+      const outMissRate = brand === 'liq' ? 0.68 : 0.55;
+      for (let i = 0; i < total; i++) {
+        const inHours = Math.random() < inHoursShare;
+        const hour = inHours
+          ? WORK_HOURS.start + Math.floor(Math.random() * (WORK_HOURS.end - WORK_HOURS.start))
+          : (Math.random() < 0.5 ? Math.floor(Math.random() * WORK_HOURS.start)
+                                  : WORK_HOURS.end + Math.floor(Math.random() * (24 - WORK_HOURS.end)));
+        const minute = Math.floor(Math.random() * 60);
+        const time = `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+        const rate = inHours ? inMissRate : outMissRate;
+        const missed = Math.random() < rate ? 1 : 0;
+        const agent = agents[Math.floor(Math.random() * agents.length)];
+        out.push({
+          Date: dateStr,
+          Time: time,
+          User: agent,
+          Status: missed ? 'Missed' : 'Answered',
+          'Total Calls': 1,
+          Answered: missed ? 0 : 1,
+          Missed: missed,
+          'Avg Duration (s)': missed ? 0 : jitter(p.callsDur, p.callsDurJ),
+          brand,
+        });
+      }
+    });
   });
+  return out;
 }
 
 /* ── Aggregation helpers ────────────────────────────────────────── */
@@ -1157,6 +1275,22 @@ const byDay = (rows, col) => {
   });
   return Object.entries(m).sort(([a],[b]) => a.localeCompare(b));
 };
+function breakdownCallsByHours(rows) {
+  let total = 0, missed = 0;
+  let inTotal = 0, inMissed = 0, outTotal = 0, outMissed = 0, unknown = 0;
+  (rows || []).forEach(r => {
+    const t = Number(r['Total Calls']) || 0;
+    const m = Number(r.Missed) || 0;
+    total += t;
+    missed += m;
+    const hours = isCallInHours(r);
+    if (hours === true)       { inTotal  += t; inMissed  += m; }
+    else if (hours === false) { outTotal += t; outMissed += m; }
+    else unknown += t;
+  });
+  return { total, missed, inTotal, inMissed, outTotal, outMissed, unknown };
+}
+
 function scopeChannel(channel, brand) {
   if (brand === 'all') return channel;
   const hasBrand = channel.rows.some(r => r && r.brand);
@@ -1411,47 +1545,94 @@ function generateInsights({ ads, gsc, ga, ac }, brand = 'all') {
   }
 
   /* ════════ Calls ════════ */
-  const totalCalls = sum(ac.rows, 'Total Calls');
-  const missed = sum(ac.rows, 'Missed');
+  const callsBreak = breakdownCallsByHours(ac.rows);
+  const totalCalls = callsBreak.total;
+  const missed = callsBreak.missed;
   const missRate = totalCalls ? missed / totalCalls : 0;
+  const inRate  = callsBreak.inTotal  ? callsBreak.inMissed  / callsBreak.inTotal  : 0;
+  const outRate = callsBreak.outTotal ? callsBreak.outMissed / callsBreak.outTotal : 0;
+  const hoursUnknown = callsBreak.inTotal === 0 && callsBreak.outTotal === 0;
 
-  /* 11 — miss-rate threshold */
-  if (missRate > 0.15) {
+  /* 11 — working-hours miss rate (most actionable) */
+  if (!hoursUnknown && callsBreak.inTotal >= 20 && inRate > 0.10) {
+    push({
+      id: `calls-in-hours-miss`,
+      severity: inRate > 0.18 ? 'high' : 'medium', category: 'calls',
+      title: `Reduce missed calls during working hours`,
+      rationale: `${fmt(callsBreak.inMissed)} missed of ${fmt(callsBreak.inTotal)} in-hours calls (${fmtPct(inRate * 100)}). Working hours (Mon-Fri 9-6) should be staffed — check queue capacity or add a backup routing rule.`,
+      action: 'Review routing',
+    });
+  }
+
+  /* 11b — after-hours coverage (less critical, but worth a rec if severe) */
+  if (!hoursUnknown && callsBreak.outTotal >= 20 && outRate > 0.6) {
+    push({
+      id: `calls-after-hours-miss`,
+      severity: 'medium', category: 'calls',
+      title: `Set up after-hours coverage`,
+      rationale: `${fmt(callsBreak.outMissed)} of ${fmt(callsBreak.outTotal)} after-hours calls go unanswered (${fmtPct(outRate * 100)}). Add voicemail-to-text, overflow routing, or an on-call rotation so these leads don't vanish.`,
+      action: 'Configure after-hours routing',
+    });
+  }
+
+  /* 11c — legacy fallback when we don't have timestamps */
+  if (hoursUnknown && missRate > 0.15) {
     push({
       id: `calls-miss-rate`,
       severity: totalCalls >= 100 ? 'high' : 'medium', category: 'calls',
       title: `Reduce missed-call rate`,
-      rationale: `${fmt(missed)} missed of ${fmt(totalCalls)} (${fmtPct(missRate * 100)}). Extend staffed hours or add a backup routing rule.`,
+      rationale: `${fmt(missed)} missed of ${fmt(totalCalls)} (${fmtPct(missRate * 100)}). Hour-level breakdown unavailable — add a Time column to the Aircall sheet to see in-hours vs after-hours.`,
       action: 'Review routing',
     });
-    perSection.calls = `Miss rate ${fmtPct(missRate * 100)} is above the 15% threshold · ${fmt(missed)} missed in 30d.`;
-  } else {
-    perSection.calls = `${fmt(totalCalls)} calls · ${fmtPct((1 - missRate) * 100)} answer rate · healthy coverage.`;
   }
 
-  /* 12 — worst-day coverage gap */
+  if (hoursUnknown) {
+    perSection.calls = missRate > 0.15
+      ? `Miss rate ${fmtPct(missRate * 100)} is above the 15% threshold · ${fmt(missed)} missed in 30d.`
+      : `${fmt(totalCalls)} calls · ${fmtPct((1 - missRate) * 100)} answer rate · healthy coverage.`;
+  } else {
+    perSection.calls = `Miss rate ${fmtPct(inRate * 100)} in-hours · ${fmtPct(outRate * 100)} after-hours · ${fmt(callsBreak.inTotal)} in-hours / ${fmt(callsBreak.outTotal)} after-hours calls.`;
+  }
+
+  /* 12 — worst-day coverage gap (in-hours only if we have hours data) */
   const dayMap = {};
   ac.rows.forEach(r => {
     const d = r.Date;
     if (!d) return;
     const k = typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10);
-    const e = dayMap[k] || (dayMap[k] = { Calls: 0, Missed: 0 });
-    e.Calls += Number(r['Total Calls']) || 0;
-    e.Missed += Number(r.Missed) || 0;
+    const e = dayMap[k] || (dayMap[k] = { Calls: 0, Missed: 0, inCalls: 0, inMissed: 0 });
+    const total = Number(r['Total Calls']) || 0;
+    const m = Number(r.Missed) || 0;
+    e.Calls += total;
+    e.Missed += m;
+    const inH = isCallInHours(r);
+    if (inH === true) { e.inCalls += total; e.inMissed += m; }
   });
   const daysArr = Object.entries(dayMap)
-    .map(([d, v]) => ({ d, ...v, rate: v.Calls ? v.Missed / v.Calls : 0 }))
+    .map(([d, v]) => ({
+      d, ...v,
+      rate: v.Calls ? v.Missed / v.Calls : 0,
+      inRate: v.inCalls ? v.inMissed / v.inCalls : 0,
+    }))
     .filter(d => d.Calls >= 5);
-  if (daysArr.length >= 5 && missRate < 0.15) {
-    const worstDay = [...daysArr].sort((a, b) => b.rate - a.rate)[0];
-    if (worstDay.rate > missRate * 2 && worstDay.rate > 0.25) {
-      push({
-        id: `calls-day-${slug(worstDay.d)}`,
-        severity: 'low', category: 'calls',
-        title: `Review coverage on ${worstDay.d}`,
-        rationale: `That day missed ${fmtPct(worstDay.rate * 100)} of ${fmt(worstDay.Calls)} calls — a 2× outlier vs the period average. Check staffing / spike routing for recurring day-of-week gaps.`,
-        action: 'Check schedule',
-      });
+  if (daysArr.length >= 5) {
+    const rateField = !hoursUnknown ? 'inRate' : 'rate';
+    const volField = !hoursUnknown ? 'inCalls' : 'Calls';
+    const ref = !hoursUnknown ? inRate : missRate;
+    const candidates = daysArr.filter(d => d[volField] >= 3);
+    if (candidates.length) {
+      const worstDay = [...candidates].sort((a, b) => b[rateField] - a[rateField])[0];
+      if (worstDay[rateField] > Math.max(ref * 2, 0.25)) {
+        push({
+          id: `calls-day-${slug(worstDay.d)}`,
+          severity: 'low', category: 'calls',
+          title: `Review coverage on ${worstDay.d}`,
+          rationale: !hoursUnknown
+            ? `That day missed ${fmtPct(worstDay.inRate * 100)} of ${fmt(worstDay.inCalls)} working-hours calls — a 2× outlier. Check staffing or a recurring day-of-week gap.`
+            : `That day missed ${fmtPct(worstDay.rate * 100)} of ${fmt(worstDay.Calls)} calls — a 2× outlier. Check staffing.`,
+          action: 'Check schedule',
+        });
+      }
     }
   }
 
@@ -1502,7 +1683,9 @@ const REQUIRED_COLS = {
   ads:     ['Spend', 'Clicks'],
   gsc:     ['Clicks', 'Impressions'],
   ga:      ['Sessions'],
-  aircall: ['Total Calls'],
+  /* Aircall: accept either the old per-day aggregate shape or the per-call
+     shape (timestamp + user + status). The normalizer handles both. */
+  aircall: [],
 };
 
 function mockChannel(mockFn, reason) {
@@ -1792,14 +1975,38 @@ function renderCalls({ rows, source, reason }, insight) {
   const answered = sum(rows, 'Answered');
   const missed = sum(rows, 'Missed');
   const ansPct = total ? answered/total*100 : 0;
-  const dur = avg(rows, 'Avg Duration (s)');
-  renderKpis('callsKpis', [
+  /* Avg duration: only count answered calls (missed rows have 0 duration in mock; skip zeros on live too) */
+  const durRows = rows.filter(r => (Number(r['Avg Duration (s)']) || 0) > 0);
+  const dur = durRows.length ? durRows.reduce((a,r) => a + (Number(r['Avg Duration (s)'])||0), 0) / durRows.length : 0;
+  const b = breakdownCallsByHours(rows);
+  const haveHours = (b.inTotal + b.outTotal) > 0;
+  const inMissPct  = b.inTotal  ? b.inMissed  / b.inTotal  * 100 : null;
+  const outMissPct = b.outTotal ? b.outMissed / b.outTotal * 100 : null;
+  const kpis = [
     { label: 'Total Calls (30d)', value: fmt(total) },
     { label: 'Answered', value: fmt(answered) },
     { label: 'Missed', value: fmt(missed) },
     { label: 'Answer Rate', value: fmtPct(ansPct) },
-    { label: 'Avg Duration', value: dur ? Math.round(dur) + 's' : '—' },
-  ]);
+  ];
+  if (haveHours) {
+    kpis.push({
+      label: 'Miss % · in-hours',
+      value: inMissPct == null ? '—' : fmtPct(inMissPct),
+      delta: `${fmt(b.inMissed)} / ${fmt(b.inTotal)}`,
+      deltaClass: inMissPct != null && inMissPct > 10 ? 'delta-down' : 'delta-neutral',
+    });
+    kpis.push({
+      label: 'Miss % · after-hours',
+      value: outMissPct == null ? '—' : fmtPct(outMissPct),
+      delta: `${fmt(b.outMissed)} / ${fmt(b.outTotal)}`,
+      deltaClass: outMissPct != null && outMissPct > 60 ? 'delta-down' : 'delta-neutral',
+    });
+  } else {
+    kpis.push({ label: 'Miss % · in-hours', value: '—', delta: 'Time column missing', placeholder: true });
+    kpis.push({ label: 'Miss % · after-hours', value: '—', delta: 'Time column missing', placeholder: true });
+  }
+  kpis.push({ label: 'Avg Duration', value: dur ? Math.round(dur) + 's' : '—' });
+  renderKpis('callsKpis', kpis);
   document.getElementById('callsTotal').textContent = fmt(total);
   document.getElementById('callsAnsweredPct').textContent = fmtPct(ansPct);
 
@@ -1820,24 +2027,44 @@ function renderCalls({ rows, source, reason }, insight) {
     const d = r.Date;
     if (!d) return;
     const k = typeof d === 'string' ? d.slice(0,10) : new Date(d).toISOString().slice(0,10);
-    const e = dayMap[k] || (dayMap[k] = { Calls: 0, Missed: 0 });
-    e.Calls += Number(r['Total Calls']) || 0;
-    e.Missed += Number(r.Missed) || 0;
+    const e = dayMap[k] || (dayMap[k] = { Calls: 0, Missed: 0, inCalls: 0, inMissed: 0 });
+    const t = Number(r['Total Calls']) || 0;
+    const m = Number(r.Missed) || 0;
+    e.Calls += t;
+    e.Missed += m;
+    const inH = isCallInHours(r);
+    if (inH === true) { e.inCalls += t; e.inMissed += m; }
   });
-  const worstDays = Object.entries(dayMap)
-    .map(([date, v]) => ({ date, ...v, rate: v.Calls ? v.Missed/v.Calls*100 : 0 }))
-    .filter(d => d.Calls >= 5)
-    .sort((a,b) => b.rate - a.rate)
-    .slice(0, 5);
-  const worstHtml = worstDays.length
-    ? worstDays.map(d => `
+  const worstHead = document.getElementById('callsWorstHead');
+  const worstHtml = (() => {
+    const entries = Object.entries(dayMap).map(([date, v]) => ({
+      date, ...v,
+      rate: v.Calls ? v.Missed/v.Calls*100 : 0,
+      inRate: v.inCalls ? v.inMissed/v.inCalls*100 : 0,
+    }));
+    if (haveHours) {
+      worstHead.innerHTML = `<tr><th>Date</th><th class="num">In-hrs calls</th><th class="num">In-hrs miss</th><th class="num">In-hrs miss %</th></tr>`;
+      const list = entries.filter(d => d.inCalls >= 3).sort((a,b) => b.inRate - a.inRate).slice(0, 5);
+      if (!list.length) return `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No working-hours misses to flag.</td></tr>`;
+      return list.map(d => `
+        <tr>
+          <td>${d.date}</td>
+          <td class="num">${fmt(d.inCalls)}</td>
+          <td class="num">${fmt(d.inMissed)}</td>
+          <td class="num" style="color:${d.inRate>20?'var(--red)':d.inRate>10?'var(--amber)':'var(--text2)'}">${fmtPct(d.inRate)}</td>
+        </tr>`).join('');
+    }
+    worstHead.innerHTML = `<tr><th>Date</th><th class="num">Calls</th><th class="num">Missed</th><th class="num">Miss %</th></tr>`;
+    const list = entries.filter(d => d.Calls >= 5).sort((a,b) => b.rate - a.rate).slice(0, 5);
+    if (!list.length) return `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">Not enough call volume to rank.</td></tr>`;
+    return list.map(d => `
         <tr>
           <td>${d.date}</td>
           <td class="num">${fmt(d.Calls)}</td>
           <td class="num">${fmt(d.Missed)}</td>
           <td class="num" style="color:${d.rate>20?'var(--red)':d.rate>15?'var(--amber)':'var(--text2)'}">${fmtPct(d.rate)}</td>
-        </tr>`).join('')
-    : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">Not enough call volume to rank.</td></tr>`;
+        </tr>`).join('');
+  })();
   document.getElementById('callsWorst').innerHTML = worstHtml;
 }
 

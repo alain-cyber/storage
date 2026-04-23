@@ -421,6 +421,116 @@
     font-style: italic;
   }
 
+  /* This Week's To-Dos panel */
+  .todo-panel {
+    margin: 1rem 2.5rem 0;
+    padding: 1.25rem 1.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .todo-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
+  }
+  .todo-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+  }
+  .todo-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    text-transform: uppercase;
+  }
+  .todo-list { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; }
+  .todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: border-color 0.2s, opacity 0.2s;
+  }
+  .todo-item:hover { border-color: var(--border2); }
+  .todo-item.done { opacity: 0.5; }
+  .todo-item.done .todo-text { text-decoration: line-through; color: var(--text3); }
+  .todo-check {
+    appearance: none;
+    width: 18px; height: 18px; min-width: 18px;
+    border: 1.5px solid var(--border2);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    margin-top: 2px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .todo-check:hover { border-color: var(--purple); }
+  .todo-check:checked { background: var(--purple); border-color: var(--purple); }
+  .todo-check:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 1px;
+    width: 5px; height: 9px;
+    border: solid var(--bg);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .todo-body { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
+  .todo-text {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--text);
+  }
+  .todo-why {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text3);
+    letter-spacing: 0.02em;
+  }
+  .todo-sev {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+  .todo-sev-high { background: var(--red-dim); color: var(--red); }
+  .todo-sev-medium { background: var(--amber-dim); color: var(--amber); }
+  .todo-sev-low { background: var(--blue-dim); color: var(--blue); }
+  .todo-empty {
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-style: italic;
+    padding: 0.5rem 0;
+  }
+
+  /* Brand-scope hint on the briefing */
+  .brand-scope {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+    background: var(--purple-dim);
+    color: var(--purple);
+  }
+
   /* Per-section insight strip */
   .insight-strip {
     font-family: 'DM Mono', monospace;
@@ -447,6 +557,7 @@
     .header { padding: 1.5rem; flex-direction: column; align-items: flex-start; }
     .dashboard { padding: 1rem 1.5rem; }
     .ai-briefing { margin: 1rem 1.5rem 0; padding: 1.25rem; }
+    .todo-panel { margin: 0.75rem 1.5rem 0; padding: 1rem 1.25rem; }
     .charts-grid-2 { grid-template-columns: 1fr; }
     .metrics-grid { grid-template-columns: 1fr 1fr; }
     .ai-recs { grid-template-columns: 1fr; }
@@ -483,12 +594,20 @@
   <div class="ai-brief-head">
     <div class="ai-avatar">AI</div>
     <div>
-      <div class="ai-brief-title">CMO Copilot</div>
+      <div class="ai-brief-title">CMO Copilot<span id="aiBriefScope" class="brand-scope" hidden></span></div>
       <div class="ai-brief-sub" id="aiBriefSub">Analyzing last 30 days across 4 channels…</div>
     </div>
   </div>
   <div class="ai-brief-text" id="aiBriefText">Generating briefing…</div>
   <div class="ai-recs" id="aiRecs"></div>
+</section>
+
+<section class="todo-panel" id="todoPanel" aria-live="polite">
+  <div class="todo-head">
+    <div class="todo-title">This Week's To-Dos</div>
+    <span class="todo-meta" id="todoMeta">—</span>
+  </div>
+  <ul class="todo-list" id="todoList"></ul>
 </section>
 
 <div class="dashboard">
@@ -834,7 +953,16 @@ function renderKpis(gridId, items) {
   `).join('');
 }
 
-function renderBriefing({ narrative, recs }) {
+function renderBriefing({ narrative, recs, brand }) {
+  const scope = document.getElementById('aiBriefScope');
+  if (scope) {
+    if (brand && brand !== 'all') {
+      scope.textContent = BRAND_LABEL[brand];
+      scope.hidden = false;
+    } else {
+      scope.hidden = true;
+    }
+  }
   document.getElementById('aiBriefSub').textContent =
     `Generated ${new Date().toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})} · Last 30 days · 4 channels`;
   document.getElementById('aiBriefText').textContent = narrative;
@@ -844,16 +972,64 @@ function renderBriefing({ narrative, recs }) {
     return;
   }
   el.innerHTML = recs.map(r => `
-    <div class="rec-card">
+    <div class="rec-card" data-rec-id="${r.id}">
       <span class="rec-sev rec-sev-${r.severity}">${r.severity}</span>
       <div class="rec-title">${r.title}</div>
       <div class="rec-rationale">${r.rationale}</div>
       <div class="rec-actions">
-        <button class="rec-btn rec-btn-primary" type="button">${r.action}</button>
-        <button class="rec-btn" type="button">Dismiss</button>
+        <button class="rec-btn rec-btn-primary" type="button" data-rec-apply="${r.id}">${r.action}</button>
+        <button class="rec-btn" type="button" data-rec-dismiss="${r.id}">Dismiss</button>
       </div>
     </div>
   `).join('');
+}
+
+/* ── This Week's To-Dos (checklist, localStorage-persisted) ─────── */
+const TODO_KEY = 'cmoTodos_v1';
+function loadTodoState() {
+  try { return JSON.parse(localStorage.getItem(TODO_KEY) || '{}') || {}; }
+  catch { return {}; }
+}
+function saveTodoState() {
+  try { localStorage.setItem(TODO_KEY, JSON.stringify(state.todos || {})); } catch {}
+}
+
+function renderTodos(recs) {
+  const list = document.getElementById('todoList');
+  const meta = document.getElementById('todoMeta');
+  if (!list || !meta) return;
+  const picks = (recs || []).filter(r => r.severity !== 'low').slice(0, 5);
+  if (!picks.length) {
+    list.innerHTML = `<li class="todo-empty">Nothing urgent on the to-do list this week. Enjoy it.</li>`;
+    meta.textContent = '0 / 0 complete';
+    return;
+  }
+  const done = picks.filter(r => state.todos[r.id]?.done).length;
+  meta.textContent = `${done} / ${picks.length} complete`;
+  list.innerHTML = picks.map(r => {
+    const isDone = !!state.todos[r.id]?.done;
+    return `
+    <li class="todo-item${isDone ? ' done' : ''}" data-todo-id="${r.id}">
+      <input type="checkbox" class="todo-check" ${isDone ? 'checked' : ''} aria-label="Mark complete">
+      <span class="todo-sev todo-sev-${r.severity}">${r.severity}</span>
+      <div class="todo-body">
+        <div class="todo-text">${r.title}</div>
+        <div class="todo-why">${r.rationale}</div>
+      </div>
+    </li>`;
+  }).join('');
+
+  list.querySelectorAll('.todo-item').forEach(item => {
+    const id = item.dataset.todoId;
+    const check = item.querySelector('.todo-check');
+    check.addEventListener('change', () => {
+      state.todos[id] = { done: check.checked, ts: Date.now() };
+      saveTodoState();
+      item.classList.toggle('done', check.checked);
+      const completed = picks.filter(r => state.todos[r.id]?.done).length;
+      meta.textContent = `${completed} / ${picks.length} complete`;
+    });
+  });
 }
 
 function renderInsight(id, text) {
@@ -874,46 +1050,96 @@ function days(n) {
   return out;
 }
 function jitter(base, amp) { return Math.max(0, Math.round(base + (Math.random()-0.5)*amp)); }
+function pick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+/* Per-brand volumes/profiles — Viatrading is the bigger brand; Liquidatenow
+   is higher-intent but smaller. Campaign/query names are brand-specific so
+   toggling the brand filter produces a visibly different dashboard. */
+const BRAND_PROFILES = {
+  via: {
+    adsCampaigns: ['Via-Brand','Via-Wholesale','Via-Generic Liquidation','Via-Remarketing','Via-Competitor'],
+    gscQueries: ['viatrading','wholesale pallets','bulk surplus','overstock inventory','via trading review','liquidation wholesale','truckload pallets'],
+    gaChannels: ['Organic','Paid','Direct','Referral','Email','Social'],
+    adsSpend: 260, adsSpendJ: 90,
+    adsImpr: 11000, adsImprJ: 3000,
+    adsClicks: 280, adsClicksJ: 80,
+    adsConv: 8, adsConvJ: 4,
+    gscClicks: 160, gscClicksJ: 60,
+    gscImpr: 6400, gscImprJ: 1600,
+    gscPosBase: 5.5, gscPosSpread: 4,
+    gaSessions: 520, gaSessionsJ: 160,
+    gaUsers: 410, gaUsersJ: 130,
+    gaEngBase: 54, gaEngSpread: 16,
+    callsTotal: 28, callsTotalJ: 10,
+    callsMissed: 5, callsMissedJ: 3,
+    callsDur: 195, callsDurJ: 60,
+  },
+  liq: {
+    adsCampaigns: ['Liq-Auction','Liq-Brand','Liq-Pallets','Liq-Competitor','Liq-Remarketing'],
+    gscQueries: ['liquidatenow','auction pallets','online liquidation','truckload deals','liquidate inventory','surplus auction','amazon returns pallets'],
+    gaChannels: ['Organic','Paid','Direct','Social','Email','Referral'],
+    adsSpend: 155, adsSpendJ: 70,
+    adsImpr: 5800, adsImprJ: 1800,
+    adsClicks: 160, adsClicksJ: 55,
+    adsConv: 6, adsConvJ: 3,
+    gscClicks: 80, gscClicksJ: 40,
+    gscImpr: 3100, gscImprJ: 1000,
+    gscPosBase: 7.0, gscPosSpread: 5,
+    gaSessions: 290, gaSessionsJ: 110,
+    gaUsers: 240, gaUsersJ: 95,
+    gaEngBase: 48, gaEngSpread: 14,
+    callsTotal: 18, callsTotalJ: 8,
+    callsMissed: 4, callsMissedJ: 3,
+    callsDur: 220, callsDurJ: 70,
+  },
+};
+
+function forBrands(dayList, make) {
+  const out = [];
+  dayList.forEach(d => {
+    ['via','liq'].forEach(brand => out.push({ ...make(d, brand, BRAND_PROFILES[brand]), brand }));
+  });
+  return out;
+}
 
 function mockAds() {
-  return days(30).map(d => ({
+  return forBrands(days(30), (d, brand, p) => ({
     Date: d,
-    Spend: jitter(220, 80),
-    Impressions: jitter(9000, 2500),
-    Clicks: jitter(240, 70),
-    Conversions: jitter(7, 4),
-    Campaign: ['Brand','Generic','Competitor','Remarketing'][Math.floor(Math.random()*4)],
+    Spend: jitter(p.adsSpend, p.adsSpendJ),
+    Impressions: jitter(p.adsImpr, p.adsImprJ),
+    Clicks: jitter(p.adsClicks, p.adsClicksJ),
+    Conversions: jitter(p.adsConv, p.adsConvJ),
+    Campaign: pick(p.adsCampaigns),
   }));
 }
 function mockGsc() {
-  return days(30).map(d => ({
+  return forBrands(days(30), (d, brand, p) => ({
     Date: d,
-    Clicks: jitter(180, 70),
-    Impressions: jitter(5200, 1400),
-    'Avg Position': +(4 + Math.random()*3).toFixed(1),
-    Query: ['brand query','generic query','service area','product line','competitor'][Math.floor(Math.random()*5)],
+    Clicks: jitter(p.gscClicks, p.gscClicksJ),
+    Impressions: jitter(p.gscImpr, p.gscImprJ),
+    'Avg Position': +(p.gscPosBase + Math.random()*p.gscPosSpread).toFixed(1),
+    Query: pick(p.gscQueries),
   }));
 }
 function mockGa() {
-  const chans = ['Organic','Paid','Direct','Referral','Social','Email'];
-  return days(30).map(d => ({
+  return forBrands(days(30), (d, brand, p) => ({
     Date: d,
-    Sessions: jitter(780, 220),
-    Users: jitter(620, 180),
-    'Engagement Rate': +(52 + Math.random()*18).toFixed(1),
-    Channel: chans[Math.floor(Math.random()*chans.length)],
+    Sessions: jitter(p.gaSessions, p.gaSessionsJ),
+    Users: jitter(p.gaUsers, p.gaUsersJ),
+    'Engagement Rate': +(p.gaEngBase + Math.random()*p.gaEngSpread).toFixed(1),
+    Channel: pick(p.gaChannels),
   }));
 }
 function mockAircall() {
-  return days(30).map(d => {
-    const total = jitter(42, 14);
-    const missed = jitter(7, 4);
+  return forBrands(days(30), (d, brand, p) => {
+    const total = jitter(p.callsTotal, p.callsTotalJ);
+    const missed = Math.min(total, jitter(p.callsMissed, p.callsMissedJ));
     return {
       Date: d,
       'Total Calls': total,
       Answered: Math.max(0, total - missed),
       Missed: missed,
-      'Avg Duration (s)': jitter(180, 60),
+      'Avg Duration (s)': jitter(p.callsDur, p.callsDurJ),
     };
   });
 }
@@ -931,6 +1157,13 @@ const byDay = (rows, col) => {
   });
   return Object.entries(m).sort(([a],[b]) => a.localeCompare(b));
 };
+function scopeChannel(channel, brand) {
+  if (brand === 'all') return channel;
+  const hasBrand = channel.rows.some(r => r && r.brand);
+  if (!hasBrand) return channel; /* live data without a Brand column — pass through unfiltered */
+  return { ...channel, rows: channel.rows.filter(r => r.brand === brand) };
+}
+
 const topN = (rows, groupCol, valCol, n=5) => {
   const m = {};
   rows.forEach(r => {
@@ -946,45 +1179,60 @@ const topN = (rows, groupCol, valCol, n=5) => {
 };
 
 /* ── Rule engine: generates narrative, recs, per-section insights ── */
-function generateInsights({ ads, gsc, ga, ac }) {
+const slug = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+
+function generateInsights({ ads, gsc, ga, ac }, brand = 'all') {
   const recs = [];
   const perSection = { ads: '', seo: '', ga: '', calls: '' };
+  const scopeTag = brand === 'all' ? '' : `[${brand}]`;
+  const push = (r) => recs.push({ ...r, id: `${brand}:${r.id}` });
 
-  /* Ads — campaign aggregates with CPA */
+  /* ════════ Ads ════════ */
   const campMap = {};
   ads.rows.forEach(r => {
     const k = r.Campaign || '—';
-    const e = campMap[k] || (campMap[k] = { Spend: 0, Conversions: 0, Clicks: 0 });
+    const e = campMap[k] || (campMap[k] = { Spend: 0, Conversions: 0, Clicks: 0, Impressions: 0 });
     e.Spend += Number(r.Spend) || 0;
     e.Conversions += Number(r.Conversions) || 0;
     e.Clicks += Number(r.Clicks) || 0;
+    e.Impressions += Number(r.Impressions) || 0;
   });
   const camps = Object.entries(campMap).map(([name, v]) => ({
-    name, ...v, cpa: v.Conversions ? v.Spend / v.Conversions : null,
+    name, ...v,
+    cpa: v.Conversions ? v.Spend / v.Conversions : null,
+    ctr: v.Impressions ? v.Clicks / v.Impressions * 100 : 0,
+    convRate: v.Clicks ? v.Conversions / v.Clicks * 100 : 0,
   }));
   const totalAdSpend = sum(ads.rows, 'Spend');
   const totalConv = sum(ads.rows, 'Conversions');
+  const totalClicks = sum(ads.rows, 'Clicks');
+  const totalImpr = sum(ads.rows, 'Impressions');
+  const avgCtr = totalImpr ? totalClicks / totalImpr * 100 : 0;
+  const avgConvRate = totalClicks ? totalConv / totalClicks * 100 : 0;
   const meanSpend = camps.length ? totalAdSpend / camps.length : 0;
 
-  const dead = camps
-    .filter(c => c.Spend > meanSpend / 2 && c.Conversions === 0)
+  /* 1 — dead spend */
+  const dead = camps.filter(c => c.Spend > meanSpend / 2 && c.Conversions === 0)
     .sort((a, b) => b.Spend - a.Spend);
   if (dead[0]) {
-    recs.push({
-      severity: 'high',
+    push({
+      id: `ads-dead-${slug(dead[0].name)}`,
+      severity: 'high', category: 'ads',
       title: `Pause "${dead[0].name}" campaign`,
-      rationale: `${fmtCur(dead[0].Spend)} spent, 0 conversions in 30d. Redirect budget to the best performer.`,
+      rationale: `${fmtCur(dead[0].Spend)} spent, 0 conversions in 30d. Redirect budget to your best performer.`,
       action: 'Pause campaign',
     });
   }
 
+  /* 2 — scale winner */
   const withConv = camps.filter(c => c.cpa != null).sort((a, b) => a.cpa - b.cpa);
   if (withConv.length >= 2) {
     const best = withConv[0];
     const median = withConv[Math.floor(withConv.length / 2)];
     if (best.cpa < median.cpa * 0.7) {
-      recs.push({
-        severity: 'medium',
+      push({
+        id: `ads-scale-${slug(best.name)}`,
+        severity: 'medium', category: 'ads',
         title: `Scale "${best.name}" up`,
         rationale: `CPA ${fmtCur(best.cpa)} vs median ${fmtCur(median.cpa)}. Room to reallocate 20-30% more budget.`,
         action: 'Increase budget',
@@ -995,7 +1243,57 @@ function generateInsights({ ads, gsc, ga, ac }) {
     perSection.ads = `${camps.length} campaigns running · ${fmtCur(totalAdSpend)} spend · ${fmt(totalConv)} conversions over 30d.`;
   }
 
-  /* GSC — query-level opportunity detector */
+  /* 3 — landing-page leak: strong CTR, weak conversion rate */
+  const leaks = camps
+    .filter(c => c.Clicks > 50 && c.ctr > avgCtr * 1.1 && c.convRate < Math.max(0.5, avgConvRate * 0.5))
+    .sort((a, b) => b.Clicks - a.Clicks);
+  if (leaks[0]) {
+    push({
+      id: `ads-landing-${slug(leaks[0].name)}`,
+      severity: 'medium', category: 'ads',
+      title: `Fix landing page for "${leaks[0].name}"`,
+      rationale: `Click-through is strong (${fmtPct(leaks[0].ctr)} vs ${fmtPct(avgCtr)} avg) but only ${fmtPct(leaks[0].convRate)} convert. The funnel drop is on-page.`,
+      action: 'Audit landing page',
+    });
+  }
+
+  /* 4 — budget concentration */
+  if (camps.length >= 3 && totalAdSpend > 0) {
+    const topCamp = [...camps].sort((a, b) => b.Spend - a.Spend)[0];
+    const share = topCamp.Spend / totalAdSpend;
+    if (share > 0.45) {
+      push({
+        id: `ads-concentration-${slug(topCamp.name)}`,
+        severity: 'low', category: 'ads',
+        title: `Diversify ad spend beyond "${topCamp.name}"`,
+        rationale: `${fmtPct(share * 100)} of your 30-day ad budget sits in one campaign. Test a second channel or campaign to de-risk.`,
+        action: 'Plan diversification',
+      });
+    }
+  }
+
+  /* 5 — rising CPC week-over-week */
+  const spendByDay = byDay(ads.rows, 'Spend');
+  const clicksByDay = byDay(ads.rows, 'Clicks');
+  if (spendByDay.length >= 14 && clicksByDay.length >= 14) {
+    const spendR = spendByDay.slice(-7).reduce((a, [, v]) => a + v, 0);
+    const spendP = spendByDay.slice(-14, -7).reduce((a, [, v]) => a + v, 0);
+    const clicksR = clicksByDay.slice(-7).reduce((a, [, v]) => a + v, 0);
+    const clicksP = clicksByDay.slice(-14, -7).reduce((a, [, v]) => a + v, 0);
+    const cpcR = clicksR ? spendR / clicksR : 0;
+    const cpcP = clicksP ? spendP / clicksP : 0;
+    if (cpcP > 0 && cpcR > cpcP * 1.2) {
+      push({
+        id: `ads-cpc-rising`,
+        severity: 'medium', category: 'ads',
+        title: `CPC climbing — review keyword bids`,
+        rationale: `CPC rose from ${fmtCur(cpcP)} to ${fmtCur(cpcR)} week-over-week (+${fmtPct((cpcR/cpcP - 1) * 100)}). Likely bid creep or worsening quality score.`,
+        action: 'Review bids',
+      });
+    }
+  }
+
+  /* ════════ SEO ════════ */
   const qMap = {};
   gsc.rows.forEach(r => {
     const k = r.Query || '—';
@@ -1010,34 +1308,70 @@ function generateInsights({ ads, gsc, ga, ac }) {
     ctr: v.Impressions ? v.Clicks / v.Impressions * 100 : 0,
     avgPos: v.posN ? v.posSum / v.posN : null,
   }));
+
+  /* 6 — top-5 opportunity (CTR gap at middle positions) */
   const opps = queries
-    .filter(q => q.Impressions > 500 && q.avgPos != null && q.avgPos >= 5 && q.avgPos <= 15 && q.ctr < 3)
+    .filter(q => q.Impressions > 300 && q.avgPos != null && q.avgPos >= 5 && q.avgPos <= 15 && q.ctr < 3)
     .sort((a, b) => b.Impressions - a.Impressions);
   if (opps[0]) {
-    recs.push({
-      severity: 'medium',
+    push({
+      id: `seo-opp-${slug(opps[0].name)}`,
+      severity: 'medium', category: 'seo',
       title: `Refresh landing page for "${opps[0].name}"`,
-      rationale: `${fmt(opps[0].Impressions)} impressions at avg position ${opps[0].avgPos.toFixed(1)}. A content refresh could move it into the top 5.`,
+      rationale: `${fmt(opps[0].Impressions)} impressions at avg position ${opps[0].avgPos.toFixed(1)}, CTR ${fmtPct(opps[0].ctr)}. A content refresh could move it into the top 5.`,
       action: 'Plan content refresh',
     });
     perSection.seo = `"${opps[0].name}" is your #1 opportunity — ${fmt(opps[0].Impressions)} impressions at position ${opps[0].avgPos.toFixed(1)}, CTR only ${fmtPct(opps[0].ctr)}. Quick content win.`;
   } else {
     const tClicks = sum(gsc.rows, 'Clicks');
-    const avgCtr = queries.length ? queries.reduce((a, q) => a + q.ctr, 0) / queries.length : 0;
-    perSection.seo = `${fmt(tClicks)} organic clicks across ${queries.length} tracked queries · avg CTR ${fmtPct(avgCtr)}.`;
+    const avgQ = queries.length ? queries.reduce((a, q) => a + q.ctr, 0) / queries.length : 0;
+    perSection.seo = `${fmt(tClicks)} organic clicks across ${queries.length} tracked queries · avg CTR ${fmtPct(avgQ)}.`;
   }
 
-  /* GA — 7d vs prior 7d trend */
+  /* 7 — page-2 queries worth pushing */
+  const page2 = queries
+    .filter(q => q.Impressions > 200 && q.avgPos != null && q.avgPos > 10 && q.avgPos <= 20)
+    .sort((a, b) => b.Impressions - a.Impressions);
+  if (page2[0] && (!opps[0] || page2[0].name !== opps[0].name)) {
+    push({
+      id: `seo-page2-${slug(page2[0].name)}`,
+      severity: 'medium', category: 'seo',
+      title: `Push "${page2[0].name}" to page 1`,
+      rationale: `Stuck at position ${page2[0].avgPos.toFixed(1)} with ${fmt(page2[0].Impressions)} impressions. Internal links and intent-matched copy could break it through.`,
+      action: 'Plan SEO sprint',
+    });
+  }
+
+  /* 8 — organic traffic decline */
+  const gscDaily = byDay(gsc.rows, 'Clicks');
+  if (gscDaily.length >= 14) {
+    const r7 = gscDaily.slice(-7).reduce((a, [, v]) => a + v, 0);
+    const p7 = gscDaily.slice(-14, -7).reduce((a, [, v]) => a + v, 0);
+    const delta = p7 ? (r7 - p7) / p7 : 0;
+    if (delta < -0.2) {
+      push({
+        id: `seo-decline`,
+        severity: 'high', category: 'seo',
+        title: `Investigate organic click drop`,
+        rationale: `Organic clicks down ${fmtPct(Math.abs(delta) * 100)} week-over-week (${fmt(p7)} → ${fmt(r7)}). Check for ranking losses or indexing issues.`,
+        action: 'Audit GSC',
+      });
+    }
+  }
+
+  /* ════════ GA ════════ */
   const gaDaily = byDay(ga.rows, 'Sessions');
   if (gaDaily.length >= 14) {
     const recent7 = gaDaily.slice(-7).reduce((a, [, v]) => a + v, 0);
     const prior7 = gaDaily.slice(-14, -7).reduce((a, [, v]) => a + v, 0);
     const delta = prior7 ? (recent7 - prior7) / prior7 : 0;
+    /* 9 — GA traffic drop */
     if (delta < -0.15) {
-      recs.push({
-        severity: 'high',
-        title: `Investigate traffic drop`,
-        rationale: `Sessions down ${fmtPct(Math.abs(delta) * 100)} week-over-week. Check GA for top-dropping channels or pages.`,
+      push({
+        id: `ga-drop`,
+        severity: 'high', category: 'ga',
+        title: `Investigate site traffic drop`,
+        rationale: `Sessions down ${fmtPct(Math.abs(delta) * 100)} week-over-week. Check the channel donut for the biggest loser and look for site changes.`,
         action: 'Open GA',
       });
     }
@@ -1048,41 +1382,119 @@ function generateInsights({ ads, gsc, ga, ac }) {
     perSection.ga = `${fmt(sum(ga.rows, 'Sessions'))} sessions over the period.`;
   }
 
-  /* Calls — miss rate */
+  /* 10 — low-engagement heavy channel */
+  const chMap = {};
+  ga.rows.forEach(r => {
+    const k = r.Channel || '—';
+    const e = chMap[k] || (chMap[k] = { Sessions: 0, engSum: 0, engN: 0 });
+    e.Sessions += Number(r.Sessions) || 0;
+    const er = Number(r['Engagement Rate']);
+    if (!isNaN(er)) { e.engSum += er; e.engN += 1; }
+  });
+  const totalSess = Object.values(chMap).reduce((a, c) => a + c.Sessions, 0);
+  const chArr = Object.entries(chMap).map(([name, v]) => ({
+    name, Sessions: v.Sessions,
+    share: totalSess ? v.Sessions / totalSess : 0,
+    engagement: v.engN ? v.engSum / v.engN : 0,
+  }));
+  const dragChannel = chArr
+    .filter(c => c.share > 0.15 && c.engagement < 45)
+    .sort((a, b) => a.engagement - b.engagement)[0];
+  if (dragChannel) {
+    push({
+      id: `ga-drag-${slug(dragChannel.name)}`,
+      severity: 'medium', category: 'ga',
+      title: `Fix ${dragChannel.name} engagement`,
+      rationale: `${fmtPct(dragChannel.share * 100)} of sessions but only ${fmtPct(dragChannel.engagement)} engagement. Visitors are bouncing — check the landing experience for that source.`,
+      action: 'Audit landing pages',
+    });
+  }
+
+  /* ════════ Calls ════════ */
   const totalCalls = sum(ac.rows, 'Total Calls');
   const missed = sum(ac.rows, 'Missed');
   const missRate = totalCalls ? missed / totalCalls : 0;
+
+  /* 11 — miss-rate threshold */
   if (missRate > 0.15) {
-    recs.push({
-      severity: totalCalls >= 100 ? 'high' : 'medium',
+    push({
+      id: `calls-miss-rate`,
+      severity: totalCalls >= 100 ? 'high' : 'medium', category: 'calls',
       title: `Reduce missed-call rate`,
       rationale: `${fmt(missed)} missed of ${fmt(totalCalls)} (${fmtPct(missRate * 100)}). Extend staffed hours or add a backup routing rule.`,
-      action: 'Review Aircall routing',
+      action: 'Review routing',
     });
     perSection.calls = `Miss rate ${fmtPct(missRate * 100)} is above the 15% threshold · ${fmt(missed)} missed in 30d.`;
   } else {
     perSection.calls = `${fmt(totalCalls)} calls · ${fmtPct((1 - missRate) * 100)} answer rate · healthy coverage.`;
   }
 
-  /* Sort + narrative */
+  /* 12 — worst-day coverage gap */
+  const dayMap = {};
+  ac.rows.forEach(r => {
+    const d = r.Date;
+    if (!d) return;
+    const k = typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10);
+    const e = dayMap[k] || (dayMap[k] = { Calls: 0, Missed: 0 });
+    e.Calls += Number(r['Total Calls']) || 0;
+    e.Missed += Number(r.Missed) || 0;
+  });
+  const daysArr = Object.entries(dayMap)
+    .map(([d, v]) => ({ d, ...v, rate: v.Calls ? v.Missed / v.Calls : 0 }))
+    .filter(d => d.Calls >= 5);
+  if (daysArr.length >= 5 && missRate < 0.15) {
+    const worstDay = [...daysArr].sort((a, b) => b.rate - a.rate)[0];
+    if (worstDay.rate > missRate * 2 && worstDay.rate > 0.25) {
+      push({
+        id: `calls-day-${slug(worstDay.d)}`,
+        severity: 'low', category: 'calls',
+        title: `Review coverage on ${worstDay.d}`,
+        rationale: `That day missed ${fmtPct(worstDay.rate * 100)} of ${fmt(worstDay.Calls)} calls — a 2× outlier vs the period average. Check staffing / spike routing for recurring day-of-week gaps.`,
+        action: 'Check schedule',
+      });
+    }
+  }
+
+  /* ════════ Cross-channel ════════ */
+  /* 13 — attribution gap: lots of calls, few tracked ad conversions */
+  if (totalCalls > 50 && totalConv > 0 && totalCalls > totalConv * 2) {
+    push({
+      id: `cross-attribution-gap`,
+      severity: 'medium', category: 'cross',
+      title: `Wire up call tracking`,
+      rationale: `${fmt(totalCalls)} inbound calls but only ${fmt(totalConv)} tracked ad conversions. You're likely under-crediting paid channels — enable call conversion tracking.`,
+      action: 'Set up call tracking',
+    });
+  }
+
+  /* ════════ Narrative + sort ════════ */
   const sevRank = { high: 3, medium: 2, low: 1 };
   recs.sort((a, b) => (sevRank[b.severity] || 0) - (sevRank[a.severity] || 0));
-  const capped = recs.slice(0, 5);
+  const capped = recs.slice(0, 8);
 
+  const scopePhrase = brand === 'all' ? 'across both brands' : `for ${BRAND_LABEL[brand]}`;
   const bits = [];
-  bits.push(`Across 4 channels over the last 30 days: ${fmtCur(totalAdSpend)} ad spend, ${fmt(totalConv)} conversions, ${fmt(totalCalls)} inbound calls.`);
+  bits.push(`Last 30 days ${scopePhrase}: ${fmtCur(totalAdSpend)} ad spend drove ${fmt(totalConv)} tracked conversions, alongside ${fmt(totalCalls)} inbound calls.`);
+  if (withConv[0]) {
+    bits.push(`Most efficient campaign is ${withConv[0].name} at ${fmtCur(withConv[0].cpa)} CPA.`);
+  }
   if (capped.length === 0) {
     bits.push(`No urgent issues detected — performance is within expected thresholds.`);
-  } else if (capped[0].severity === 'high') {
-    bits.push(`Top priority: ${capped[0].title}.`);
   } else {
-    bits.push(`One opportunity worth acting on: ${capped[0].title}.`);
-  }
-  if (capped.length > 1) {
-    bits.push(`${capped.length - 1} additional ${capped.length - 1 === 1 ? 'signal' : 'signals'} surfaced below.`);
+    const lead = capped[0];
+    const label = lead.severity === 'high' ? 'Top priority'
+                : lead.severity === 'medium' ? 'Biggest opportunity'
+                : 'Worth reviewing';
+    bits.push(`${label}: ${lead.title.replace(/"/g, '')}.`);
+    if (capped[1]) {
+      bits.push(`Also on the list: ${capped[1].title.replace(/"/g, '')}.`);
+    }
+    if (capped.length > 2) {
+      bits.push(`${capped.length - 2} further ${capped.length - 2 === 1 ? 'signal' : 'signals'} surfaced below.`);
+    }
   }
 
-  return { narrative: bits.join(' '), recs: capped, perSection };
+  return { narrative: bits.join(' '), recs: capped, perSection, brand };
 }
 
 /* ── Overview + orchestrator ────────────────────────────────────── */
@@ -1101,14 +1513,40 @@ function mockChannel(mockFn, reason) {
 function paint(ads, gsc, ga, ac) {
   document.getElementById('lastUpdated').textContent =
     new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-  const insights = generateInsights({ ads, gsc, ga, ac });
+  const insights = generateInsights({ ads, gsc, ga, ac }, state.brand);
   renderBriefing(insights);
+  renderTodos(insights.recs);
   renderOverview(ads, gsc, ga, ac);
   renderAds(ads, insights.perSection.ads);
   renderSeo(gsc, insights.perSection.seo);
   renderGa(ga, insights.perSection.ga);
   renderCalls(ac, insights.perSection.calls);
   renderPlaceholders();
+}
+
+function repaint() {
+  if (!state.raw) return;
+  const { ads, gsc, ga, ac } = state.raw;
+  const scoped = {
+    ads: scopeChannel(ads, state.brand),
+    gsc: scopeChannel(gsc, state.brand),
+    ga:  scopeChannel(ga,  state.brand),
+    ac:  scopeChannel(ac,  state.brand),
+  };
+
+  /* If user picked a specific brand but a live channel has no brand column,
+     surface the "filter pending" hint so the user knows that channel isn't
+     actually being sliced. Mock data always has brand tags, so on DEMO
+     sources the toggle is always fully active. */
+  const pending = document.getElementById('brandPending');
+  if (pending) {
+    const needsBrand = state.brand !== 'all';
+    const missingBrand = needsBrand && Object.values(state.raw).some(
+      c => c.source === 'live' && !c.rows.some(r => r && r.brand)
+    );
+    pending.classList.toggle('hidden', !missingBrand);
+  }
+  paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac);
 }
 
 async function render() {
@@ -1127,16 +1565,18 @@ async function render() {
       { channel: 'aircall', source: ac.source,  rows: ac.rows.length,  reason: ac.reason || '',  cols: ac.cols.join(', ') },
     ]);
 
-    paint(ads, gsc, ga, ac);
+    state.raw = { ads, gsc, ga, ac };
+    repaint();
   } catch (err) {
     console.error('CMO render failed, falling back to mock:', err);
     const reason = `render error: ${err && err.message || err}`;
-    paint(
-      mockChannel(mockAds, reason),
-      mockChannel(mockGsc, reason),
-      mockChannel(mockGa, reason),
-      mockChannel(mockAircall, reason),
-    );
+    state.raw = {
+      ads: mockChannel(mockAds, reason),
+      gsc: mockChannel(mockGsc, reason),
+      ga:  mockChannel(mockGa,  reason),
+      ac:  mockChannel(mockAircall, reason),
+    };
+    repaint();
   }
 }
 
@@ -1425,18 +1865,18 @@ function renderPlaceholders() {
   ]);
 }
 
-const state = { brand: 'all' };
+const BRAND_LABEL = { all: 'All brands', via: 'Viatrading', liq: 'Liquidatenow' };
+const state = { brand: 'all', raw: null, todos: loadTodoState() };
 
 function initBrandToggle() {
   const buttons = document.querySelectorAll('.brand-toggle button[data-brand]');
-  const pending = document.getElementById('brandPending');
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
       const next = btn.dataset.brand;
       if (state.brand === next) return;
       state.brand = next;
       buttons.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
-      pending.classList.toggle('hidden', next === 'all');
+      repaint();
     });
   });
 }

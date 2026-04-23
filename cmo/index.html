@@ -423,9 +423,9 @@
   </div>
   <div class="header-right">
     <nav class="nav">
-      <a href="/" >Storage</a>
-      <a href="/cmo/" class="active">CMO</a>
-      <a href="/clock/">Clock</a>
+      <a href="../">Storage</a>
+      <a href="./" class="active">CMO</a>
+      <a href="../clock/">Clock</a>
     </nav>
     <div class="status-dot"></div>
     <span class="last-updated" id="lastUpdated">Loading...</span>
@@ -710,9 +710,16 @@ function coerceCell(v) {
 
 async function fetchSheet(id) {
   const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`gviz ${res.status}`);
-  const text = await res.text();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  let text;
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`gviz ${res.status}`);
+    text = await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
   const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
   const cols = json.table.cols.map(c => c.label || c.id);
   const rows = json.table.rows.map(r => {
@@ -1039,24 +1046,14 @@ const REQUIRED_COLS = {
   aircall: ['Total Calls'],
 };
 
-async function render() {
-  const [ads, gsc, ga, ac] = await Promise.all([
-    loadChannel('ads', mockAds, REQUIRED_COLS.ads),
-    loadChannel('gsc', mockGsc, REQUIRED_COLS.gsc),
-    loadChannel('ga', mockGa, REQUIRED_COLS.ga),
-    loadChannel('aircall', mockAircall, REQUIRED_COLS.aircall),
-  ]);
+function mockChannel(mockFn, reason) {
+  const rows = mockFn();
+  return { rows, source: 'demo', cols: Object.keys(rows[0] || {}), reason };
+}
 
-  console.table([
-    { channel: 'ads',     source: ads.source, rows: ads.rows.length, reason: ads.reason || '',     cols: ads.cols.join(', ') },
-    { channel: 'gsc',     source: gsc.source, rows: gsc.rows.length, reason: gsc.reason || '',     cols: gsc.cols.join(', ') },
-    { channel: 'ga',      source: ga.source,  rows: ga.rows.length,  reason: ga.reason || '',      cols: ga.cols.join(', ') },
-    { channel: 'aircall', source: ac.source,  rows: ac.rows.length,  reason: ac.reason || '',      cols: ac.cols.join(', ') },
-  ]);
-
+function paint(ads, gsc, ga, ac) {
   document.getElementById('lastUpdated').textContent =
     new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-
   const insights = generateInsights({ ads, gsc, ga, ac });
   renderBriefing(insights);
   renderOverview(ads, gsc, ga, ac);
@@ -1065,6 +1062,35 @@ async function render() {
   renderGa(ga, insights.perSection.ga);
   renderCalls(ac, insights.perSection.calls);
   renderPlaceholders();
+}
+
+async function render() {
+  try {
+    const [ads, gsc, ga, ac] = await Promise.all([
+      loadChannel('ads', mockAds, REQUIRED_COLS.ads),
+      loadChannel('gsc', mockGsc, REQUIRED_COLS.gsc),
+      loadChannel('ga', mockGa, REQUIRED_COLS.ga),
+      loadChannel('aircall', mockAircall, REQUIRED_COLS.aircall),
+    ]);
+
+    console.table([
+      { channel: 'ads',     source: ads.source, rows: ads.rows.length, reason: ads.reason || '', cols: ads.cols.join(', ') },
+      { channel: 'gsc',     source: gsc.source, rows: gsc.rows.length, reason: gsc.reason || '', cols: gsc.cols.join(', ') },
+      { channel: 'ga',      source: ga.source,  rows: ga.rows.length,  reason: ga.reason || '',  cols: ga.cols.join(', ') },
+      { channel: 'aircall', source: ac.source,  rows: ac.rows.length,  reason: ac.reason || '',  cols: ac.cols.join(', ') },
+    ]);
+
+    paint(ads, gsc, ga, ac);
+  } catch (err) {
+    console.error('CMO render failed, falling back to mock:', err);
+    const reason = `render error: ${err && err.message || err}`;
+    paint(
+      mockChannel(mockAds, reason),
+      mockChannel(mockGsc, reason),
+      mockChannel(mockGa, reason),
+      mockChannel(mockAircall, reason),
+    );
+  }
 }
 
 function renderOverview(ads, gsc, ga, ac) {

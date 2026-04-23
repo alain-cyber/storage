@@ -368,11 +368,128 @@
     font-size: 0.8rem;
   }
 
+  /* Filter bar */
+  .filter-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+    align-items: center;
+  }
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .filter-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .filter-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+  .filter-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--text2);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.7rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .filter-chip:hover { color: var(--text); border-color: var(--border2); }
+  .filter-chip.active { color: var(--text); background: var(--surface); border-color: var(--green); box-shadow: 0 0 0 1px rgba(76,175,125,0.25) inset; }
+  .filter-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.55rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color-scheme: dark;
+  }
+  .filter-input:focus { outline: none; border-color: var(--green); }
+  .filter-summary {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text3);
+    letter-spacing: 0.05em;
+  }
+  .filter-summary strong { color: var(--text); font-weight: 500; }
+
+  /* Period aggregate table */
+  .period-table-card { overflow-x: auto; }
+  .period-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 680px; }
+  .period-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 0.5rem 0.75rem;
+    text-align: right;
+    font-weight: 400;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--surface);
+  }
+  .period-table th:first-child, .period-table td:first-child { text-align: left; }
+  .period-table td {
+    padding: 0.55rem 0.75rem;
+    border-top: 1px solid var(--border);
+    color: var(--text2);
+    font-family: 'DM Mono', monospace;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .period-table td:first-child { color: var(--text); font-weight: 600; }
+  .period-table tr.total-row td {
+    border-top: 1px solid var(--border2);
+    color: var(--text);
+    background: rgba(255,255,255,0.02);
+  }
+  .pct-up { color: var(--green); }
+  .pct-down { color: var(--red); }
+  .pct-flat { color: var(--text3); }
+
+  /* Insights */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .insight-card { min-height: 160px; }
+  .insight-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .insight-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 0.78rem;
+  }
+  .insight-row:last-child { border-bottom: none; }
+  .insight-name { color: var(--text2); }
+  .insight-delta { font-family: 'DM Mono', monospace; font-size: 0.72rem; }
+  .insight-empty { color: var(--text3); font-size: 0.75rem; font-style: italic; padding: 0.75rem 0; }
+
   @media (max-width: 768px) {
     .header { padding: 1.5rem; flex-direction: column; align-items: flex-start; gap: 1rem; }
     .dashboard { padding: 1rem 1.5rem; }
-    .charts-grid, .charts-grid-2, .charts-grid-3 { grid-template-columns: 1fr; }
+    .charts-grid, .charts-grid-2, .charts-grid-3, .insights-grid { grid-template-columns: 1fr; }
     .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .filter-summary { margin-left: 0; }
   }
 </style>
 </head>
@@ -401,6 +518,51 @@
 </div>
 
 <div id="dashboard" class="dashboard" style="display:none">
+
+  <!-- Filter bar -->
+  <div class="filter-bar" id="filterBar">
+    <div class="filter-group">
+      <span class="filter-label">Range</span>
+      <div class="filter-row">
+        <input type="date" id="fromDate" class="filter-input" aria-label="From date">
+        <span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:0.7rem">→</span>
+        <input type="date" id="toDate" class="filter-input" aria-label="To date">
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Quick pick</span>
+      <div class="filter-row" id="quickPicks">
+        <button class="filter-chip" data-quick="all">All time</button>
+        <button class="filter-chip" data-quick="30d">Last 30d</button>
+        <button class="filter-chip" data-quick="90d">Last 90d</button>
+        <button class="filter-chip" data-quick="ytd">YTD</button>
+        <button class="filter-chip" data-quick="last-year">Last year</button>
+        <button class="filter-chip" data-quick="trailing-12">Trailing 12mo</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Year</span>
+      <div class="filter-row" id="yearPicks"></div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Quarter (current year)</span>
+      <div class="filter-row" id="quarterPicks">
+        <button class="filter-chip" data-quarter="1">Q1</button>
+        <button class="filter-chip" data-quarter="2">Q2</button>
+        <button class="filter-chip" data-quarter="3">Q3</button>
+        <button class="filter-chip" data-quarter="4">Q4</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Group by</span>
+      <div class="filter-row" id="granularityPicks">
+        <button class="filter-chip" data-gran="month">Month</button>
+        <button class="filter-chip active" data-gran="quarter">Quarter</button>
+        <button class="filter-chip" data-gran="year">Year</button>
+      </div>
+    </div>
+    <div class="filter-summary" id="filterSummary">—</div>
+  </div>
 
   <!-- Metric Cards -->
   <div class="metrics-grid" id="metricsGrid"></div>
@@ -493,6 +655,70 @@
     </div>
   </div>
 
+  <!-- Insights row -->
+  <div class="insights-grid">
+    <div class="chart-card insight-card" id="insightsUpCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Improving · trending up</div>
+          <div class="chart-value" id="insightsUpCount">—</div>
+        </div>
+        <span class="chart-badge badge-green">Good</span>
+      </div>
+      <div class="insight-list" id="insightsUp"></div>
+    </div>
+
+    <div class="chart-card insight-card" id="insightsDownCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Declining · trending down</div>
+          <div class="chart-value" id="insightsDownCount">—</div>
+        </div>
+        <span class="chart-badge badge-red">Attention</span>
+      </div>
+      <div class="insight-list" id="insightsDown"></div>
+    </div>
+
+    <div class="chart-card insight-card" id="insightsWatchCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Watch list · questions to ask</div>
+          <div class="chart-value" id="insightsWatchCount">—</div>
+        </div>
+        <span class="chart-badge badge-amber">Review</span>
+      </div>
+      <div class="insight-list" id="insightsWatch"></div>
+    </div>
+  </div>
+
+  <!-- Period aggregate table -->
+  <div class="chart-card period-table-card" id="periodTableCard" style="margin-bottom:1rem">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Period breakdown</div>
+        <div class="chart-value" id="periodTableTitle">—</div>
+      </div>
+      <span class="chart-badge badge-green" id="periodTableBadge">—</span>
+    </div>
+    <table class="period-table">
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Avg Unit Occ</th>
+          <th>Avg Area Occ</th>
+          <th>Move-Ins</th>
+          <th>Move-Outs</th>
+          <th>Net</th>
+          <th>Peak Receipts</th>
+          <th>Avg Delinquent</th>
+          <th>Leads</th>
+          <th>Conv %</th>
+        </tr>
+      </thead>
+      <tbody id="periodTableBody"></tbody>
+    </table>
+  </div>
+
 </div>
 
 <footer class="footer">
@@ -524,6 +750,21 @@ function fmtCurrency(n) {
   return '$' + Math.round(n).toLocaleString();
 }
 
+// Google's gviz JSON returns dates as strings like "Date(2024,0,15)" — normalize.
+function parseSheetDate(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  if (typeof v === 'string') {
+    const m = /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/.exec(v);
+    if (m) {
+      return new Date(+m[1], +m[2], +m[3], +(m[4]||0), +(m[5]||0), +(m[6]||0));
+    }
+    const d = new Date(v);
+    return isNaN(d) ? null : d;
+  }
+  return null;
+}
+
 async function fetchData() {
   const res = await fetch(API_URL);
   const text = await res.text();
@@ -534,34 +775,41 @@ async function fetchData() {
     r.c.forEach((cell, i) => { obj[cols[i]] = cell ? cell.v : null; });
     return obj;
   });
-  return rows;
+  // Normalize Report Date to a JS Date, keep the original too.
+  rows.forEach(r => { r.__date = parseSheetDate(r['Report Date']); });
+  return rows.filter(r => r.__date);
 }
 
-function getMonthlyPeak(rows, col) {
-  const byMonth = {};
-  rows.forEach(r => {
-    if (!r['Report Date'] || r[col] == null) return;
-    const d = new Date(r['Report Date']);
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if (!byMonth[key] || r[col] > byMonth[key]) byMonth[key] = r[col];
-  });
-  return Object.entries(byMonth).sort(([a],[b]) => a.localeCompare(b));
+function periodKey(date, gran) {
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  if (gran === 'year') return `${y}`;
+  if (gran === 'quarter') return `${y} Q${Math.floor(m/3)+1}`;
+  return `${y}-${String(m+1).padStart(2,'0')}`; // month
 }
 
-function getQuarterlyAvg(rows, col) {
-  const byQ = {};
+function aggregateByPeriod(rows, col, gran, mode) {
+  // mode: 'avg' | 'peak' | 'last'
+  const bins = {};
   rows.forEach(r => {
-    if (!r['Report Date'] || r[col] == null) return;
-    const d = new Date(r['Report Date']);
-    const q = Math.floor(d.getMonth()/3)+1;
-    const key = `${d.getFullYear()} Q${q}`;
-    if (!byQ[key]) byQ[key] = [];
-    byQ[key].push(r[col]);
+    if (r[col] == null) return;
+    const k = periodKey(r.__date, gran);
+    (bins[k] = bins[k] || []).push({ v: +r[col], d: r.__date });
   });
-  return Object.entries(byQ)
+  return Object.entries(bins)
     .sort(([a],[b]) => a.localeCompare(b))
-    .map(([k,v]) => [k, v.reduce((a,b)=>a+b,0)/v.length]);
+    .map(([k, arr]) => {
+      let v;
+      if (mode === 'peak') v = Math.max(...arr.map(x => x.v));
+      else if (mode === 'last') v = arr.sort((a,b)=>a.d-b.d).slice(-1)[0].v;
+      else v = arr.reduce((s,x)=>s+x.v,0) / arr.length;
+      return [k, v];
+    });
 }
+
+// Convenience helpers kept for backwards-compat with original chart code.
+function getMonthlyPeak(rows, col) { return aggregateByPeriod(rows, col, 'month', 'peak'); }
+function getQuarterlyAvg(rows, col) { return aggregateByPeriod(rows, col, 'quarter', 'avg'); }
 
 function makeChart(id, type, labels, datasets, options={}) {
   const ctx = document.getElementById(id);
@@ -591,22 +839,357 @@ function animateIn(ids) {
   });
 }
 
-async function render() {
-  try {
-    const rows = await fetchData();
-    if (!rows.length) throw new Error('No data');
+// ── Filter state + chart registry ───────────────────────────
+const state = {
+  allRows: [],
+  from: null,       // Date (inclusive) or null
+  to: null,         // Date (inclusive) or null
+  gran: 'quarter',  // 'month' | 'quarter' | 'year'
+};
+const charts = {};
 
-    // Sort by date
-    rows.sort((a,b) => new Date(a['Report Date']) - new Date(b['Report Date']));
-    const latest = rows[rows.length - 1];
-    const prev = rows[rows.length - 8] || rows[0];
+function destroyCharts() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(_){} });
+  Object.keys(charts).forEach(k => delete charts[k]);
+}
 
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
+function inRange(d) {
+  if (state.from && d < state.from) return false;
+  if (state.to && d > state.to) return false;
+  return true;
+}
 
-    const latestDate = new Date(latest['Report Date']);
-    document.getElementById('lastUpdated').textContent =
-      latestDate.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+function filteredRows() {
+  return state.allRows.filter(r => inRange(r.__date));
+}
+
+function setRange(from, to) {
+  state.from = from;
+  state.to = to;
+  document.getElementById('fromDate').value = from ? toIsoDate(from) : '';
+  document.getElementById('toDate').value = to ? toIsoDate(to) : '';
+  clearActiveChips();
+  rerender();
+}
+function toIsoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function clearActiveChips(groupSel) {
+  const sel = groupSel || '#quickPicks .filter-chip, #yearPicks .filter-chip, #quarterPicks .filter-chip';
+  document.querySelectorAll(sel).forEach(c => c.classList.remove('active'));
+}
+
+function applyQuickPick(kind) {
+  if (!state.allRows.length) return;
+  const maxD = state.allRows[state.allRows.length-1].__date;
+  const minD = state.allRows[0].__date;
+  const endOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59);
+  let from, to = endOfDay(maxD);
+  if (kind === 'all')        { from = minD; to = endOfDay(maxD); }
+  else if (kind === '30d')   { from = new Date(maxD); from.setDate(from.getDate()-30); }
+  else if (kind === '90d')   { from = new Date(maxD); from.setDate(from.getDate()-90); }
+  else if (kind === 'ytd')   { from = new Date(maxD.getFullYear(), 0, 1); }
+  else if (kind === 'last-year') { from = new Date(maxD.getFullYear()-1, 0, 1); to = new Date(maxD.getFullYear()-1, 11, 31, 23,59,59); }
+  else if (kind === 'trailing-12') { from = new Date(maxD); from.setMonth(from.getMonth()-12); }
+  state.from = from; state.to = to;
+  document.getElementById('fromDate').value = toIsoDate(from);
+  document.getElementById('toDate').value = toIsoDate(to);
+  clearActiveChips();
+  document.querySelector(`#quickPicks [data-quick="${kind}"]`)?.classList.add('active');
+  rerender();
+}
+
+function applyYear(y) {
+  state.from = new Date(y, 0, 1);
+  state.to = new Date(y, 11, 31, 23,59,59);
+  document.getElementById('fromDate').value = toIsoDate(state.from);
+  document.getElementById('toDate').value = toIsoDate(state.to);
+  clearActiveChips();
+  document.querySelector(`#yearPicks [data-year="${y}"]`)?.classList.add('active');
+  rerender();
+}
+function applyQuarter(q) {
+  // Uses the "reference" year = the latest year in the dataset (or current range's to-year).
+  const refYear = (state.to || (state.allRows.length ? state.allRows[state.allRows.length-1].__date : new Date())).getFullYear();
+  const startMonth = (q - 1) * 3;
+  state.from = new Date(refYear, startMonth, 1);
+  state.to = new Date(refYear, startMonth + 3, 0, 23,59,59);
+  document.getElementById('fromDate').value = toIsoDate(state.from);
+  document.getElementById('toDate').value = toIsoDate(state.to);
+  clearActiveChips();
+  document.querySelector(`#quarterPicks [data-quarter="${q}"]`)?.classList.add('active');
+  rerender();
+}
+
+function wireFilterUI() {
+  document.getElementById('fromDate').addEventListener('change', e => {
+    state.from = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
+    clearActiveChips();
+    rerender();
+  });
+  document.getElementById('toDate').addEventListener('change', e => {
+    state.to = e.target.value ? new Date(e.target.value + 'T23:59:59') : null;
+    clearActiveChips();
+    rerender();
+  });
+  document.querySelectorAll('#quickPicks .filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => applyQuickPick(btn.dataset.quick));
+  });
+  document.querySelectorAll('#quarterPicks .filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => applyQuarter(+btn.dataset.quarter));
+  });
+  document.querySelectorAll('#granularityPicks .filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#granularityPicks .filter-chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      state.gran = btn.dataset.gran;
+      rerender();
+    });
+  });
+}
+
+function populateYearChips() {
+  const years = [...new Set(state.allRows.map(r => r.__date.getFullYear()))].sort();
+  const host = document.getElementById('yearPicks');
+  host.innerHTML = '';
+  years.forEach(y => {
+    const b = document.createElement('button');
+    b.className = 'filter-chip';
+    b.dataset.year = y;
+    b.textContent = y;
+    b.addEventListener('click', () => applyYear(y));
+    host.appendChild(b);
+  });
+}
+
+// ── Period table + insights ────────────────────────────────
+function buildPeriodRows(rows, gran) {
+  const bins = {};
+  rows.forEach(r => {
+    const k = periodKey(r.__date, gran);
+    (bins[k] = bins[k] || []).push(r);
+  });
+  return Object.entries(bins)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([k, arr]) => {
+      const avg = col => { const v = arr.map(r => r[col]).filter(x => x != null); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
+      const peak = col => { const v = arr.map(r => r[col]).filter(x => x != null); return v.length ? Math.max(...v) : null; };
+      const moveIns = peak('Move-Ins MTD') || 0;
+      const moveOuts = peak('Move-Outs MTD') || 0;
+      const leads = peak('Total Leads MTD') || 0;
+      const converted = peak('Leads Converted MTD') || 0;
+      return {
+        label: k,
+        avgUnitOcc: avg('Unit Occupancy %'),
+        avgAreaOcc: avg('Area Occupancy %'),
+        moveIns, moveOuts, net: moveIns - moveOuts,
+        peakReceipts: peak('Total Receipts MTD'),
+        avgDelinq: avg('Delinquent Amount Total'),
+        leads, conv: leads > 0 ? (converted/leads)*100 : null,
+      };
+    });
+}
+
+function renderPeriodTable(rows, gran) {
+  const granLabel = gran === 'year' ? 'Yearly' : gran === 'quarter' ? 'Quarterly' : 'Monthly';
+  document.getElementById('periodTableTitle').textContent = granLabel + ' view';
+  document.getElementById('periodTableBadge').textContent = `${rows.length} rows`;
+  const data = buildPeriodRows(rows, gran);
+  const body = document.getElementById('periodTableBody');
+  body.innerHTML = data.map(p => `
+    <tr>
+      <td>${p.label}</td>
+      <td>${p.avgUnitOcc == null ? '—' : p.avgUnitOcc.toFixed(1) + '%'}</td>
+      <td>${p.avgAreaOcc == null ? '—' : p.avgAreaOcc.toFixed(1) + '%'}</td>
+      <td>${p.moveIns}</td>
+      <td>${p.moveOuts}</td>
+      <td class="${p.net > 0 ? 'pct-up' : p.net < 0 ? 'pct-down' : 'pct-flat'}">${p.net > 0 ? '+' : ''}${p.net}</td>
+      <td>${p.peakReceipts == null ? '—' : fmtCurrency(p.peakReceipts)}</td>
+      <td>${p.avgDelinq == null ? '—' : fmtCurrency(p.avgDelinq)}</td>
+      <td>${p.leads}</td>
+      <td>${p.conv == null ? '—' : p.conv.toFixed(0) + '%'}</td>
+    </tr>
+  `).join('');
+  if (data.length > 1) {
+    const totals = data.reduce((a,p)=>({
+      mi: a.mi + p.moveIns, mo: a.mo + p.moveOuts,
+      lead: a.lead + p.leads,
+      receiptsMax: Math.max(a.receiptsMax, p.peakReceipts || 0),
+      occVals: a.occVals.concat(p.avgUnitOcc != null ? [p.avgUnitOcc] : []),
+      areaVals: a.areaVals.concat(p.avgAreaOcc != null ? [p.avgAreaOcc] : []),
+      delinqVals: a.delinqVals.concat(p.avgDelinq != null ? [p.avgDelinq] : []),
+      convVals: a.convVals.concat(p.conv != null ? [p.conv] : []),
+    }), { mi:0, mo:0, lead:0, receiptsMax:0, occVals:[], areaVals:[], delinqVals:[], convVals:[] });
+    const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+    const net = totals.mi - totals.mo;
+    body.innerHTML += `
+      <tr class="total-row">
+        <td>Total / Avg</td>
+        <td>${avg(totals.occVals) == null ? '—' : avg(totals.occVals).toFixed(1)+'%'}</td>
+        <td>${avg(totals.areaVals) == null ? '—' : avg(totals.areaVals).toFixed(1)+'%'}</td>
+        <td>${totals.mi}</td>
+        <td>${totals.mo}</td>
+        <td class="${net>0?'pct-up':net<0?'pct-down':'pct-flat'}">${net>0?'+':''}${net}</td>
+        <td>${fmtCurrency(totals.receiptsMax)}</td>
+        <td>${avg(totals.delinqVals) == null ? '—' : fmtCurrency(avg(totals.delinqVals))}</td>
+        <td>${totals.lead}</td>
+        <td>${avg(totals.convVals) == null ? '—' : avg(totals.convVals).toFixed(0)+'%'}</td>
+      </tr>
+    `;
+  }
+}
+
+function computeInsights(rows, gran) {
+  // Compare first half vs second half of the filtered range for trend direction.
+  if (rows.length < 4) return { up: [], down: [], watch: [{ name: 'Not enough data', detail: 'Widen the date range to see insights.' }] };
+
+  const sorted = rows.slice().sort((a,b) => a.__date - b.__date);
+  const mid = Math.floor(sorted.length / 2);
+  const firstHalf = sorted.slice(0, mid);
+  const secondHalf = sorted.slice(mid);
+  const avg = (arr, col) => {
+    const v = arr.map(r => r[col]).filter(x => x != null);
+    return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null;
+  };
+  const peak = (arr, col) => {
+    const v = arr.map(r => r[col]).filter(x => x != null);
+    return v.length ? Math.max(...v) : null;
+  };
+
+  // Metrics to trend. "higherIsBetter" controls up/down categorization.
+  const specs = [
+    { name: 'Unit occupancy',        col: 'Unit Occupancy %',        agg: 'avg',  higher: true,  unit: '%',  min: 0.5 },
+    { name: 'Area occupancy',        col: 'Area Occupancy %',        agg: 'avg',  higher: true,  unit: '%',  min: 0.5 },
+    { name: 'Drive Up occupancy',    col: 'Drive Up Unit Occ %',     agg: 'avg',  higher: true,  unit: '%',  min: 1 },
+    { name: 'Parking occupancy',     col: 'Parking Unit Occ %',      agg: 'avg',  higher: true,  unit: '%',  min: 1 },
+    { name: 'Warehouse occupancy',   col: 'Warehouse Unit Occ %',    agg: 'avg',  higher: true,  unit: '%',  min: 1 },
+    { name: 'Apartment occupancy',   col: 'Apartment Unit Occ %',    agg: 'avg',  higher: true,  unit: '%',  min: 1 },
+    { name: 'MTD receipts (peak)',   col: 'Total Receipts MTD',      agg: 'peak', higher: true,  unit: '$',  min: 500 },
+    { name: 'Move-ins (peak)',       col: 'Move-Ins MTD',            agg: 'peak', higher: true,  unit: '',   min: 1 },
+    { name: 'Lead volume',           col: 'Total Leads MTD',         agg: 'peak', higher: true,  unit: '',   min: 1 },
+    { name: 'Leads converted',       col: 'Leads Converted MTD',     agg: 'peak', higher: true,  unit: '',   min: 1 },
+    { name: 'Waiting list',          col: 'Waiting List',            agg: 'avg',  higher: true,  unit: '',   min: 1 },
+    { name: 'Delinquent amount',     col: 'Delinquent Amount Total', agg: 'avg',  higher: false, unit: '$',  min: 200 },
+    { name: 'Delinquent >30d units', col: 'Delinquent Units >30 Days', agg: 'avg', higher: false, unit: '',  min: 1 },
+    { name: 'Overlocked units',      col: 'Overlocked Units',        agg: 'avg',  higher: false, unit: '',   min: 1 },
+    { name: 'Move-outs (peak)',      col: 'Move-Outs MTD',           agg: 'peak', higher: false, unit: '',   min: 1 },
+    { name: 'Past due rent',         col: 'Past Due Rent',           agg: 'avg',  higher: false, unit: '$',  min: 200 },
+  ];
+
+  const trends = specs.map(s => {
+    const a = s.agg === 'peak' ? peak(firstHalf, s.col) : avg(firstHalf, s.col);
+    const b = s.agg === 'peak' ? peak(secondHalf, s.col) : avg(secondHalf, s.col);
+    if (a == null || b == null) return null;
+    const delta = b - a;
+    const pct = a !== 0 ? (delta / Math.abs(a)) * 100 : (delta === 0 ? 0 : 100);
+    return { ...s, a, b, delta, pct };
+  }).filter(Boolean).filter(t => Math.abs(t.delta) >= t.min || Math.abs(t.pct) >= 1);
+
+  const fmtVal = (t, v) => {
+    if (v == null) return '—';
+    if (t.unit === '$') return fmtCurrency(v);
+    if (t.unit === '%') return v.toFixed(1) + '%';
+    return v.toLocaleString(undefined, {maximumFractionDigits:1});
+  };
+  const describe = t => {
+    const arrow = t.delta > 0 ? '↑' : '↓';
+    const sign = t.delta > 0 ? '+' : '';
+    return `${arrow} ${fmtVal(t, t.a)} → ${fmtVal(t, t.b)} (${sign}${t.pct.toFixed(1)}%)`;
+  };
+
+  // "Improving" = direction aligns with what we want (higher for higherIsBetter, lower for !higherIsBetter).
+  const up = trends
+    .filter(t => (t.higher && t.delta > 0) || (!t.higher && t.delta < 0))
+    .sort((x,y) => Math.abs(y.pct) - Math.abs(x.pct))
+    .slice(0, 8)
+    .map(t => ({ name: t.name, detail: describe(t), good: true }));
+
+  const down = trends
+    .filter(t => (t.higher && t.delta < 0) || (!t.higher && t.delta > 0))
+    .sort((x,y) => Math.abs(y.pct) - Math.abs(x.pct))
+    .slice(0, 8)
+    .map(t => ({ name: t.name, detail: describe(t), good: false }));
+
+  // Watch list — anomaly checks on the latest row in range.
+  const latest = sorted[sorted.length - 1];
+  const watch = [];
+  const unitOcc = latest['Unit Occupancy %'];
+  const areaOcc = latest['Area Occupancy %'];
+  const delinqAmt = latest['Delinquent Amount Total'];
+  const overlocked = latest['Overlocked Units'];
+  const moveIns = latest['Move-Ins MTD'];
+  const moveOuts = latest['Move-Outs MTD'];
+  const totalLeads = latest['Total Leads MTD'] || 0;
+  const converted = latest['Leads Converted MTD'] || 0;
+  const convPct = totalLeads > 0 ? (converted/totalLeads*100) : null;
+  const waiting = latest['Waiting List'] || 0;
+  const delinq30 = latest['Delinquent Units >30 Days'] || 0;
+
+  if (unitOcc != null && unitOcc < 85) watch.push({ name: 'Unit occupancy below 85%', detail: `Currently ${unitOcc.toFixed(1)}% — what's pulling it down?` });
+  if (unitOcc != null && areaOcc != null && Math.abs(unitOcc - areaOcc) > 5) watch.push({ name: 'Unit vs area occupancy gap', detail: `${unitOcc.toFixed(1)}% units vs ${areaOcc.toFixed(1)}% area — mix shifting toward small/large units?` });
+  if (moveOuts != null && moveIns != null && moveOuts > moveIns) watch.push({ name: 'Net negative move activity', detail: `${moveIns} in vs ${moveOuts} out — churn driver?` });
+  if (delinqAmt != null && delinqAmt > 5000) watch.push({ name: 'Delinquency elevated', detail: `${fmtCurrency(delinqAmt)} outstanding — collections cadence?` });
+  if (delinq30 >= 5) watch.push({ name: '>30-day delinquents stacking', detail: `${delinq30} units over 30 days — auction/lien timeline?` });
+  if (overlocked != null && overlocked > 15) watch.push({ name: 'High overlock count', detail: `${overlocked} units overlocked — are cures being worked?` });
+  if (convPct != null && convPct < 25 && totalLeads >= 5) watch.push({ name: 'Lead conversion < 25%', detail: `${convPct.toFixed(0)}% on ${totalLeads} leads — tour follow-up?` });
+  if (waiting > 0) watch.push({ name: `Waiting list at ${waiting}`, detail: 'Pricing power / expansion signal — is there a size we should add?' });
+
+  // Type-level flags
+  ['Drive Up', 'Parking', 'Warehouse', 'Apartment'].forEach(t => {
+    const occ = latest[`${t} Unit Occ %`];
+    if (occ != null && occ < 70) watch.push({ name: `${t} occupancy soft`, detail: `${occ.toFixed(1)}% — promo or rate review?` });
+    if (occ != null && occ >= 98) watch.push({ name: `${t} at capacity`, detail: `${occ.toFixed(1)}% — room to raise rates?` });
+  });
+
+  return { up, down, watch: watch.slice(0, 10) };
+}
+
+function renderInsights(rows, gran) {
+  const ins = computeInsights(rows, gran);
+  const fillList = (hostId, items, emptyMsg, colorCls) => {
+    const el = document.getElementById(hostId);
+    if (!items.length) { el.innerHTML = `<div class="insight-empty">${emptyMsg}</div>`; return; }
+    el.innerHTML = items.map(i => `
+      <div class="insight-row">
+        <span class="insight-name">${i.name}</span>
+        <span class="insight-delta ${colorCls}">${i.detail}</span>
+      </div>`).join('');
+  };
+  fillList('insightsUp', ins.up, 'Nothing improved meaningfully in this range.', 'pct-up');
+  fillList('insightsDown', ins.down, 'Nothing declined meaningfully in this range.', 'pct-down');
+  fillList('insightsWatch', ins.watch, 'No anomalies flagged.', 'pct-flat');
+  document.getElementById('insightsUpCount').textContent = `${ins.up.length} metric${ins.up.length===1?'':'s'}`;
+  document.getElementById('insightsDownCount').textContent = `${ins.down.length} metric${ins.down.length===1?'':'s'}`;
+  document.getElementById('insightsWatchCount').textContent = `${ins.watch.length} item${ins.watch.length===1?'':'s'}`;
+}
+
+function updateFilterSummary(rows) {
+  const el = document.getElementById('filterSummary');
+  if (!rows.length) { el.innerHTML = '<strong>No data</strong> in range'; return; }
+  const from = rows[0].__date, to = rows[rows.length-1].__date;
+  const d = x => x.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  el.innerHTML = `<strong>${rows.length}</strong> rows · <strong>${d(from)}</strong> → <strong>${d(to)}</strong>`;
+}
+
+function rerender() {
+  const rows = filteredRows();
+  destroyCharts();
+  document.getElementById('metricsGrid').innerHTML = '';
+  document.getElementById('unitTypeBody').innerHTML = '';
+  renderDashboard(rows, state.gran);
+  renderPeriodTable(rows, state.gran);
+  renderInsights(rows, state.gran);
+  updateFilterSummary(rows);
+}
+
+function renderDashboard(rows, gran) {
+  if (!rows.length) return;
+  const latest = rows[rows.length - 1];
+  const prev = rows[rows.length - 8] || rows[0];
+
+  const latestDate = latest.__date;
+  document.getElementById('lastUpdated').textContent =
+    latestDate.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
 
     // ── METRIC CARDS ──────────────────────────────────────────
     const occDelta = ((latest['Unit Occupancy %'] || 0) - (prev['Unit Occupancy %'] || 0)).toFixed(1);
@@ -641,13 +1224,15 @@ async function render() {
     animateIn(metrics.map((_,i) => `metric-${i}`));
 
     // ── OCCUPANCY CHART ──────────────────────────────────────
-    const occData = getQuarterlyAvg(rows, 'Unit Occupancy %');
+    const occData = aggregateByPeriod(rows, 'Unit Occupancy %', gran, 'avg');
     const occLabels = occData.map(([k]) => k);
     const occVals = occData.map(([,v]) => +v.toFixed(1));
 
     document.getElementById('currentOcc').textContent = fmt(latest['Unit Occupancy %'], '', '%');
 
-    makeChart('occChart', 'line', occLabels, [{
+    const occMin = occVals.length ? Math.max(0, Math.floor(Math.min(...occVals) - 5)) : 65;
+    const occMax = occVals.length ? Math.min(100, Math.ceil(Math.max(...occVals) + 5)) : 95;
+    charts.occ = makeChart('occChart', 'line', occLabels, [{
       data: occVals,
       borderColor: GREEN,
       backgroundColor: 'rgba(76,175,125,0.08)',
@@ -656,7 +1241,7 @@ async function render() {
       pointRadius: 3,
       pointBackgroundColor: GREEN,
     }], {
-      yScale: { min: 65, max: 95, ticks: { callback: v => v + '%' } },
+      yScale: { min: occMin, max: occMax, ticks: { callback: v => v + '%' } },
       xTicks: { maxTicksLimit: 8 }
     });
 
@@ -685,14 +1270,15 @@ async function render() {
     });
 
     // ── REVENUE CHART ────────────────────────────────────────
-    const revData = getMonthlyPeak(rows, 'Total Receipts MTD');
-    const revLabels = revData.map(([k]) => k.replace(/^\d{4}-/,''));
+    const revData = aggregateByPeriod(rows, 'Total Receipts MTD', gran, 'peak');
+    const shortLabel = k => gran === 'month' ? k.replace(/^\d{4}-/,'') : k;
+    const revLabels = revData.map(([k]) => shortLabel(k));
     const revVals = revData.map(([,v]) => Math.round(v));
 
     document.getElementById('currentRevenue').textContent = fmtCurrency(latest['Total Receipts YTD']);
     document.getElementById('revBadge').textContent = 'YTD Total';
 
-    makeChart('revenueChart', 'bar', revLabels, [{
+    charts.rev = makeChart('revenueChart', 'bar', revLabels, [{
       data: revVals,
       backgroundColor: revVals.map(v => v === Math.max(...revVals) ? GREEN : 'rgba(76,175,125,0.25)'),
       borderRadius: 4,
@@ -703,29 +1289,17 @@ async function render() {
     });
 
     // ── ACTIVITY CHART ───────────────────────────────────────
-    const actData = getMonthlyPeak(rows.map(r => ({...r})), 'Move-Ins MTD');
-    const actLabels = actData.map(([k]) => k.replace(/^\d{4}-/,''));
-    const inVals = actData.map(([k]) => {
-      const month = rows.filter(r => r['Report Date'] && r['Report Date'].startsWith ? r['Report Date'] : '').filter(r => {
-        const d = new Date(r['Report Date']); 
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` === k;
-      });
-      const maxIn = month.reduce((m,r) => Math.max(m, r['Move-Ins MTD']||0), 0);
-      return maxIn;
-    });
-    const outVals = actData.map(([k]) => {
-      const month = rows.filter(r => {
-        if (!r['Report Date']) return false;
-        const d = new Date(r['Report Date']);
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` === k;
-      });
-      return month.reduce((m,r) => Math.max(m, r['Move-Outs MTD']||0), 0);
-    });
+    const inData = aggregateByPeriod(rows, 'Move-Ins MTD', gran, 'peak');
+    const outData = aggregateByPeriod(rows, 'Move-Outs MTD', gran, 'peak');
+    const actLabels = inData.map(([k]) => shortLabel(k));
+    const inVals = inData.map(([,v]) => v);
+    const outMap = Object.fromEntries(outData);
+    const outVals = inData.map(([k]) => outMap[k] || 0);
 
     const netVal = (latest['Move-Ins MTD']||0) - (latest['Move-Outs MTD']||0);
     document.getElementById('netActivity').textContent = (netVal >= 0 ? '+' : '') + netVal + ' net';
 
-    makeChart('activityChart', 'bar', actLabels, [
+    charts.act = makeChart('activityChart', 'bar', actLabels, [
       { data: inVals, backgroundColor: 'rgba(76,175,125,0.6)', borderRadius: 3, label: 'In' },
       { data: outVals, backgroundColor: 'rgba(224,90,78,0.6)', borderRadius: 3, label: 'Out' },
     ], {
@@ -744,8 +1318,8 @@ async function render() {
       <div class="delinq-item"><span class="delinq-label">0-10 days</span><span class="delinq-val">tracked</span></div>
     `;
 
-    const delinqTrend = getQuarterlyAvg(rows, 'Delinquent Amount Total');
-    makeChart('delinqChart', 'line', delinqTrend.map(([k])=>k), [{
+    const delinqTrend = aggregateByPeriod(rows, 'Delinquent Amount Total', gran, 'avg');
+    charts.delinq = makeChart('delinqChart', 'line', delinqTrend.map(([k])=>shortLabel(k)), [{
       data: delinqTrend.map(([,v])=>Math.round(v)),
       borderColor: AMBER,
       backgroundColor: 'rgba(212,168,67,0.08)',
@@ -767,7 +1341,7 @@ async function render() {
     const totalT = tenureVals.reduce((a,b)=>a+b,0);
     document.getElementById('totalTenants').textContent = totalT + ' tenants';
 
-    makeChart('tenureChart', 'doughnut', tenureLabels, [{
+    charts.tenure = makeChart('tenureChart', 'doughnut', tenureLabels, [{
       data: tenureVals,
       backgroundColor: [RED, AMBER, BLUE, GREEN, 'rgba(255,255,255,0.15)'],
       borderWidth: 0,
@@ -797,14 +1371,36 @@ async function render() {
       <div class="trend-row"><span class="trend-label">Waiting list</span><span class="trend-val" style="color:${AMBER}">${latest['Waiting List']||0}</span></div>
     `;
 
-    animateIn(['occChartCard','unitTypeCard','revenueChartCard','activityChartCard','delinqCard','tenureCard','leadsCard']);
+    animateIn(['occChartCard','unitTypeCard','revenueChartCard','activityChartCard','delinqCard','tenureCard','leadsCard','insightsUpCard','insightsDownCard','insightsWatchCard','periodTableCard']);
+}
 
+async function bootstrap() {
+  try {
+    const rows = await fetchData();
+    if (!rows.length) throw new Error('No data');
+    rows.sort((a,b) => a.__date - b.__date);
+    state.allRows = rows;
+
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+
+    populateYearChips();
+    wireFilterUI();
+
+    // Default: all time, quarterly grouping.
+    state.from = rows[0].__date;
+    state.to = rows[rows.length - 1].__date;
+    document.getElementById('fromDate').value = toIsoDate(state.from);
+    document.getElementById('toDate').value = toIsoDate(state.to);
+    document.querySelector('#quickPicks [data-quick="all"]')?.classList.add('active');
+
+    rerender();
   } catch(e) {
     document.getElementById('loadingState').innerHTML = `<div class="error-msg">Failed to load data — make sure the Google Sheet is set to "Anyone with link can view".<br><br>${e.message}</div>`;
   }
 }
 
-render();
+bootstrap();
 </script>
 </body>
 </html>

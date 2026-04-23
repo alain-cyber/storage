@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premier League Predictor — Manchester United</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Premier League Predictor</h1>
+    <div class="sub">Predict remaining scores and watch the table shift. 2025–26 season, matchdays 35–38.</div>
+  </header>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab active" data-view="mun">Manchester United</button>
+      <button class="tab" data-view="top6">Top 6</button>
+    </div>
+
+    <div class="layout">
+      <section class="panel" aria-label="Fixtures">
+        <div class="panel-header">
+          <h2>Remaining Fixtures</h2>
+          <span class="meta" id="fixtures-count"></span>
+        </div>
+        <div class="panel-body" id="fixtures-body"></div>
+        <div class="actions">
+          <span class="meta" id="predictions-count" style="margin-right:auto; align-self:center; color: var(--muted); font-size: 12px;"></span>
+          <button class="btn" id="clear-btn">Clear predictions</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Predicted standings">
+        <div class="panel-header">
+          <h2>Predicted Standings</h2>
+          <span class="meta">Updates live</span>
+        </div>
+        <div class="panel-body">
+          <table class="standings">
+            <thead>
+              <tr>
+                <th class="pos-col">#</th>
+                <th class="team-col">Team</th>
+                <th title="Played">P</th>
+                <th title="Won">W</th>
+                <th title="Drawn">D</th>
+                <th title="Lost">L</th>
+                <th title="Goals For">GF</th>
+                <th title="Goals Against">GA</th>
+                <th title="Goal Difference">GD</th>
+                <th title="Points">Pts</th>
+              </tr>
+            </thead>
+            <tbody id="standings-body"></tbody>
+          </table>
+        </div>
+        <div class="hint">Arrows (▲▼) show position change vs. current table. Predictions are saved in your browser.</div>
+      </section>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -295,11 +295,129 @@
   .card:hover .remove { opacity: 1; }
   .remove:hover { color: var(--text); }
 
+  /* Ferrari gallery */
+  .section-head {
+    margin: 3.5rem 0 1.25rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1rem;
+  }
+
+  .section-head h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.8rem;
+    font-weight: 400;
+  }
+
+  .section-head h2 em {
+    font-style: italic;
+    color: #dc0000;
+  }
+
+  .section-head .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text3);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .ferrari-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .car-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .car-card:hover {
+    border-color: #dc0000;
+    transform: translateY(-2px);
+  }
+
+  .car-art {
+    background: linear-gradient(180deg, #1a1d1a 0%, #0d0f0e 100%);
+    padding: 1.5rem 1rem 0.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .car-art::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 10%; right: 10%;
+    height: 8px;
+    background: radial-gradient(ellipse at center, rgba(220,0,0,0.25), transparent 70%);
+    filter: blur(4px);
+  }
+
+  .car-art svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 140px;
+  }
+
+  .car-info {
+    padding: 1.25rem 1.5rem 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .car-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    line-height: 1.1;
+  }
+
+  .car-year {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: #dc0000;
+    letter-spacing: 0.2em;
+    margin-top: 0.3rem;
+  }
+
+  .car-specs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .car-specs > div {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+  }
+
+  .car-specs .label {
+    color: var(--text3);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+  }
+
+  .car-specs .val {
+    color: var(--text);
+    font-weight: 500;
+  }
+
   @media (max-width: 600px) {
     .header { padding: 1.5rem; }
     main { padding: 1.5rem; }
     h1 { font-size: 1.8rem; }
     .time { font-size: 2.2rem; }
+    .section-head h2 { font-size: 1.4rem; }
   }
 </style>
 </head>
@@ -323,6 +441,12 @@
 
 <main>
   <div class="grid" id="grid"></div>
+
+  <div class="section-head">
+    <h2>Featured <em>Ferraris</em></h2>
+    <span class="tag">// hall of flagships</span>
+  </div>
+  <div class="ferrari-grid" id="ferrariGrid"></div>
 </main>
 
 <footer class="footer">
@@ -578,8 +702,144 @@ document.getElementById('resetCities').addEventListener('click', () => {
   refreshAllWeather();
 });
 
+/* ---------- Ferrari gallery ---------- */
+
+// Three reusable supercar silhouettes. Each takes a unique suffix so gradient
+// IDs don't collide when the same shape is rendered for multiple cards.
+function svgWedge(uid) {
+  return `
+<svg viewBox="0 0 400 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="body-${uid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff1a1a"/>
+      <stop offset="0.6" stop-color="#dc0000"/>
+      <stop offset="1" stop-color="#7a0000"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="200" cy="118" rx="160" ry="6" fill="rgba(0,0,0,0.6)"/>
+  <path d="M 25 95 L 60 70 L 130 55 L 170 38 L 250 38 L 305 60 L 365 75 L 375 95 Z"
+        fill="url(#body-${uid})" stroke="#3a0000" stroke-width="1.2"/>
+  <rect x="320" y="48" width="55" height="5" fill="#1a0000"/>
+  <rect x="345" y="48" width="6" height="14" fill="#1a0000"/>
+  <path d="M 145 55 L 175 42 L 245 42 L 270 60 Z" fill="#0a0a0a" opacity="0.85"/>
+  <path d="M 250 68 L 295 68 L 290 80 L 250 80 Z" fill="#1a0000"/>
+  <rect x="22" y="92" width="355" height="4" fill="#0a0a0a"/>
+  <circle cx="95" cy="98" r="20" fill="#0a0a0a"/>
+  <circle cx="95" cy="98" r="11" fill="#1f1f1f" stroke="#666" stroke-width="1"/>
+  <circle cx="95" cy="98" r="3" fill="#dc0000"/>
+  <circle cx="305" cy="98" r="20" fill="#0a0a0a"/>
+  <circle cx="305" cy="98" r="11" fill="#1f1f1f" stroke="#666" stroke-width="1"/>
+  <circle cx="305" cy="98" r="3" fill="#dc0000"/>
+  <path d="M 35 85 L 55 80 L 55 88 L 35 90 Z" fill="#fff8c8" opacity="0.7"/>
+  <rect x="362" y="78" width="10" height="5" fill="#ff3a3a"/>
+</svg>`;
+}
+
+function svgHyper(uid) {
+  return `
+<svg viewBox="0 0 400 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="body-${uid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff2424"/>
+      <stop offset="0.55" stop-color="#dc0000"/>
+      <stop offset="1" stop-color="#5a0000"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="200" cy="118" rx="165" ry="6" fill="rgba(0,0,0,0.6)"/>
+  <path d="M 20 95
+           C 25 80, 55 70, 95 65
+           C 130 50, 170 40, 220 40
+           C 270 40, 320 55, 360 70
+           C 380 78, 382 90, 378 95 Z"
+        fill="url(#body-${uid})" stroke="#3a0000" stroke-width="1.2"/>
+  <path d="M 130 60 C 160 38, 240 38, 290 58 L 280 70 L 145 70 Z" fill="#0a0a0a" opacity="0.9"/>
+  <path d="M 235 72 L 295 72 L 285 86 L 235 86 Z" fill="#1a0000"/>
+  <path d="M 305 58 L 355 60 L 355 64 L 305 64 Z" fill="#1a0000"/>
+  <rect x="20" y="92" width="360" height="4" fill="#0a0a0a"/>
+  <circle cx="95" cy="98" r="22" fill="#0a0a0a"/>
+  <circle cx="95" cy="98" r="12" fill="#1f1f1f" stroke="#888" stroke-width="1"/>
+  <circle cx="95" cy="98" r="3" fill="#dc0000"/>
+  <circle cx="310" cy="98" r="22" fill="#0a0a0a"/>
+  <circle cx="310" cy="98" r="12" fill="#1f1f1f" stroke="#888" stroke-width="1"/>
+  <circle cx="310" cy="98" r="3" fill="#dc0000"/>
+  <path d="M 28 80 Q 50 72 70 78 L 70 86 Q 50 84 30 88 Z" fill="#fff8c8" opacity="0.6"/>
+  <rect x="358" y="76" width="14" height="4" fill="#ff3a3a"/>
+</svg>`;
+}
+
+function svgBarchetta(uid) {
+  return `
+<svg viewBox="0 0 400 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="body-${uid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff1818"/>
+      <stop offset="0.55" stop-color="#dc0000"/>
+      <stop offset="1" stop-color="#600000"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="200" cy="118" rx="160" ry="6" fill="rgba(0,0,0,0.6)"/>
+  <path d="M 22 92
+           C 28 82, 60 75, 110 72
+           L 160 60
+           L 250 60
+           L 290 72
+           C 330 76, 365 82, 378 92 Z"
+        fill="url(#body-${uid})" stroke="#3a0000" stroke-width="1.2"/>
+  <path d="M 250 60 C 260 50, 280 50, 290 62 L 285 72 L 250 72 Z" fill="#1a0000"/>
+  <path d="M 165 62 L 245 62 L 240 72 L 175 72 Z" fill="#0a0a0a"/>
+  <path d="M 200 76 L 245 76 L 240 86 L 200 86 Z" fill="#1a0000"/>
+  <rect x="22" y="89" width="358" height="4" fill="#0a0a0a"/>
+  <circle cx="100" cy="96" r="20" fill="#0a0a0a"/>
+  <circle cx="100" cy="96" r="11" fill="#1f1f1f" stroke="#777" stroke-width="1"/>
+  <circle cx="100" cy="96" r="3" fill="#dc0000"/>
+  <circle cx="310" cy="96" r="20" fill="#0a0a0a"/>
+  <circle cx="310" cy="96" r="11" fill="#1f1f1f" stroke="#777" stroke-width="1"/>
+  <circle cx="310" cy="96" r="3" fill="#dc0000"/>
+  <ellipse cx="42" cy="84" rx="10" ry="4" fill="#fff8c8" opacity="0.7"/>
+  <rect x="360" y="78" width="14" height="5" fill="#ff3a3a"/>
+</svg>`;
+}
+
+const FERRARIS = [
+  { name: 'F40',           year: '1987', shape: svgWedge,     hp: '478 hp', top: '324 km/h', engine: '2.9L V8 TT' },
+  { name: 'F50',           year: '1995', shape: svgBarchetta, hp: '513 hp', top: '325 km/h', engine: '4.7L V12'   },
+  { name: 'Enzo',          year: '2002', shape: svgHyper,     hp: '651 hp', top: '350 km/h', engine: '6.0L V12'   },
+  { name: 'LaFerrari',     year: '2013', shape: svgHyper,     hp: '950 hp', top: '350 km/h', engine: '6.3L V12 + e' },
+  { name: 'SF90 Stradale', year: '2019', shape: svgWedge,     hp: '986 hp', top: '340 km/h', engine: '4.0L V8 PHEV' },
+  { name: 'Daytona SP3',   year: '2021', shape: svgBarchetta, hp: '828 hp', top: '340 km/h', engine: '6.5L V12'   },
+];
+
+function renderFerraris() {
+  const grid = document.getElementById('ferrariGrid');
+  if (!grid) return;
+  grid.innerHTML = FERRARIS.map((f, i) => `
+    <div class="car-card">
+      <div class="car-art">${f.shape(i)}</div>
+      <div class="car-info">
+        <div class="car-name">${escapeHtml(f.name)}</div>
+        <div class="car-year">${escapeHtml(f.year)} · MARANELLO</div>
+        <div class="car-specs">
+          <div>
+            <div class="label">Power</div>
+            <div class="val">${escapeHtml(f.hp)}</div>
+          </div>
+          <div>
+            <div class="label">Top Speed</div>
+            <div class="val">${escapeHtml(f.top)}</div>
+          </div>
+          <div>
+            <div class="label">Engine</div>
+            <div class="val">${escapeHtml(f.engine)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
 // boot
 render();
+renderFerraris();
 updateClocks();
 refreshAllWeather();
 setInterval(updateClocks, 1000);

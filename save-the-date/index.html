@@ -418,11 +418,34 @@ const GIRL_NAMES = [
   "Doris","Marjorie","Shirley","Ruthie","Babs","Fanny","Agatha","Blanche"
 ];
 
-/* ---------- Photo pools (multiple sources with fallback) ---------- */
-// Primary: randomuser.me (real headshots). Fallback: i.pravatar.cc (curated avatar set).
-// i.pravatar.cc doesn't filter by gender, so we only use it as a last-resort fallback.
-const GUY_POOL  = Array.from({length:100}, (_,i) => `https://randomuser.me/api/portraits/men/${i}.jpg`);
-const GIRL_POOL = Array.from({length:100}, (_,i) => `https://randomuser.me/api/portraits/women/${i}.jpg`);
+/* ---------- Photo source: DiceBear avataaars ----------
+   api.dicebear.com serves SVG avatars with permissive CORS headers.
+   We pass gender-leaning hair/facial-hair options so each swap gets
+   a visibly male or female cartoon, deterministic from a random seed. */
+const DICEBEAR = "https://api.dicebear.com/9.x/avataaars/svg";
+
+const GUY_OPTS =
+  "top=ShortHairShortRound,ShortHairShortWaved,ShortHairShortCurly,ShortHairShortFlat," +
+  "ShortHairTheCaesar,ShortHairTheCaesarSidePart,ShortHairDreads01,ShortHairDreads02," +
+  "ShortHairFrizzle,ShortHairSides,Hat,Turban,NoHair,WinterHat1,WinterHat2" +
+  "&facialHair=BeardMedium,BeardLight,BeardMagestic,MoustacheFancy,MoustacheMagnum,Blank" +
+  "&facialHairProbability=65";
+
+const GIRL_OPTS =
+  "top=LongHairStraight,LongHairStraight2,LongHairCurly,LongHairCurvy,LongHairBigHair," +
+  "LongHairBun,LongHairDreads,LongHairFrida,LongHairFro,LongHairFroBand,LongHairMiaWallace," +
+  "LongHairShavedSides,LongHairNotTooLong,LongHairStraightStrand" +
+  "&facialHair=Blank&facialHairProbability=0" +
+  "&accessories=Prescription01,Prescription02,Round,Sunglasses,Blank&accessoriesProbability=40";
+
+function randomSeed(){
+  return Math.random().toString(36).slice(2, 10) + '-' + Date.now();
+}
+
+function buildAvatarUrl(role){
+  const opts = role === 'guy' ? GUY_OPTS : GIRL_OPTS;
+  return `${DICEBEAR}?seed=${randomSeed()}&${opts}`;
+}
 
 /* ---------- DOM handles ---------- */
 const photo       = document.getElementById('photo');
@@ -437,7 +460,7 @@ const dateEl      = document.querySelector('.date');
 const locEl       = document.querySelector('.loc span');
 
 /* ---------- localStorage persistence ---------- */
-const STORAGE_KEY = 'savetheDate.v1';
+const STORAGE_KEY = 'savetheDate.v2';
 
 function saveState(){
   const state = {
@@ -537,31 +560,31 @@ function clearBase(){
   saveState();
 }
 
-/* ---------- Swap person (random face + random name) ---------- */
-function loadWithRetry(img, pool, excludeSrc, attemptsLeft){
-  const url = pick(pool, excludeSrc);
+/* ---------- Swap person (random avatar + random name) ---------- */
+function loadAvatarWithRetry(img, role, attemptsLeft){
+  const url = buildAvatarUrl(role);
   img.onerror = () => {
+    console.warn('avatar load failed', url, 'attempts left:', attemptsLeft);
     if(attemptsLeft > 0){
-      loadWithRetry(img, pool, url, attemptsLeft - 1);
+      loadAvatarWithRetry(img, role, attemptsLeft - 1);
     } else {
       img.onerror = null;
-      img.alt = 'Could not load image (host may be blocking).';
-      img.style.background = '#ddd';
-      console.warn('All image loads failed for', img.dataset.role);
+      img.alt = 'Could not load avatar — network may be blocking api.dicebear.com.';
     }
   };
-  img.onload = () => { img.onerror = null; };
+  img.onload = () => {
+    img.onerror = null;
+    saveState();
+  };
   img.src = url;
 }
 
 function swap(role){
-  const pool   = role === 'guy' ? GUY_POOL  : GIRL_POOL;
   const names  = role === 'guy' ? GUY_NAMES : GIRL_NAMES;
   const img    = role === 'guy' ? guyImg    : girlImg;
   const nameEl = role === 'guy' ? nameGuyEl : nameGirlEl;
   const sizeEl = document.getElementById(role + 'Size');
 
-  const currentSrc  = img.getAttribute('src') || '';
   const currentName = nameEl.textContent;
 
   img.style.display = 'block';
@@ -570,7 +593,7 @@ function swap(role){
   if(!img.style.left) img.style.left = role === 'guy' ? '38%' : '62%';
   if(!img.style.top)  img.style.top  = role === 'guy' ? '38%' : '42%';
 
-  loadWithRetry(img, pool, currentSrc, 5);
+  loadAvatarWithRetry(img, role, 3);
 
   nameEl.textContent = pick(names, currentName);
 

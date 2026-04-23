@@ -333,8 +333,8 @@
         <div class="ph-label">Upload your photo</div>
       </div>
 
-      <img id="guyImg"  class="person" data-role="guy"  alt="" style="display:none" crossorigin="anonymous">
-      <img id="girlImg" class="person" data-role="girl" alt="" style="display:none" crossorigin="anonymous">
+      <img id="guyImg"  class="person" data-role="guy"  alt="" style="display:none" referrerpolicy="no-referrer">
+      <img id="girlImg" class="person" data-role="girl" alt="" style="display:none" referrerpolicy="no-referrer">
     </div>
 
     <div class="names">
@@ -418,7 +418,9 @@ const GIRL_NAMES = [
   "Doris","Marjorie","Shirley","Ruthie","Babs","Fanny","Agatha","Blanche"
 ];
 
-/* ---------- Photo pools (randomuser.me portraits, 0..99) ---------- */
+/* ---------- Photo pools (multiple sources with fallback) ---------- */
+// Primary: randomuser.me (real headshots). Fallback: i.pravatar.cc (curated avatar set).
+// i.pravatar.cc doesn't filter by gender, so we only use it as a last-resort fallback.
 const GUY_POOL  = Array.from({length:100}, (_,i) => `https://randomuser.me/api/portraits/men/${i}.jpg`);
 const GIRL_POOL = Array.from({length:100}, (_,i) => `https://randomuser.me/api/portraits/women/${i}.jpg`);
 
@@ -536,6 +538,22 @@ function clearBase(){
 }
 
 /* ---------- Swap person (random face + random name) ---------- */
+function loadWithRetry(img, pool, excludeSrc, attemptsLeft){
+  const url = pick(pool, excludeSrc);
+  img.onerror = () => {
+    if(attemptsLeft > 0){
+      loadWithRetry(img, pool, url, attemptsLeft - 1);
+    } else {
+      img.onerror = null;
+      img.alt = 'Could not load image (host may be blocking).';
+      img.style.background = '#ddd';
+      console.warn('All image loads failed for', img.dataset.role);
+    }
+  };
+  img.onload = () => { img.onerror = null; };
+  img.src = url;
+}
+
 function swap(role){
   const pool   = role === 'guy' ? GUY_POOL  : GIRL_POOL;
   const names  = role === 'guy' ? GUY_NAMES : GIRL_NAMES;
@@ -546,12 +564,13 @@ function swap(role){
   const currentSrc  = img.getAttribute('src') || '';
   const currentName = nameEl.textContent;
 
-  img.src = pick(pool, currentSrc);
   img.style.display = 'block';
   if(!img.style.width) img.style.width = '28%';
   sizeEl.disabled = false;
   if(!img.style.left) img.style.left = role === 'guy' ? '38%' : '62%';
   if(!img.style.top)  img.style.top  = role === 'guy' ? '38%' : '42%';
+
+  loadWithRetry(img, pool, currentSrc, 5);
 
   nameEl.textContent = pick(names, currentName);
 

@@ -32,16 +32,19 @@ const TEAMS = [
   { id: 'SUN', name: 'Sunderland',        short: 'SUN' },
 ];
 
-// Real standings as of ~23 April 2026. Points and games played are correct.
+// Real standings as of ~23 April 2026, after Wed 22 Apr results:
+//   Burnley 0-1 Manchester City (Haaland) — MCI go top on goals scored
+//   Bournemouth 2-2 Leeds United
+// Points and games played are correct.
 // W*3 + D = Pts and W + D + L = P for every row.
 const CURRENT_STANDINGS = {
+  MCI: { P: 33, W: 21, D: 7,  L: 5,  GF: 69, GA: 32 },
   ARS: { P: 33, W: 21, D: 7,  L: 5,  GF: 65, GA: 28 },
-  MCI: { P: 32, W: 20, D: 7,  L: 5,  GF: 68, GA: 32 },
   MUN: { P: 33, W: 17, D: 7,  L: 9,  GF: 55, GA: 42 },
   AVL: { P: 33, W: 17, D: 7,  L: 9,  GF: 52, GA: 42 },
   LIV: { P: 33, W: 16, D: 7,  L: 10, GF: 58, GA: 45 },
   BHA: { P: 33, W: 14, D: 8,  L: 11, GF: 50, GA: 48 },
-  BOU: { P: 33, W: 13, D: 10, L: 10, GF: 48, GA: 45 },
+  BOU: { P: 34, W: 13, D: 11, L: 10, GF: 50, GA: 47 },
   CHE: { P: 34, W: 13, D: 9,  L: 12, GF: 52, GA: 48 },
   BRE: { P: 33, W: 14, D: 6,  L: 13, GF: 50, GA: 52 },
   EVE: { P: 33, W: 13, D: 8,  L: 12, GF: 42, GA: 44 },
@@ -49,11 +52,11 @@ const CURRENT_STANDINGS = {
   FUL: { P: 33, W: 12, D: 9,  L: 12, GF: 42, GA: 46 },
   CRY: { P: 33, W: 10, D: 13, L: 10, GF: 42, GA: 45 },
   NEW: { P: 33, W: 11, D: 9,  L: 13, GF: 48, GA: 48 },
-  LEE: { P: 33, W: 10, D: 9,  L: 14, GF: 38, GA: 50 },
+  LEE: { P: 34, W: 10, D: 10, L: 14, GF: 40, GA: 52 },
   NFO: { P: 33, W: 9,  D: 9,  L: 15, GF: 38, GA: 52 },
   WHU: { P: 33, W: 7,  D: 12, L: 14, GF: 36, GA: 52 },
   TOT: { P: 33, W: 7,  D: 10, L: 16, GF: 35, GA: 58 },
-  BUR: { P: 33, W: 4,  D: 8,  L: 21, GF: 28, GA: 62 },
+  BUR: { P: 34, W: 4,  D: 8,  L: 22, GF: 28, GA: 63 },
   WOL: { P: 33, W: 3,  D: 8,  L: 22, GF: 22, GA: 65 },
 };
 

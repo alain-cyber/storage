@@ -423,9 +423,7 @@
   </div>
   <div class="header-right">
     <nav class="nav">
-      <a href="../">Storage</a>
       <a href="./" class="active">CMO</a>
-      <a href="../clock/">Clock</a>
     </nav>
     <div class="status-dot"></div>
     <span class="last-updated" id="lastUpdated">Loading...</span>
@@ -835,7 +833,7 @@ function mockAds() {
     Impressions: jitter(9000, 2500),
     Clicks: jitter(240, 70),
     Conversions: jitter(7, 4),
-    Campaign: ['Brand','Storage-Cheyenne','Competitor','Remarketing'][Math.floor(Math.random()*4)],
+    Campaign: ['Brand','Generic','Competitor','Remarketing'][Math.floor(Math.random()*4)],
   }));
 }
 function mockGsc() {
@@ -844,7 +842,7 @@ function mockGsc() {
     Clicks: jitter(180, 70),
     Impressions: jitter(5200, 1400),
     'Avg Position': +(4 + Math.random()*3).toFixed(1),
-    Query: ['storage cheyenne','self storage wy','climate controlled storage','parking storage','rv storage'][Math.floor(Math.random()*5)],
+    Query: ['brand query','generic query','service area','product line','competitor'][Math.floor(Math.random()*5)],
   }));
 }
 function mockGa() {

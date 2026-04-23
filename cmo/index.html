@@ -261,11 +261,155 @@
     z-index: 1;
   }
 
+  /* AI Briefing hero */
+  .ai-briefing {
+    margin: 1.5rem 2.5rem 0;
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(180deg, rgba(181,125,214,0.06), transparent 60%), var(--surface);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--purple);
+    border-radius: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .ai-brief-head { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 0.9rem; }
+  .ai-avatar {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: var(--purple-dim);
+    color: var(--purple);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    position: relative;
+  }
+  .ai-avatar::after {
+    content: '';
+    position: absolute;
+    right: -2px; top: -2px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--purple);
+    box-shadow: 0 0 8px var(--purple);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .ai-brief-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+    line-height: 1.1;
+  }
+  .ai-brief-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+  }
+  .ai-brief-text {
+    color: var(--text);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1.1rem;
+    max-width: 62rem;
+  }
+  .ai-recs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.75rem;
+  }
+  .rec-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    transition: border-color 0.2s;
+  }
+  .rec-card:hover { border-color: var(--border2); }
+  .rec-sev {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    align-self: flex-start;
+  }
+  .rec-sev-high { background: var(--red-dim); color: var(--red); }
+  .rec-sev-medium { background: var(--amber-dim); color: var(--amber); }
+  .rec-sev-low { background: var(--blue-dim); color: var(--blue); }
+  .rec-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+  .rec-rationale {
+    color: var(--text2);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+  .rec-actions { display: flex; gap: 0.4rem; margin-top: 0.25rem; }
+  .rec-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.7rem;
+    border-radius: 5px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+  }
+  .rec-btn:hover { color: var(--text); border-color: var(--border2); }
+  .rec-btn-primary {
+    background: var(--purple-dim);
+    color: var(--purple);
+    border-color: transparent;
+  }
+  .rec-btn-primary:hover { color: var(--text); background: var(--purple); }
+  .rec-empty {
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-style: italic;
+  }
+
+  /* Per-section insight strip */
+  .insight-strip {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--purple);
+    background: var(--purple-dim);
+    padding: 0.6rem 0.85rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    letter-spacing: 0.01em;
+    line-height: 1.55;
+  }
+  .insight-strip:empty { display: none; }
+  .insight-strip strong {
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    margin-right: 0.5rem;
+    color: var(--purple);
+    opacity: 0.85;
+  }
+
   @media (max-width: 768px) {
     .header { padding: 1.5rem; flex-direction: column; align-items: flex-start; }
     .dashboard { padding: 1rem 1.5rem; }
+    .ai-briefing { margin: 1rem 1.5rem 0; padding: 1.25rem; }
     .charts-grid-2 { grid-template-columns: 1fr; }
     .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .ai-recs { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -288,6 +432,18 @@
   </div>
 </header>
 
+<section class="ai-briefing" id="aiBriefing" aria-live="polite">
+  <div class="ai-brief-head">
+    <div class="ai-avatar">AI</div>
+    <div>
+      <div class="ai-brief-title">CMO Copilot</div>
+      <div class="ai-brief-sub" id="aiBriefSub">Analyzing last 30 days across 4 channels…</div>
+    </div>
+  </div>
+  <div class="ai-brief-text" id="aiBriefText">Generating briefing…</div>
+  <div class="ai-recs" id="aiRecs"></div>
+</section>
+
 <div class="dashboard">
 
   <section class="section" id="overviewSection">
@@ -303,6 +459,7 @@
       <div class="section-title">Paid — Google Ads</div>
       <div class="section-meta" id="adsMeta">—</div>
     </div>
+    <div class="insight-strip" id="adsInsight"></div>
     <div class="metrics-grid" id="adsKpis"></div>
     <div class="charts-grid-2" style="margin-top:1rem">
       <div class="chart-card">
@@ -321,12 +478,26 @@
             <div class="chart-title">Top campaigns</div>
             <div class="chart-value">By spend</div>
           </div>
+          <span class="chart-badge badge-green">Top 5</span>
         </div>
         <table class="data-table">
           <thead><tr><th>Campaign</th><th class="num">Spend</th><th class="num">Clicks</th><th class="num">Conv</th></tr></thead>
           <tbody id="adsCampaigns"></tbody>
         </table>
       </div>
+    </div>
+    <div class="chart-card" style="margin-top:1rem">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Worst campaigns (dead spend)</div>
+          <div class="chart-value">By wasted spend</div>
+        </div>
+        <span class="chart-badge badge-red">Action needed</span>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Campaign</th><th class="num">Spend</th><th class="num">Conv</th><th class="num">CPA</th></tr></thead>
+        <tbody id="adsBottom"></tbody>
+      </table>
     </div>
   </section>
 
@@ -335,6 +506,7 @@
       <div class="section-title">SEO — Search Console</div>
       <div class="section-meta" id="seoMeta">—</div>
     </div>
+    <div class="insight-strip" id="seoInsight"></div>
     <div class="metrics-grid" id="seoKpis"></div>
     <div class="charts-grid-2" style="margin-top:1rem">
       <div class="chart-card">
@@ -360,6 +532,19 @@
         </table>
       </div>
     </div>
+    <div class="chart-card" style="margin-top:1rem">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Opportunity queries</div>
+          <div class="chart-value">High impressions, page 2</div>
+        </div>
+        <span class="chart-badge badge-amber">Potential</span>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Query</th><th class="num">Impr</th><th class="num">Pos</th><th class="num">CTR</th></tr></thead>
+        <tbody id="seoOpps"></tbody>
+      </table>
+    </div>
   </section>
 
   <section class="section" id="gaSection">
@@ -367,6 +552,7 @@
       <div class="section-title">Web — Google Analytics</div>
       <div class="section-meta" id="gaMeta">—</div>
     </div>
+    <div class="insight-strip" id="gaInsight"></div>
     <div class="metrics-grid" id="gaKpis"></div>
     <div class="charts-grid-2" style="margin-top:1rem">
       <div class="chart-card">
@@ -389,6 +575,19 @@
         <div class="chart-wrap" style="height:200px"><canvas id="gaChannelChart"></canvas></div>
       </div>
     </div>
+    <div class="chart-card" style="margin-top:1rem">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Channels by engagement</div>
+          <div class="chart-value">Best &amp; worst</div>
+        </div>
+        <span class="chart-badge badge-purple">Quality</span>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Channel</th><th class="num">Sessions</th><th class="num">Engagement</th><th class="num">Rank</th></tr></thead>
+        <tbody id="gaEngage"></tbody>
+      </table>
+    </div>
   </section>
 
   <section class="section" id="callsSection">
@@ -396,6 +595,7 @@
       <div class="section-title">Calls — Aircall</div>
       <div class="section-meta" id="callsMeta">—</div>
     </div>
+    <div class="insight-strip" id="callsInsight"></div>
     <div class="metrics-grid" id="callsKpis"></div>
     <div class="charts-grid-2" style="margin-top:1rem">
       <div class="chart-card">
@@ -417,6 +617,19 @@
         </div>
         <div class="chart-wrap" style="height:200px"><canvas id="callsDonut"></canvas></div>
       </div>
+    </div>
+    <div class="chart-card" style="margin-top:1rem">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Worst days (miss rate)</div>
+          <div class="chart-value">Coverage gaps</div>
+        </div>
+        <span class="chart-badge badge-red">Routing</span>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Date</th><th class="num">Calls</th><th class="num">Missed</th><th class="num">Miss %</th></tr></thead>
+        <tbody id="callsWorst"></tbody>
+      </table>
     </div>
   </section>
 
@@ -482,26 +695,48 @@ const fmt = (n, p='', s='') => (n==null||isNaN(n)) ? '—' : p + Number(n).toLoc
 const fmtCur = n => (n==null||isNaN(n)) ? '—' : '$' + Math.round(n).toLocaleString();
 const fmtPct = n => (n==null||isNaN(n)) ? '—' : Number(n).toFixed(1) + '%';
 
+const FORCE_DEMO = new URLSearchParams(location.search).get('demo') === '1';
+
+function coerceCell(v) {
+  if (typeof v === 'string') {
+    const m = v.match(/^Date\((\d+),(\d+),(\d+)(?:,\d+,\d+,\d+)?\)$/);
+    if (m) {
+      const [, y, mo, d] = m;
+      return `${y}-${String(+mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+  }
+  return v;
+}
+
 async function fetchSheet(id) {
   const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json`;
   const res = await fetch(url);
+  if (!res.ok) throw new Error(`gviz ${res.status}`);
   const text = await res.text();
   const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
   const cols = json.table.cols.map(c => c.label || c.id);
-  return json.table.rows.map(r => {
+  const rows = json.table.rows.map(r => {
     const o = {};
-    r.c.forEach((cell,i) => { o[cols[i]] = cell ? cell.v : null; });
+    r.c.forEach((cell,i) => { o[cols[i]] = cell ? coerceCell(cell.v) : null; });
     return o;
   });
+  return { rows, cols };
 }
 
-async function loadChannel(key, mockFn) {
+async function loadChannel(key, mockFn, requiredCols = []) {
+  if (FORCE_DEMO) {
+    const rows = mockFn();
+    return { rows, source: 'demo', cols: Object.keys(rows[0]||{}), reason: 'forced' };
+  }
   try {
-    const rows = await fetchSheet(SHEETS[key].id);
+    const { rows, cols } = await fetchSheet(SHEETS[key].id);
     if (!rows || !rows.length) throw new Error('empty');
-    return { rows, source: 'live' };
+    const missing = requiredCols.filter(c => !cols.includes(c));
+    if (missing.length) throw new Error(`missing cols: ${missing.join(', ')}`);
+    return { rows, source: 'live', cols };
   } catch (e) {
-    return { rows: mockFn(), source: 'demo' };
+    const rows = mockFn();
+    return { rows, source: 'demo', cols: Object.keys(rows[0]||{}), reason: e.message };
   }
 }
 
@@ -509,10 +744,10 @@ function badge(kind, text) {
   return `<span class="chart-badge badge-${kind}">${text}</span>`;
 }
 
-function sourceTag(source) {
-  return source === 'live'
-    ? badge('green', 'LIVE')
-    : badge('ghost', 'DEMO');
+function sourceTag(source, reason) {
+  if (source === 'live') return badge('green', 'LIVE');
+  const title = reason ? ` title="Fallback: ${reason}"` : '';
+  return `<span class="chart-badge badge-ghost"${title}>DEMO</span>`;
 }
 
 function makeChart(id, type, labels, datasets, opts={}) {
@@ -543,6 +778,34 @@ function renderKpis(gridId, items) {
       ${m.delta != null ? `<div class="metric-delta ${m.deltaClass||'delta-neutral'}">${m.delta}</div>` : ''}
     </div>
   `).join('');
+}
+
+function renderBriefing({ narrative, recs }) {
+  document.getElementById('aiBriefSub').textContent =
+    `Generated ${new Date().toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})} · Last 30 days · 4 channels`;
+  document.getElementById('aiBriefText').textContent = narrative;
+  const el = document.getElementById('aiRecs');
+  if (!recs.length) {
+    el.innerHTML = `<div class="rec-empty">No urgent recommendations surfaced for this period.</div>`;
+    return;
+  }
+  el.innerHTML = recs.map(r => `
+    <div class="rec-card">
+      <span class="rec-sev rec-sev-${r.severity}">${r.severity}</span>
+      <div class="rec-title">${r.title}</div>
+      <div class="rec-rationale">${r.rationale}</div>
+      <div class="rec-actions">
+        <button class="rec-btn rec-btn-primary" type="button">${r.action}</button>
+        <button class="rec-btn" type="button">Dismiss</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderInsight(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = text ? `<strong>Insight</strong>${text}` : '';
 }
 
 /* ── Mock generators (used when a sheet is unreachable) ─────────── */
@@ -628,23 +891,179 @@ const topN = (rows, groupCol, valCol, n=5) => {
     .map(([name, v]) => ({ name, ...v }));
 };
 
+/* ── Rule engine: generates narrative, recs, per-section insights ── */
+function generateInsights({ ads, gsc, ga, ac }) {
+  const recs = [];
+  const perSection = { ads: '', seo: '', ga: '', calls: '' };
+
+  /* Ads — campaign aggregates with CPA */
+  const campMap = {};
+  ads.rows.forEach(r => {
+    const k = r.Campaign || '—';
+    const e = campMap[k] || (campMap[k] = { Spend: 0, Conversions: 0, Clicks: 0 });
+    e.Spend += Number(r.Spend) || 0;
+    e.Conversions += Number(r.Conversions) || 0;
+    e.Clicks += Number(r.Clicks) || 0;
+  });
+  const camps = Object.entries(campMap).map(([name, v]) => ({
+    name, ...v, cpa: v.Conversions ? v.Spend / v.Conversions : null,
+  }));
+  const totalAdSpend = sum(ads.rows, 'Spend');
+  const totalConv = sum(ads.rows, 'Conversions');
+  const meanSpend = camps.length ? totalAdSpend / camps.length : 0;
+
+  const dead = camps
+    .filter(c => c.Spend > meanSpend / 2 && c.Conversions === 0)
+    .sort((a, b) => b.Spend - a.Spend);
+  if (dead[0]) {
+    recs.push({
+      severity: 'high',
+      title: `Pause "${dead[0].name}" campaign`,
+      rationale: `${fmtCur(dead[0].Spend)} spent, 0 conversions in 30d. Redirect budget to the best performer.`,
+      action: 'Pause campaign',
+    });
+  }
+
+  const withConv = camps.filter(c => c.cpa != null).sort((a, b) => a.cpa - b.cpa);
+  if (withConv.length >= 2) {
+    const best = withConv[0];
+    const median = withConv[Math.floor(withConv.length / 2)];
+    if (best.cpa < median.cpa * 0.7) {
+      recs.push({
+        severity: 'medium',
+        title: `Scale "${best.name}" up`,
+        rationale: `CPA ${fmtCur(best.cpa)} vs median ${fmtCur(median.cpa)}. Room to reallocate 20-30% more budget.`,
+        action: 'Increase budget',
+      });
+    }
+    perSection.ads = `${best.name} is your most efficient campaign (${fmtCur(best.cpa)} CPA vs ${fmtCur(median.cpa)} median). Consider shifting budget toward it.`;
+  } else {
+    perSection.ads = `${camps.length} campaigns running · ${fmtCur(totalAdSpend)} spend · ${fmt(totalConv)} conversions over 30d.`;
+  }
+
+  /* GSC — query-level opportunity detector */
+  const qMap = {};
+  gsc.rows.forEach(r => {
+    const k = r.Query || '—';
+    const e = qMap[k] || (qMap[k] = { Clicks: 0, Impressions: 0, posSum: 0, posN: 0 });
+    e.Clicks += Number(r.Clicks) || 0;
+    e.Impressions += Number(r.Impressions) || 0;
+    const p = Number(r['Avg Position']);
+    if (!isNaN(p)) { e.posSum += p; e.posN += 1; }
+  });
+  const queries = Object.entries(qMap).map(([name, v]) => ({
+    name, ...v,
+    ctr: v.Impressions ? v.Clicks / v.Impressions * 100 : 0,
+    avgPos: v.posN ? v.posSum / v.posN : null,
+  }));
+  const opps = queries
+    .filter(q => q.Impressions > 500 && q.avgPos != null && q.avgPos >= 5 && q.avgPos <= 15 && q.ctr < 3)
+    .sort((a, b) => b.Impressions - a.Impressions);
+  if (opps[0]) {
+    recs.push({
+      severity: 'medium',
+      title: `Refresh landing page for "${opps[0].name}"`,
+      rationale: `${fmt(opps[0].Impressions)} impressions at avg position ${opps[0].avgPos.toFixed(1)}. A content refresh could move it into the top 5.`,
+      action: 'Plan content refresh',
+    });
+    perSection.seo = `"${opps[0].name}" is your #1 opportunity — ${fmt(opps[0].Impressions)} impressions at position ${opps[0].avgPos.toFixed(1)}, CTR only ${fmtPct(opps[0].ctr)}. Quick content win.`;
+  } else {
+    const tClicks = sum(gsc.rows, 'Clicks');
+    const avgCtr = queries.length ? queries.reduce((a, q) => a + q.ctr, 0) / queries.length : 0;
+    perSection.seo = `${fmt(tClicks)} organic clicks across ${queries.length} tracked queries · avg CTR ${fmtPct(avgCtr)}.`;
+  }
+
+  /* GA — 7d vs prior 7d trend */
+  const gaDaily = byDay(ga.rows, 'Sessions');
+  if (gaDaily.length >= 14) {
+    const recent7 = gaDaily.slice(-7).reduce((a, [, v]) => a + v, 0);
+    const prior7 = gaDaily.slice(-14, -7).reduce((a, [, v]) => a + v, 0);
+    const delta = prior7 ? (recent7 - prior7) / prior7 : 0;
+    if (delta < -0.15) {
+      recs.push({
+        severity: 'high',
+        title: `Investigate traffic drop`,
+        rationale: `Sessions down ${fmtPct(Math.abs(delta) * 100)} week-over-week. Check GA for top-dropping channels or pages.`,
+        action: 'Open GA',
+      });
+    }
+    perSection.ga = delta >= 0
+      ? `Sessions up ${fmtPct(delta * 100)} week-over-week · ${fmt(recent7)} in the last 7 days.`
+      : `Sessions down ${fmtPct(Math.abs(delta) * 100)} week-over-week · worth investigating which channel drove the drop.`;
+  } else {
+    perSection.ga = `${fmt(sum(ga.rows, 'Sessions'))} sessions over the period.`;
+  }
+
+  /* Calls — miss rate */
+  const totalCalls = sum(ac.rows, 'Total Calls');
+  const missed = sum(ac.rows, 'Missed');
+  const missRate = totalCalls ? missed / totalCalls : 0;
+  if (missRate > 0.15) {
+    recs.push({
+      severity: totalCalls >= 100 ? 'high' : 'medium',
+      title: `Reduce missed-call rate`,
+      rationale: `${fmt(missed)} missed of ${fmt(totalCalls)} (${fmtPct(missRate * 100)}). Extend staffed hours or add a backup routing rule.`,
+      action: 'Review Aircall routing',
+    });
+    perSection.calls = `Miss rate ${fmtPct(missRate * 100)} is above the 15% threshold · ${fmt(missed)} missed in 30d.`;
+  } else {
+    perSection.calls = `${fmt(totalCalls)} calls · ${fmtPct((1 - missRate) * 100)} answer rate · healthy coverage.`;
+  }
+
+  /* Sort + narrative */
+  const sevRank = { high: 3, medium: 2, low: 1 };
+  recs.sort((a, b) => (sevRank[b.severity] || 0) - (sevRank[a.severity] || 0));
+  const capped = recs.slice(0, 5);
+
+  const bits = [];
+  bits.push(`Across 4 channels over the last 30 days: ${fmtCur(totalAdSpend)} ad spend, ${fmt(totalConv)} conversions, ${fmt(totalCalls)} inbound calls.`);
+  if (capped.length === 0) {
+    bits.push(`No urgent issues detected — performance is within expected thresholds.`);
+  } else if (capped[0].severity === 'high') {
+    bits.push(`Top priority: ${capped[0].title}.`);
+  } else {
+    bits.push(`One opportunity worth acting on: ${capped[0].title}.`);
+  }
+  if (capped.length > 1) {
+    bits.push(`${capped.length - 1} additional ${capped.length - 1 === 1 ? 'signal' : 'signals'} surfaced below.`);
+  }
+
+  return { narrative: bits.join(' '), recs: capped, perSection };
+}
+
 /* ── Overview + orchestrator ────────────────────────────────────── */
+const REQUIRED_COLS = {
+  ads:     ['Spend', 'Clicks'],
+  gsc:     ['Clicks', 'Impressions'],
+  ga:      ['Sessions'],
+  aircall: ['Total Calls'],
+};
+
 async function render() {
   const [ads, gsc, ga, ac] = await Promise.all([
-    loadChannel('ads', mockAds),
-    loadChannel('gsc', mockGsc),
-    loadChannel('ga', mockGa),
-    loadChannel('aircall', mockAircall),
+    loadChannel('ads', mockAds, REQUIRED_COLS.ads),
+    loadChannel('gsc', mockGsc, REQUIRED_COLS.gsc),
+    loadChannel('ga', mockGa, REQUIRED_COLS.ga),
+    loadChannel('aircall', mockAircall, REQUIRED_COLS.aircall),
+  ]);
+
+  console.table([
+    { channel: 'ads',     source: ads.source, rows: ads.rows.length, reason: ads.reason || '',     cols: ads.cols.join(', ') },
+    { channel: 'gsc',     source: gsc.source, rows: gsc.rows.length, reason: gsc.reason || '',     cols: gsc.cols.join(', ') },
+    { channel: 'ga',      source: ga.source,  rows: ga.rows.length,  reason: ga.reason || '',      cols: ga.cols.join(', ') },
+    { channel: 'aircall', source: ac.source,  rows: ac.rows.length,  reason: ac.reason || '',      cols: ac.cols.join(', ') },
   ]);
 
   document.getElementById('lastUpdated').textContent =
     new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
 
+  const insights = generateInsights({ ads, gsc, ga, ac });
+  renderBriefing(insights);
   renderOverview(ads, gsc, ga, ac);
-  renderAds(ads);
-  renderSeo(gsc);
-  renderGa(ga);
-  renderCalls(ac);
+  renderAds(ads, insights.perSection.ads);
+  renderSeo(gsc, insights.perSection.seo);
+  renderGa(ga, insights.perSection.ga);
+  renderCalls(ac, insights.perSection.calls);
   renderPlaceholders();
 }
 
@@ -667,8 +1086,9 @@ function renderOverview(ads, gsc, ga, ac) {
   ]);
 }
 
-function renderAds({ rows, source }) {
-  document.getElementById('adsMeta').innerHTML = `${SHEETS.ads.label} · ${source === 'live' ? 'Live' : 'Demo data'}`;
+function renderAds({ rows, source, reason }, insight) {
+  document.getElementById('adsMeta').innerHTML = `${SHEETS.ads.label} · ${sourceTag(source, reason)}`;
+  renderInsight('adsInsight', insight);
   const spend = sum(rows, 'Spend');
   const clicks = sum(rows, 'Clicks');
   const impr = sum(rows, 'Impressions');
@@ -702,10 +1122,35 @@ function renderAds({ rows, source }) {
       <td class="num">${fmt(t.Clicks)}</td>
       <td class="num">${fmt(t.Conversions)}</td>
     </tr>`).join('');
+
+  const campMap = {};
+  rows.forEach(r => {
+    const k = r.Campaign || '—';
+    const e = campMap[k] || (campMap[k] = { Spend: 0, Conversions: 0 });
+    e.Spend += Number(r.Spend) || 0;
+    e.Conversions += Number(r.Conversions) || 0;
+  });
+  const avgSpend = Object.values(campMap).reduce((a,c) => a + c.Spend, 0) / (Object.keys(campMap).length || 1);
+  const worst = Object.entries(campMap)
+    .map(([name, v]) => ({ name, ...v, cpa: v.Conversions ? v.Spend/v.Conversions : Infinity }))
+    .filter(c => c.Spend > avgSpend * 0.3)
+    .sort((a,b) => b.cpa - a.cpa)
+    .slice(0, 5);
+  const bottomHtml = worst.length
+    ? worst.map(t => `
+        <tr>
+          <td>${t.name}</td>
+          <td class="num">${fmtCur(t.Spend)}</td>
+          <td class="num">${fmt(t.Conversions)}</td>
+          <td class="num">${isFinite(t.cpa) ? fmtCur(t.cpa) : '<span style="color:var(--red)">No conv</span>'}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No underperformers detected.</td></tr>`;
+  document.getElementById('adsBottom').innerHTML = bottomHtml;
 }
 
-function renderSeo({ rows, source }) {
-  document.getElementById('seoMeta').innerHTML = `${SHEETS.gsc.label} · ${source === 'live' ? 'Live' : 'Demo data'}`;
+function renderSeo({ rows, source, reason }, insight) {
+  document.getElementById('seoMeta').innerHTML = `${SHEETS.gsc.label} · ${sourceTag(source, reason)}`;
+  renderInsight('seoInsight', insight);
   const clicks = sum(rows, 'Clicks');
   const impr = sum(rows, 'Impressions');
   const ctr = impr > 0 ? clicks/impr*100 : 0;
@@ -740,10 +1185,40 @@ function renderSeo({ rows, source }) {
       <td class="num">${fmt(t.Impressions)}</td>
       <td class="num">${t['Avg Position'] ? (t['Avg Position']/t._n).toFixed(1) : '—'}</td>
     </tr>`).join('');
+
+  const qMap = {};
+  rows.forEach(r => {
+    const k = r.Query || '—';
+    const e = qMap[k] || (qMap[k] = { Clicks: 0, Impressions: 0, posSum: 0, posN: 0 });
+    e.Clicks += Number(r.Clicks) || 0;
+    e.Impressions += Number(r.Impressions) || 0;
+    const p = Number(r['Avg Position']);
+    if (!isNaN(p)) { e.posSum += p; e.posN += 1; }
+  });
+  const opps = Object.entries(qMap)
+    .map(([name, v]) => ({
+      name, ...v,
+      ctr: v.Impressions ? v.Clicks/v.Impressions*100 : 0,
+      avgPos: v.posN ? v.posSum/v.posN : null,
+    }))
+    .filter(q => q.Impressions > 300 && q.avgPos != null && q.avgPos >= 5 && q.avgPos <= 20 && q.ctr < 4)
+    .sort((a,b) => b.Impressions - a.Impressions)
+    .slice(0, 5);
+  const oppsHtml = opps.length
+    ? opps.map(t => `
+        <tr>
+          <td>${t.name}</td>
+          <td class="num">${fmt(t.Impressions)}</td>
+          <td class="num">${t.avgPos.toFixed(1)}</td>
+          <td class="num">${fmtPct(t.ctr)}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No page-2 opportunities detected.</td></tr>`;
+  document.getElementById('seoOpps').innerHTML = oppsHtml;
 }
 
-function renderGa({ rows, source }) {
-  document.getElementById('gaMeta').innerHTML = `${SHEETS.ga.label} · ${source === 'live' ? 'Live' : 'Demo data'}`;
+function renderGa({ rows, source, reason }, insight) {
+  document.getElementById('gaMeta').innerHTML = `${SHEETS.ga.label} · ${sourceTag(source, reason)}`;
+  renderInsight('gaInsight', insight);
   const sessions = sum(rows, 'Sessions');
   const users = sum(rows, 'Users');
   const eng = avg(rows, 'Engagement Rate');
@@ -769,10 +1244,37 @@ function renderGa({ rows, source }) {
     backgroundColor: [GREEN, BLUE, AMBER, PURPLE, RED, 'rgba(255,255,255,0.15)'],
     borderWidth: 0,
   }], { extra: { cutout: '60%', plugins: { legend: { display:true, position:'right', labels:{ color: TEXT2, boxWidth:10, padding:10, font:{ size:10 } } } } } });
+
+  const chMap = {};
+  rows.forEach(r => {
+    const k = r.Channel || '—';
+    const e = chMap[k] || (chMap[k] = { Sessions: 0, engSum: 0, engN: 0 });
+    e.Sessions += Number(r.Sessions) || 0;
+    const er = Number(r['Engagement Rate']);
+    if (!isNaN(er)) { e.engSum += er; e.engN += 1; }
+  });
+  const chArr = Object.entries(chMap).map(([name, v]) => ({
+    name, Sessions: v.Sessions,
+    engagement: v.engN ? v.engSum/v.engN : 0,
+  })).filter(c => c.Sessions > 0).sort((a,b) => b.engagement - a.engagement);
+  const top3 = chArr.slice(0, 3).map(c => ({ ...c, rank: 'Top' }));
+  const bot3 = chArr.slice(-3).reverse().filter(c => !top3.find(t => t.name === c.name)).map(c => ({ ...c, rank: 'Bottom' }));
+  const combined = [...top3, ...bot3];
+  const engHtml = combined.length
+    ? combined.map(c => `
+        <tr>
+          <td>${c.name}</td>
+          <td class="num">${fmt(c.Sessions)}</td>
+          <td class="num">${fmtPct(c.engagement)}</td>
+          <td class="num"><span class="chart-badge ${c.rank === 'Top' ? 'badge-green' : 'badge-red'}">${c.rank}</span></td>
+        </tr>`).join('')
+    : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">Not enough channel data.</td></tr>`;
+  document.getElementById('gaEngage').innerHTML = engHtml;
 }
 
-function renderCalls({ rows, source }) {
-  document.getElementById('callsMeta').innerHTML = `${SHEETS.aircall.label} · ${source === 'live' ? 'Live' : 'Demo data'}`;
+function renderCalls({ rows, source, reason }, insight) {
+  document.getElementById('callsMeta').innerHTML = `${SHEETS.aircall.label} · ${sourceTag(source, reason)}`;
+  renderInsight('callsInsight', insight);
   const total = sum(rows, 'Total Calls');
   const answered = sum(rows, 'Answered');
   const missed = sum(rows, 'Missed');
@@ -799,6 +1301,31 @@ function renderCalls({ rows, source }) {
     backgroundColor: [GREEN, RED],
     borderWidth: 0,
   }], { extra: { cutout: '65%', plugins: { legend: { display:true, position:'right', labels:{ color: TEXT2, boxWidth:10, padding:10 } } } } });
+
+  const dayMap = {};
+  rows.forEach(r => {
+    const d = r.Date;
+    if (!d) return;
+    const k = typeof d === 'string' ? d.slice(0,10) : new Date(d).toISOString().slice(0,10);
+    const e = dayMap[k] || (dayMap[k] = { Calls: 0, Missed: 0 });
+    e.Calls += Number(r['Total Calls']) || 0;
+    e.Missed += Number(r.Missed) || 0;
+  });
+  const worstDays = Object.entries(dayMap)
+    .map(([date, v]) => ({ date, ...v, rate: v.Calls ? v.Missed/v.Calls*100 : 0 }))
+    .filter(d => d.Calls >= 5)
+    .sort((a,b) => b.rate - a.rate)
+    .slice(0, 5);
+  const worstHtml = worstDays.length
+    ? worstDays.map(d => `
+        <tr>
+          <td>${d.date}</td>
+          <td class="num">${fmt(d.Calls)}</td>
+          <td class="num">${fmt(d.Missed)}</td>
+          <td class="num" style="color:${d.rate>20?'var(--red)':d.rate>15?'var(--amber)':'var(--text2)'}">${fmtPct(d.rate)}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">Not enough call volume to rank.</td></tr>`;
+  document.getElementById('callsWorst').innerHTML = worstHtml;
 }
 
 function renderPlaceholders() {

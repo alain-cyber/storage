@@ -295,121 +295,180 @@
   .card:hover .remove { opacity: 1; }
   .remove:hover { color: var(--text); }
 
-  /* Ferrari gallery */
-  .section-head {
-    margin: 3.5rem 0 1.25rem;
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 1rem;
-  }
-
-  .section-head h2 {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.8rem;
-    font-weight: 400;
-  }
-
-  .section-head h2 em {
-    font-style: italic;
-    color: #dc0000;
-  }
-
-  .section-head .tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--text3);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-  }
-
-  .ferrari-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.25rem;
-  }
-
-  .car-card {
+  /* Ferrari carousel */
+  .ferrari-carousel {
+    position: relative;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 14px;
     overflow: hidden;
-    transition: border-color 0.2s ease, transform 0.2s ease;
+    margin-bottom: 2rem;
+    transition: border-color 0.2s ease;
   }
 
-  .car-card:hover {
-    border-color: #dc0000;
-    transform: translateY(-2px);
+  .ferrari-carousel:hover { border-color: #dc0000; }
+
+  .car-stage {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    align-items: stretch;
+    min-height: 240px;
   }
 
   .car-art {
     background: linear-gradient(180deg, #1a1d1a 0%, #0d0f0e 100%);
-    padding: 1.5rem 1rem 0.5rem;
+    padding: 2rem 4rem;
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
   }
 
   .car-art::before {
     content: '';
     position: absolute;
-    bottom: 0; left: 10%; right: 10%;
-    height: 8px;
-    background: radial-gradient(ellipse at center, rgba(220,0,0,0.25), transparent 70%);
-    filter: blur(4px);
+    bottom: 18%; left: 15%; right: 15%;
+    height: 12px;
+    background: radial-gradient(ellipse at center, rgba(220,0,0,0.3), transparent 70%);
+    filter: blur(6px);
   }
 
   .car-art svg {
     display: block;
     width: 100%;
     height: auto;
-    max-height: 140px;
+    max-height: 180px;
+    transition: transform 0.4s ease, opacity 0.3s ease;
   }
 
   .car-info {
-    padding: 1.25rem 1.5rem 1.5rem;
-    border-top: 1px solid var(--border);
+    padding: 2rem 2.25rem;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .car-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: #dc0000;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
   }
 
   .car-name {
     font-family: 'DM Serif Display', serif;
-    font-size: 1.5rem;
-    line-height: 1.1;
+    font-size: 2.2rem;
+    line-height: 1;
   }
 
   .car-year {
     font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    color: #dc0000;
+    font-size: 0.75rem;
+    color: var(--text2);
     letter-spacing: 0.2em;
-    margin-top: 0.3rem;
+    margin-top: 0.5rem;
   }
 
   .car-specs {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.75rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
     border-top: 1px solid var(--border);
   }
 
-  .car-specs > div {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.75rem;
-  }
+  .car-specs > div { font-family: 'DM Mono', monospace; font-size: 0.8rem; }
 
   .car-specs .label {
     color: var(--text3);
     font-size: 0.6rem;
     letter-spacing: 0.15em;
     text-transform: uppercase;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.25rem;
   }
 
-  .car-specs .val {
+  .car-specs .val { color: var(--text); font-weight: 500; }
+
+  /* nav arrows */
+  .car-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid var(--border2);
     color: var(--text);
-    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    z-index: 3;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .car-nav:hover { background: #dc0000; border-color: #dc0000; }
+  .car-nav.prev { left: 0.85rem; }
+  .car-nav.next { right: 0.85rem; }
+
+  /* dots */
+  .car-dots {
+    position: absolute;
+    bottom: 0.85rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.4rem;
+    z-index: 3;
+  }
+
+  .car-dots button {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s ease, width 0.2s ease;
+  }
+
+  .car-dots button.active {
+    background: #dc0000;
+    width: 22px;
+    border-radius: 4px;
+  }
+
+  /* counter badge */
+  .car-counter {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text2);
+    background: rgba(0,0,0,0.45);
+    border: 1px solid var(--border);
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    letter-spacing: 0.1em;
+    z-index: 2;
+  }
+
+  @media (max-width: 700px) {
+    .car-stage { grid-template-columns: 1fr; }
+    .car-art { padding: 1.5rem 3rem; min-height: 160px; }
+    .car-info { border-left: none; border-top: 1px solid var(--border); padding: 1.25rem 1.25rem 2.25rem; }
+    .car-name { font-size: 1.6rem; }
+    .car-art svg { max-height: 130px; }
   }
 
   @media (max-width: 600px) {
@@ -417,7 +476,6 @@
     main { padding: 1.5rem; }
     h1 { font-size: 1.8rem; }
     .time { font-size: 2.2rem; }
-    .section-head h2 { font-size: 1.4rem; }
   }
 </style>
 </head>
@@ -440,13 +498,18 @@
 </header>
 
 <main>
-  <div class="grid" id="grid"></div>
-
-  <div class="section-head">
-    <h2>Featured <em>Ferraris</em></h2>
-    <span class="tag">// hall of flagships</span>
+  <div class="ferrari-carousel" id="ferrariCarousel" aria-label="Ferrari showcase">
+    <span class="car-counter" id="carCounter">1 / 6</span>
+    <button class="car-nav prev" id="carPrev" aria-label="Previous Ferrari">‹</button>
+    <button class="car-nav next" id="carNext" aria-label="Next Ferrari">›</button>
+    <div class="car-stage">
+      <div class="car-art" id="carArt"></div>
+      <div class="car-info" id="carInfo"></div>
+    </div>
+    <div class="car-dots" id="carDots"></div>
   </div>
-  <div class="ferrari-grid" id="ferrariGrid"></div>
+
+  <div class="grid" id="grid"></div>
 </main>
 
 <footer class="footer">
@@ -809,37 +872,86 @@ const FERRARIS = [
   { name: 'Daytona SP3',   year: '2021', shape: svgBarchetta, hp: '828 hp', top: '340 km/h', engine: '6.5L V12'   },
 ];
 
-function renderFerraris() {
-  const grid = document.getElementById('ferrariGrid');
-  if (!grid) return;
-  grid.innerHTML = FERRARIS.map((f, i) => `
-    <div class="car-card">
-      <div class="car-art">${f.shape(i)}</div>
-      <div class="car-info">
-        <div class="car-name">${escapeHtml(f.name)}</div>
-        <div class="car-year">${escapeHtml(f.year)} · MARANELLO</div>
-        <div class="car-specs">
-          <div>
-            <div class="label">Power</div>
-            <div class="val">${escapeHtml(f.hp)}</div>
-          </div>
-          <div>
-            <div class="label">Top Speed</div>
-            <div class="val">${escapeHtml(f.top)}</div>
-          </div>
-          <div>
-            <div class="label">Engine</div>
-            <div class="val">${escapeHtml(f.engine)}</div>
-          </div>
-        </div>
-      </div>
+let carIdx = 0;
+let carTimer = null;
+
+function renderFerrariSlide() {
+  const f = FERRARIS[carIdx];
+  const art = document.getElementById('carArt');
+  const info = document.getElementById('carInfo');
+  const counter = document.getElementById('carCounter');
+  if (!art || !info) return;
+
+  art.innerHTML = f.shape(carIdx);
+  info.innerHTML = `
+    <div class="car-eyebrow">// Maranello</div>
+    <div class="car-name">${escapeHtml(f.name)}</div>
+    <div class="car-year">${escapeHtml(f.year)}</div>
+    <div class="car-specs">
+      <div><div class="label">Power</div><div class="val">${escapeHtml(f.hp)}</div></div>
+      <div><div class="label">Top Speed</div><div class="val">${escapeHtml(f.top)}</div></div>
+      <div><div class="label">Engine</div><div class="val">${escapeHtml(f.engine)}</div></div>
     </div>
-  `).join('');
+  `;
+  counter.textContent = `${carIdx + 1} / ${FERRARIS.length}`;
+
+  document.querySelectorAll('#carDots button').forEach((b, i) => {
+    b.classList.toggle('active', i === carIdx);
+  });
+}
+
+function buildFerrariDots() {
+  const dots = document.getElementById('carDots');
+  if (!dots) return;
+  dots.innerHTML = FERRARIS.map((_, i) =>
+    `<button data-i="${i}" aria-label="Show Ferrari ${i + 1}"></button>`
+  ).join('');
+  dots.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => {
+      carIdx = parseInt(b.dataset.i);
+      renderFerrariSlide();
+      restartCarTimer();
+    });
+  });
+}
+
+function nextCar() { carIdx = (carIdx + 1) % FERRARIS.length; renderFerrariSlide(); }
+function prevCar() { carIdx = (carIdx - 1 + FERRARIS.length) % FERRARIS.length; renderFerrariSlide(); }
+
+function restartCarTimer() {
+  if (carTimer) clearInterval(carTimer);
+  carTimer = setInterval(() => { nextCar(); }, 6000);
+}
+
+function setupFerrariCarousel() {
+  buildFerrariDots();
+  renderFerrariSlide();
+  document.getElementById('carNext').addEventListener('click', () => { nextCar(); restartCarTimer(); });
+  document.getElementById('carPrev').addEventListener('click', () => { prevCar(); restartCarTimer(); });
+
+  // touch swipe
+  const stage = document.getElementById('ferrariCarousel');
+  let startX = null;
+  stage.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+  stage.addEventListener('touchend', e => {
+    if (startX === null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 40) { dx < 0 ? nextCar() : prevCar(); restartCarTimer(); }
+    startX = null;
+  });
+
+  // keyboard arrows
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { nextCar(); restartCarTimer(); }
+    if (e.key === 'ArrowLeft')  { prevCar(); restartCarTimer(); }
+  });
+
+  restartCarTimer();
 }
 
 // boot
 render();
-renderFerraris();
+setupFerrariCarousel();
 updateClocks();
 refreshAllWeather();
 setInterval(updateClocks, 1000);

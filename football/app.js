@@ -1,6 +1,6 @@
 // Prediction engine + UI rendering.
 
-const STORAGE_KEY = 'pl-predictions-v1';
+const STORAGE_KEY = 'pl-predictions-v2';
 const TOP_N = 6;
 
 const state = {
@@ -106,19 +106,23 @@ function fixturesForView() {
 
 function renderFixtures() {
   const container = document.getElementById('fixtures-body');
-  const fixtures = fixturesForView();
-  const byMd = {};
+  const fixtures = fixturesForView().slice().sort((a, b) => a.date.localeCompare(b.date));
+  const byDate = {};
   for (const fx of fixtures) {
-    (byMd[fx.md] ||= []).push(fx);
+    (byDate[fx.date] ||= []).push(fx);
   }
 
-  const mds = Object.keys(byMd).sort((a, b) => +a - +b);
-  container.innerHTML = mds.map(md => `
-    <div class="matchday-group">
-      <div class="matchday-label">Matchday ${md}</div>
-      ${byMd[md].map(renderFixtureRow).join('')}
-    </div>
-  `).join('');
+  const dates = Object.keys(byDate).sort();
+  container.innerHTML = dates.map(date => {
+    const d = new Date(date + 'T12:00:00');
+    const label = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    return `
+      <div class="matchday-group">
+        <div class="matchday-label">${label}</div>
+        ${byDate[date].map(renderFixtureRow).join('')}
+      </div>
+    `;
+  }).join('');
 
   // Wire up inputs.
   container.querySelectorAll('.score-input').forEach(input => {
@@ -138,9 +142,6 @@ function renderFixtureRow(fx) {
   const away = teamById(fx.away);
   const pred = state.predictions[fx.id] || {};
   const involvesMun = fx.home === 'MUN' || fx.away === 'MUN';
-
-  const date = new Date(fx.date + 'T12:00:00');
-  const dateStr = date.toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' });
 
   return `
     <div class="fixture ${involvesMun ? 'involves-mun' : ''}" data-fixture="${fx.id}">
@@ -162,9 +163,6 @@ function renderFixtureRow(fx) {
       <div class="team away">
         <span class="team-badge" title="${away.name}">${away.short}</span>
         <span class="team-name">${away.name}</span>
-      </div>
-      <div style="grid-column: 1 / -1; font-size: 11px; color: var(--muted); text-align: center; margin-top: 2px;">
-        ${dateStr}
       </div>
     </div>
   `;

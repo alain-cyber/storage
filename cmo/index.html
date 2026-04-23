@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CMO Dashboard — POC</title>
+<title>Viatrading + Liquidatenow — CMO Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
@@ -90,6 +90,46 @@
   }
   .nav a:hover { color: var(--text); border-color: var(--border2); }
   .nav a.active { color: var(--text); border-color: var(--border2); background: var(--surface); }
+
+  .brand-toggle { display: flex; align-items: center; gap: 0.5rem; }
+  .brand-toggle .label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .brand-toggle .group {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .brand-toggle button {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    background: transparent;
+    border: 0;
+    padding: 0.35rem 0.7rem;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+  }
+  .brand-toggle button + button { border-left: 1px solid var(--border); }
+  .brand-toggle button:hover { color: var(--text); }
+  .brand-toggle button[aria-pressed="true"] {
+    color: var(--text);
+    background: var(--surface);
+  }
+  .brand-pending {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--amber);
+    letter-spacing: 0.05em;
+  }
+  .brand-pending.hidden { display: none; }
 
   .status-dot {
     width: 8px; height: 8px; border-radius: 50%;
@@ -419,9 +459,18 @@
 <header class="header">
   <div class="header-left">
     <h1>CMO Dashboard</h1>
-    <p>Marketing performance · Proof of concept</p>
+    <p>Viatrading &amp; Liquidatenow · Marketing performance</p>
   </div>
   <div class="header-right">
+    <div class="brand-toggle">
+      <span class="label">Brand</span>
+      <div class="group" role="group" aria-label="Brand filter">
+        <button type="button" data-brand="all" aria-pressed="true">All</button>
+        <button type="button" data-brand="via" aria-pressed="false">Viatrading</button>
+        <button type="button" data-brand="liq" aria-pressed="false">Liquidatenow</button>
+      </div>
+      <span id="brandPending" class="brand-pending hidden">filter pending — awaiting tab names</span>
+    </div>
     <nav class="nav">
       <a href="./" class="active">CMO</a>
     </nav>
@@ -1376,6 +1425,23 @@ function renderPlaceholders() {
   ]);
 }
 
+const state = { brand: 'all' };
+
+function initBrandToggle() {
+  const buttons = document.querySelectorAll('.brand-toggle button[data-brand]');
+  const pending = document.getElementById('brandPending');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const next = btn.dataset.brand;
+      if (state.brand === next) return;
+      state.brand = next;
+      buttons.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+      pending.classList.toggle('hidden', next === 'all');
+    });
+  });
+}
+
+initBrandToggle();
 render();
 </script>
 </body>

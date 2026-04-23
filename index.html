@@ -74,7 +74,24 @@
     display: flex;
     align-items: center;
     gap: 1rem;
+    flex-wrap: wrap;
   }
+
+  .nav { display: flex; gap: 0.75rem; }
+  .nav a {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    text-decoration: none;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .nav a:hover { color: var(--text); border-color: var(--border2); }
+  .nav a.active { color: var(--text); border-color: var(--border2); background: var(--surface); }
 
   .status-dot {
     width: 8px; height: 8px; border-radius: 50%;
@@ -368,6 +385,11 @@
     <p>308 Southwest Drive · Cheyenne, WY · Performance Dashboard</p>
   </div>
   <div class="header-right">
+    <nav class="nav">
+      <a href="/" class="active">Storage</a>
+      <a href="/cmo/">CMO</a>
+      <a href="/clock/">Clock</a>
+    </nav>
     <div class="status-dot"></div>
     <span class="last-updated" id="lastUpdated">Loading...</span>
   </div>

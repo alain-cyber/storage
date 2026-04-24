@@ -261,6 +261,7 @@
   .badge-blue { background: var(--blue-dim); color: var(--blue); }
   .badge-purple { background: var(--purple-dim); color: var(--purple); }
   .badge-ghost { background: rgba(255,255,255,0.05); color: var(--text3); border: 1px dashed var(--border2); }
+  .demo-reason { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--text3); margin-left: 6px; opacity: 0.85; }
 
   .chart-wrap { position: relative; }
 
@@ -1111,7 +1112,12 @@ function badge(kind, text) {
 function sourceTag(source, reason) {
   if (source === 'live') return badge('green', 'LIVE');
   const title = reason ? ` title="Fallback: ${reason}"` : '';
-  return `<span class="chart-badge badge-ghost"${title}>DEMO</span>`;
+  const why = reason ? ` <span class="demo-reason">(${escapeHtml(String(reason))})</span>` : '';
+  return `<span class="chart-badge badge-ghost"${title}>DEMO</span>${why}`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 function makeChart(id, type, labels, datasets, opts={}) {

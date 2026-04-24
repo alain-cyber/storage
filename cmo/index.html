@@ -14,8 +14,8 @@
     --border: rgba(255,255,255,0.07);
     --border2: rgba(255,255,255,0.12);
     --text: #eef1ec;
-    --text2: #b6bcb3;
-    --text3: #8e948c;
+    --text2: #d4d9d1;
+    --text3: #b0b6ad;
     --green: #4caf7d;
     --green-dim: rgba(76,175,125,0.12);
     --red: #e05a4e;
@@ -165,6 +165,7 @@
     color: var(--text3);
     letter-spacing: 0.1em;
     text-transform: uppercase;
+    font-weight: 500;
   }
 
   .metrics-grid {
@@ -192,6 +193,7 @@
     text-transform: uppercase;
     color: var(--text3);
     font-family: 'DM Mono', monospace;
+    font-weight: 500;
     margin-bottom: 0.6rem;
   }
 
@@ -236,6 +238,7 @@
     text-transform: uppercase;
     color: var(--text3);
     font-family: 'DM Mono', monospace;
+    font-weight: 500;
   }
 
   .chart-value {
@@ -264,13 +267,13 @@
   .data-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
   .data-table th {
     font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
+    font-size: 0.62rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text3);
     padding: 0 0 0.75rem;
     text-align: left;
-    font-weight: 400;
+    font-weight: 500;
   }
   .data-table td {
     padding: 0.55rem 0;
@@ -343,9 +346,10 @@
     font-family: 'DM Mono', monospace;
     font-size: 0.65rem;
     letter-spacing: 0.08em;
-    color: var(--text3);
+    color: var(--text2);
     text-transform: uppercase;
     margin-top: 0.2rem;
+    font-weight: 500;
   }
   .ai-brief-text {
     color: var(--text);
@@ -389,9 +393,9 @@
     line-height: 1.25;
   }
   .rec-rationale {
-    color: var(--text2);
-    font-size: 0.78rem;
-    line-height: 1.5;
+    color: var(--text);
+    font-size: 0.82rem;
+    line-height: 1.55;
   }
   .rec-actions { display: flex; gap: 0.4rem; margin-top: 0.25rem; }
   .rec-btn {
@@ -492,8 +496,8 @@
   }
   .todo-why {
     font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
-    color: var(--text3);
+    font-size: 0.72rem;
+    color: var(--text2);
     letter-spacing: 0.02em;
   }
   .todo-sev {
@@ -799,14 +803,50 @@
     </div>
   </section>
 
-  <section class="section">
+  <section class="section" id="socialSection">
     <div class="section-head">
-      <div class="section-title">Social</div>
-      <div class="section-meta">Placeholder · Not connected</div>
+      <div class="section-title">Social — Metricool</div>
+      <div class="section-meta" id="socialMeta">—</div>
     </div>
-    <div class="metrics-grid" id="socialGrid"></div>
-    <div class="placeholder-hint">
-      Stubbed metrics. Connect LinkedIn Page Insights, Meta Graph API, X API, TikTok Business API, YouTube Analytics to replace.
+    <div class="insight-strip" id="socialInsight"></div>
+    <div class="metrics-grid" id="socialKpis"></div>
+    <div class="charts-grid-2" style="margin-top:1rem">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Reach by day</div>
+            <div class="chart-value" id="socialReach">—</div>
+          </div>
+          <span class="chart-badge badge-purple">Daily</span>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="socialChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Top posts</div>
+            <div class="chart-value">By reach</div>
+          </div>
+          <span class="chart-badge badge-green">Top 5</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Network</th><th>Type</th><th class="num">Reach</th></tr></thead>
+          <tbody id="socialTopPosts"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-top:1rem">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Networks by performance</div>
+          <div class="chart-value">Reach per post</div>
+        </div>
+        <span class="chart-badge badge-blue">Efficiency</span>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Network</th><th class="num">Posts</th><th class="num">Total Reach</th><th class="num">Reach / Post</th></tr></thead>
+        <tbody id="socialNetworks"></tbody>
+      </table>
     </div>
   </section>
 
@@ -844,6 +884,7 @@ const SHEETS = {
   gsc:     { id: '1UZ7fp46L83YdPEcjEp7Zdl4-8-taK5zMueZNd1pI7k8', label: 'Search Console' },
   ga:      { id: '1gZ_ahjqHMMSmqF2av0pOV2nkLj0oA5IVGqTHm6w7_nw', label: 'Google Analytics' },
   aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall' },
+  social:  { id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk', gid: 1914162846, label: 'Metricool · Posts' },
 };
 
 const GREEN = '#4caf7d';
@@ -851,7 +892,7 @@ const RED = '#e05a4e';
 const AMBER = '#d4a843';
 const BLUE = '#5b9cf6';
 const PURPLE = '#b57dd6';
-const TEXT2 = '#b6bcb3';
+const TEXT2 = '#d4d9d1';
 
 Chart.defaults.color = TEXT2;
 Chart.defaults.font.family = "'DM Mono', monospace";
@@ -1011,8 +1052,11 @@ function normalizeAircallRows(rows, cols) {
   return out;
 }
 
-async function fetchSheet(id) {
-  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json`;
+async function fetchSheet(id, opts = {}) {
+  const params = ['tqx=out:json'];
+  if (opts.gid != null) params.push(`gid=${encodeURIComponent(opts.gid)}`);
+  else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
+  const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?${params.join('&')}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 6000);
   let text;
@@ -1033,22 +1077,29 @@ async function fetchSheet(id) {
   return { rows, cols };
 }
 
+function normalizeByKey(key, rows, cols) {
+  if (key === 'aircall') return normalizeAircallRows(rows, cols);
+  if (key === 'social') return normalizeSocialRows(rows, cols);
+  return rows;
+}
+
 async function loadChannel(key, mockFn, requiredCols = []) {
   if (FORCE_DEMO) {
     const rows = mockFn();
-    const normalized = key === 'aircall' ? normalizeAircallRows(rows, Object.keys(rows[0]||{})) : rows;
+    const normalized = normalizeByKey(key, rows, Object.keys(rows[0]||{}));
     return { rows: normalized, source: 'demo', cols: Object.keys(normalized[0]||{}), reason: 'forced' };
   }
   try {
-    const { rows, cols } = await fetchSheet(SHEETS[key].id);
+    const sheet = SHEETS[key];
+    const { rows, cols } = await fetchSheet(sheet.id, { gid: sheet.gid, sheetName: sheet.sheetName });
     if (!rows || !rows.length) throw new Error('empty');
     const missing = requiredCols.filter(c => !cols.includes(c));
     if (missing.length) throw new Error(`missing cols: ${missing.join(', ')}`);
-    const normalized = key === 'aircall' ? normalizeAircallRows(rows, cols) : rows;
+    const normalized = normalizeByKey(key, rows, cols);
     return { rows: normalized, source: 'live', cols };
   } catch (e) {
     const rows = mockFn();
-    const normalized = key === 'aircall' ? normalizeAircallRows(rows, Object.keys(rows[0]||{})) : rows;
+    const normalized = normalizeByKey(key, rows, Object.keys(rows[0]||{}));
     return { rows: normalized, source: 'demo', cols: Object.keys(normalized[0]||{}), reason: e.message };
   }
 }
@@ -1138,7 +1189,7 @@ function renderTodos(recs) {
   const list = document.getElementById('todoList');
   const meta = document.getElementById('todoMeta');
   if (!list || !meta) return;
-  const picks = (recs || []).filter(r => r.severity !== 'low').slice(0, 5);
+  const picks = (recs || []).filter(r => r.severity !== 'low').slice(0, 8);
   if (!picks.length) {
     list.innerHTML = `<li class="todo-empty">Nothing urgent on the to-do list this week. Enjoy it.</li>`;
     meta.textContent = '0 / 0 complete';
@@ -1275,7 +1326,18 @@ function mockGa() {
    sum()-based renderers keep working, and the new in-hours vs after-hours
    split can be computed from Time + Date day-of-week. */
 const VIA_CALL_AGENTS = ['Maria Lopez', 'Derek Chen', 'Viatrading Sales', 'Sofia Ramirez', 'Jordan Wells'];
-const LIQ_CALL_AGENTS = Array.from(LIQ_AIRCALL_LINES);
+/* Agent names for liq are deliberately different from line names so the per-line
+   and per-agent rules don't smear their boosts across each other. */
+const LIQ_CALL_AGENTS = ['Santiago Cruz', 'Amanda Briones', 'Rita Gomez', 'Diego Alvarez'];
+/* Inbound line names per brand — the last entry is the "problem line" with
+   elevated miss rate so the per-line coverage rule has something to surface. */
+const VIA_LINES = ['Main Receptionist (ENG)', 'Sales (ENG) Department', 'Support - Via Trading', 'Shipping & Receiving Department'];
+const LIQ_LINES = ['LiquidateNow Department', 'Ashley Sheppard', 'Justin Prescott'];
+const VIA_PROBLEM_LINE = 'Shipping & Receiving Department';
+const LIQ_PROBLEM_LINE = 'Justin Prescott';
+/* Likewise, one agent per brand has elevated miss rate. */
+const VIA_PROBLEM_AGENT = 'Jordan Wells';
+const LIQ_PROBLEM_AGENT = 'Santiago Cruz';
 
 function mockAircall() {
   const out = [];
@@ -1291,9 +1353,12 @@ function mockAircall() {
          isCallInHours. ~80% of weekday calls land in the 9-6 window. */
       const inHoursShare = isWeekday ? 0.8 : 0;
       const agents = brand === 'liq' ? LIQ_CALL_AGENTS : VIA_CALL_AGENTS;
+      const lines = brand === 'liq' ? LIQ_LINES : VIA_LINES;
+      const problemLine = brand === 'liq' ? LIQ_PROBLEM_LINE : VIA_PROBLEM_LINE;
+      const problemAgent = brand === 'liq' ? LIQ_PROBLEM_AGENT : VIA_PROBLEM_AGENT;
       /* miss rates by window: tune so via is borderline in-hours, liq is over */
-      const inMissRate  = brand === 'liq' ? 0.16 : 0.09;
-      const outMissRate = brand === 'liq' ? 0.68 : 0.55;
+      const inMissRate  = brand === 'liq' ? 0.14 : 0.08;
+      const outMissRate = brand === 'liq' ? 0.66 : 0.52;
       for (let i = 0; i < total; i++) {
         const inHours = Math.random() < inHoursShare;
         const hour = inHours
@@ -1302,19 +1367,106 @@ function mockAircall() {
                                   : WORK_HOURS.end + Math.floor(Math.random() * (24 - WORK_HOURS.end)));
         const minute = Math.floor(Math.random() * 60);
         const time = `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
-        const rate = inHours ? inMissRate : outMissRate;
-        const missed = Math.random() < rate ? 1 : 0;
         const agent = agents[Math.floor(Math.random() * agents.length)];
+        const line = lines[Math.floor(Math.random() * lines.length)];
+        /* Bump miss rate substantially for the designated problem line/agent
+           so the per-line and per-agent rules fire on the demo path. */
+        const isProblem = line === problemLine || agent === problemAgent;
+        let rate = inHours ? inMissRate : outMissRate;
+        if (isProblem) rate = inHours ? 0.48 : 0.88;
+        const missed = Math.random() < rate ? 1 : 0;
         out.push({
           Date: dateStr,
           Time: time,
           User: agent,
+          'Number Name': line,
           Status: missed ? 'Missed' : 'Answered',
           'Total Calls': 1,
           Answered: missed ? 0 : 1,
           Missed: missed,
           'Avg Duration (s)': missed ? 0 : jitter(p.callsDur, p.callsDurJ),
           brand,
+        });
+      }
+    });
+  });
+  return out;
+}
+
+/* ── Social (Metricool) helpers + mock ──────────────────────────── */
+const SOCIAL_NETWORKS = ['instagram','facebook','linkedin','tiktok','youtube','twitter'];
+const SOCIAL_POST_TYPES = {
+  instagram: ['reel','post','story'],
+  facebook:  ['post','reel','video'],
+  linkedin:  ['post','article','video'],
+  tiktok:    ['video'],
+  youtube:   ['video','short'],
+  twitter:   ['post','thread'],
+};
+/* Metricool's `date` column is serialized as something like
+   "{dateTime=2026-04-21T23:53:57, timezone=Europe/Madrid, dateTime=...}" —
+   extract the ISO timestamp. */
+const METRICOOL_DATE_RX = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?)/;
+function extractMetricoolDate(v) {
+  if (v == null) return null;
+  if (typeof v === 'string') {
+    const m = v.match(METRICOOL_DATE_RX);
+    if (m) return m[1].length === 16 ? m[1] + ':00' : m[1];
+    /* Fall through — maybe it's already a plain date string */
+    if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 19);
+  }
+  return null;
+}
+
+function normalizeSocialRows(rows, cols) {
+  if (!rows || !rows.length) return rows;
+  const hasDate = cols.includes('date') || cols.includes('Date');
+  return rows.map(r => {
+    const out = { ...r };
+    /* Normalize `network` / `post_type` to lower-case for consistent grouping */
+    if (out.network) out.network = String(out.network).trim().toLowerCase();
+    if (out.post_type) out.post_type = String(out.post_type).trim().toLowerCase();
+    /* Pull an ISO timestamp out of the Metricool date field into a plain Date col */
+    if (hasDate) {
+      const iso = extractMetricoolDate(out.date || out.Date);
+      if (iso) out.Date = iso.slice(0, 10);
+    }
+    /* Ensure numeric reach */
+    if (out.reach != null) out.reach = Number(out.reach) || 0;
+    return out;
+  });
+}
+
+function mockSocial() {
+  const out = [];
+  const dayList = days(30);
+  /* Post frequency + reach profile per network */
+  const profile = {
+    instagram: { postsPerDay: 2.5, reachBase: 520, reachJ: 320 },
+    facebook:  { postsPerDay: 1.2, reachBase: 180, reachJ: 140 },
+    linkedin:  { postsPerDay: 0.8, reachBase: 340, reachJ: 210 },
+    tiktok:    { postsPerDay: 1.0, reachBase: 980, reachJ: 620 },
+    youtube:   { postsPerDay: 0.3, reachBase: 410, reachJ: 240 },
+    twitter:   { postsPerDay: 1.8, reachBase: 95,  reachJ: 80  },
+  };
+  dayList.forEach(dateStr => {
+    SOCIAL_NETWORKS.forEach(net => {
+      const p = profile[net];
+      /* Random number of posts on this day; below-1 frequencies = chance */
+      const count = p.postsPerDay >= 1
+        ? Math.max(0, jitter(p.postsPerDay, p.postsPerDay))
+        : (Math.random() < p.postsPerDay ? 1 : 0);
+      for (let i = 0; i < count; i++) {
+        const types = SOCIAL_POST_TYPES[net];
+        out.push({
+          network: net,
+          post_type: types[Math.floor(Math.random() * types.length)],
+          date: dateStr + 'T' + String(Math.floor(Math.random()*24)).padStart(2,'0') + ':' + String(Math.floor(Math.random()*60)).padStart(2,'0') + ':00',
+          Date: dateStr,
+          id: `mock-${net}-${dateStr}-${i}`,
+          url: `https://example.com/mock/${net}/${dateStr}/${i}`,
+          text: `Mock ${net} ${types[0]} content`,
+          reach: jitter(p.reachBase, p.reachJ),
         });
       }
     });
@@ -1375,9 +1527,10 @@ const topN = (rows, groupCol, valCol, n=5) => {
 /* ── Rule engine: generates narrative, recs, per-section insights ── */
 const slug = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 
-function generateInsights({ ads, gsc, ga, ac }, brand = 'all') {
+function generateInsights({ ads, gsc, ga, ac, social }, brand = 'all') {
   const recs = [];
-  const perSection = { ads: '', seo: '', ga: '', calls: '' };
+  const perSection = { ads: '', seo: '', ga: '', calls: '', social: '' };
+  social = social || { rows: [] };
   const scopeTag = brand === 'all' ? '' : `[${brand}]`;
   const push = (r) => recs.push({ ...r, id: `${brand}:${r.id}` });
 
@@ -1487,6 +1640,22 @@ function generateInsights({ ads, gsc, ga, ac }, brand = 'all') {
     }
   }
 
+  /* 5b — CPA outlier: one campaign is dramatically more expensive than peers */
+  if (withConv.length >= 3) {
+    const sorted = [...withConv].sort((a, b) => a.cpa - b.cpa);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const worst = sorted[sorted.length - 1];
+    if (worst && median && worst.cpa > median.cpa * 1.6 && worst.Spend > meanSpend * 0.5) {
+      push({
+        id: `ads-cpa-outlier-${slug(worst.name)}`,
+        severity: 'medium', category: 'ads',
+        title: `Restructure "${worst.name}" (${fmtCur(worst.cpa)} CPA)`,
+        rationale: `CPA is ${fmtCur(worst.cpa)} vs ${fmtCur(median.cpa)} median — paying ~${(worst.cpa / median.cpa).toFixed(1)}× for the same conversion. Pause the worst ad groups, tighten match types, or rewrite creative before more spend lands there.`,
+        action: 'Restructure campaign',
+      });
+    }
+  }
+
   /* ════════ SEO ════════ */
   const qMap = {};
   gsc.rows.forEach(r => {
@@ -1551,6 +1720,22 @@ function generateInsights({ ads, gsc, ga, ac }, brand = 'all') {
         action: 'Audit GSC',
       });
     }
+  }
+
+  /* 8b — branded-query concentration: traffic depends too much on people
+     already searching for the company name; means the funnel isn't bringing
+     in net-new demand. */
+  const BRANDED_Q = /viatrading|via\s+trading|liquidate\s*now|liqnow/i;
+  const brandedClicks = queries.filter(q => BRANDED_Q.test(q.name)).reduce((a, q) => a + q.Clicks, 0);
+  const totalOrganic = queries.reduce((a, q) => a + q.Clicks, 0);
+  if (totalOrganic >= 200 && brandedClicks / totalOrganic > 0.7) {
+    push({
+      id: `seo-branded-concentration`,
+      severity: 'medium', category: 'seo',
+      title: `Invest in generic / demand-gen content`,
+      rationale: `${fmtPct(brandedClicks / totalOrganic * 100)} of organic clicks (${fmt(brandedClicks)} of ${fmt(totalOrganic)}) come from branded queries. You're harvesting demand you already have — seed non-branded "${brand === 'liq' ? 'liquidation how-to' : 'wholesale / surplus buyer'}" content to widen the top of the funnel.`,
+      action: 'Plan demand-gen content',
+    });
   }
 
   /* ════════ GA ════════ */
@@ -1696,6 +1881,68 @@ function generateInsights({ ads, gsc, ga, ac }, brand = 'all') {
     }
   }
 
+  /* 12b — missed-by-line: is one specific inbound line dragging miss rate? */
+  if (ac.rows.length >= 30) {
+    const lineMap = {};
+    ac.rows.forEach(r => {
+      const line = String(getFirstFieldValue(r, AIRCALL_LINE_COLS) || '').trim();
+      if (!line) return;
+      const e = lineMap[line] || (lineMap[line] = { total: 0, missed: 0 });
+      e.total += Number(r['Total Calls']) || 0;
+      e.missed += Number(r.Missed) || 0;
+    });
+    const linesArr = Object.entries(lineMap)
+      .map(([name, v]) => ({ name, ...v, rate: v.total ? v.missed / v.total : 0 }))
+      .filter(l => l.total >= 10);
+    if (linesArr.length >= 2) {
+      /* Compare worst line to the MEDIAN line — outlier-vs-peers beats
+         outlier-vs-overall (which collapses when the outlier is big enough
+         to drag the average up with it). */
+      const sortedLines = [...linesArr].sort((a, b) => a.rate - b.rate);
+      const medianLine = sortedLines[Math.floor(sortedLines.length / 2)];
+      const worstLine = sortedLines[sortedLines.length - 1];
+      if (worstLine.rate > 0.25 && worstLine.rate - medianLine.rate > 0.15) {
+        push({
+          id: `calls-line-${slug(worstLine.name)}`,
+          severity: 'high', category: 'calls',
+          title: `Fix coverage on "${worstLine.name}" line`,
+          rationale: `${fmt(worstLine.missed)} of ${fmt(worstLine.total)} (${fmtPct(worstLine.rate * 100)}) missed on that number — vs ${fmtPct(medianLine.rate * 100)} on your median-performing line. Re-check the routing group assigned to that line and add a backup.`,
+          action: 'Fix line routing',
+        });
+      }
+    }
+  }
+
+  /* 12c — missed-by-agent: outlier agent. Sensitive wording -> coach / shadow,
+     not "fire". */
+  if (ac.rows.length >= 30) {
+    const agentMap = {};
+    ac.rows.forEach(r => {
+      const agent = String(getFirstFieldValue(r, AIRCALL_USER_COLS) || '').trim();
+      if (!agent || /^(none|n\/a|unassigned)$/i.test(agent)) return;
+      const e = agentMap[agent] || (agentMap[agent] = { total: 0, missed: 0 });
+      e.total += Number(r['Total Calls']) || 0;
+      e.missed += Number(r.Missed) || 0;
+    });
+    const agentsArr = Object.entries(agentMap)
+      .map(([name, v]) => ({ name, ...v, rate: v.total ? v.missed / v.total : 0 }))
+      .filter(a => a.total >= 10);
+    if (agentsArr.length >= 2) {
+      const sortedAgents = [...agentsArr].sort((a, b) => a.rate - b.rate);
+      const medianAgent = sortedAgents[Math.floor(sortedAgents.length / 2)];
+      const worstAgent = sortedAgents[sortedAgents.length - 1];
+      if (worstAgent.rate > 0.25 && worstAgent.rate - medianAgent.rate > 0.15) {
+        push({
+          id: `calls-agent-${slug(worstAgent.name)}`,
+          severity: 'medium', category: 'calls',
+          title: `Coach or shadow ${worstAgent.name}`,
+          rationale: `${worstAgent.name} missed ${fmt(worstAgent.missed)} of ${fmt(worstAgent.total)} (${fmtPct(worstAgent.rate * 100)}) — vs ${fmtPct(medianAgent.rate * 100)} for your median-performing rep. Pair them with a top performer or reroute overflow during their shift.`,
+          action: 'Schedule 1:1',
+        });
+      }
+    }
+  }
+
   /* ════════ Cross-channel ════════ */
   /* 13 — attribution gap: lots of calls, few tracked ad conversions */
   if (totalCalls > 50 && totalConv > 0 && totalCalls > totalConv * 2) {
@@ -1708,10 +1955,107 @@ function generateInsights({ ads, gsc, ga, ac }, brand = 'all') {
     });
   }
 
+  /* 14 — demand-gen gap: lots of paid conversions but thin organic reach.
+     Risk: if paid budget cuts, lead flow collapses. */
+  const totalOrganicClicks = sum(gsc.rows, 'Clicks');
+  if (totalConv >= 20 && totalAdSpend > 0 && totalOrganicClicks > 0
+      && totalOrganicClicks < totalClicks * 0.75) {
+    push({
+      id: `cross-demand-gen-gap`,
+      severity: 'medium', category: 'cross',
+      title: `Build organic to reduce paid dependence`,
+      rationale: `${fmt(totalClicks)} paid clicks vs only ${fmt(totalOrganicClicks)} organic — you're buying most of your traffic. A 90-day content program on the top 10 non-branded queries could shave ${fmtCur(totalAdSpend * 0.15)}/mo off ad spend without losing lead flow.`,
+      action: 'Plan content program',
+    });
+  }
+
+  /* ════════ Social (Metricool) ════════ */
+  const socialRows = social.rows || [];
+  const netMap = {};
+  socialRows.forEach(r => {
+    const n = r.network || '—';
+    const e = netMap[n] || (netMap[n] = { posts: 0, reach: 0 });
+    e.posts += 1;
+    e.reach += Number(r.reach) || 0;
+  });
+  const netArr = Object.entries(netMap).map(([name, v]) => ({
+    name, ...v, reachPer: v.posts ? v.reach / v.posts : 0,
+  }));
+  const totalSocialPosts = socialRows.length;
+  const totalSocialReach = sum(socialRows, 'reach');
+
+  /* 15 — network efficiency gap: best and worst reach-per-post are far apart,
+     suggests reallocating effort to the stronger network. */
+  if (netArr.length >= 2 && totalSocialPosts >= 10) {
+    const sorted = [...netArr].filter(n => n.posts >= 3).sort((a, b) => b.reachPer - a.reachPer);
+    if (sorted.length >= 2) {
+      const best = sorted[0];
+      const worst = sorted[sorted.length - 1];
+      if (best.reachPer > worst.reachPer * 3) {
+        push({
+          id: `social-efficiency-${slug(best.name)}`,
+          severity: 'medium', category: 'social',
+          title: `Shift social effort toward ${best.name}`,
+          rationale: `${best.name} is averaging ${fmt(Math.round(best.reachPer))} reach per post vs ${fmt(Math.round(worst.reachPer))} on ${worst.name} (${(best.reachPer/worst.reachPer).toFixed(1)}× the efficiency). Pull back ${worst.name} cadence, pilot 2 extra ${best.name} posts/week.`,
+          action: 'Rebalance content calendar',
+        });
+      }
+      perSection.social = `${best.name} is your top-performing channel (${fmt(Math.round(best.reachPer))} avg reach) across ${fmt(totalSocialPosts)} posts in 30d.`;
+    } else {
+      perSection.social = `${fmt(totalSocialPosts)} posts · ${fmt(totalSocialReach)} total reach across ${netArr.length} networks.`;
+    }
+  } else if (totalSocialPosts > 0) {
+    perSection.social = `${fmt(totalSocialPosts)} posts · ${fmt(totalSocialReach)} total reach.`;
+  } else {
+    perSection.social = `No social posts detected for this period.`;
+  }
+
+  /* 16 — posting cadence drop: last 7 days well below prior 23-day average. */
+  if (totalSocialPosts >= 14) {
+    const dayly = byDay(socialRows, 'reach');
+    /* We actually want POST COUNT per day, not reach — quick reshape: */
+    const postCountByDay = {};
+    socialRows.forEach(r => {
+      const k = r.Date;
+      if (k) postCountByDay[k] = (postCountByDay[k] || 0) + 1;
+    });
+    const sortedDays = Object.keys(postCountByDay).sort();
+    if (sortedDays.length >= 14) {
+      const last7 = sortedDays.slice(-7).reduce((a, d) => a + postCountByDay[d], 0);
+      const prior = sortedDays.slice(0, -7).reduce((a, d) => a + postCountByDay[d], 0);
+      const priorDays = sortedDays.length - 7;
+      const last7Rate = last7 / 7;
+      const priorRate = priorDays ? prior / priorDays : 0;
+      if (priorRate > 0 && last7Rate < priorRate * 0.6) {
+        push({
+          id: `social-cadence-drop`,
+          severity: 'medium', category: 'social',
+          title: `Social posting cadence slipping`,
+          rationale: `Last 7 days averaged ${last7Rate.toFixed(1)} posts/day vs ${priorRate.toFixed(1)}/day before that (-${fmtPct((1 - last7Rate/priorRate) * 100)}). Momentum on social compounds — either schedule a batch or ask Metricool why queue depleted.`,
+          action: 'Refill content queue',
+        });
+      }
+    }
+  }
+
+  /* 17 — dead network: a network with many posts and near-zero reach. */
+  if (netArr.length) {
+    const dead = netArr.find(n => n.posts >= 5 && n.reachPer < 50);
+    if (dead) {
+      push({
+        id: `social-dead-${slug(dead.name)}`,
+        severity: 'low', category: 'social',
+        title: `Reassess ${dead.name} strategy`,
+        rationale: `${fmt(dead.posts)} posts on ${dead.name} averaged ${fmt(Math.round(dead.reachPer))} reach each — well below any other network. Either the algorithm doesn't like your format there, or the audience isn't. Consider pausing or pivoting format.`,
+        action: 'Audit network strategy',
+      });
+    }
+  }
+
   /* ════════ Narrative + sort ════════ */
   const sevRank = { high: 3, medium: 2, low: 1 };
   recs.sort((a, b) => (sevRank[b.severity] || 0) - (sevRank[a.severity] || 0));
-  const capped = recs.slice(0, 8);
+  const capped = recs.slice(0, 12);
 
   const scopePhrase = brand === 'all' ? 'across both brands' : `for ${BRAND_LABEL[brand]}`;
   const bits = [];
@@ -1746,6 +2090,8 @@ const REQUIRED_COLS = {
   /* Aircall: accept either the old per-day aggregate shape or the per-call
      shape (timestamp + user + status). The normalizer handles both. */
   aircall: [],
+  /* Social: Metricool export — one row per post */
+  social:  ['network'],
 };
 
 function mockChannel(mockFn, reason) {
@@ -1753,10 +2099,10 @@ function mockChannel(mockFn, reason) {
   return { rows, source: 'demo', cols: Object.keys(rows[0] || {}), reason };
 }
 
-function paint(ads, gsc, ga, ac) {
+function paint(ads, gsc, ga, ac, social) {
   document.getElementById('lastUpdated').textContent =
     new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-  const insights = generateInsights({ ads, gsc, ga, ac }, state.brand);
+  const insights = generateInsights({ ads, gsc, ga, ac, social }, state.brand);
   renderBriefing(insights);
   renderTodos(insights.recs);
   renderOverview(ads, gsc, ga, ac);
@@ -1764,17 +2110,19 @@ function paint(ads, gsc, ga, ac) {
   renderSeo(gsc, insights.perSection.seo);
   renderGa(ga, insights.perSection.ga);
   renderCalls(ac, insights.perSection.calls);
+  renderSocial(social, insights.perSection.social);
   renderPlaceholders();
 }
 
 function repaint() {
   if (!state.raw) return;
-  const { ads, gsc, ga, ac } = state.raw;
+  const { ads, gsc, ga, ac, social } = state.raw;
   const scoped = {
-    ads: scopeChannel(ads, state.brand),
-    gsc: scopeChannel(gsc, state.brand),
-    ga:  scopeChannel(ga,  state.brand),
-    ac:  scopeChannel(ac,  state.brand),
+    ads:    scopeChannel(ads,    state.brand),
+    gsc:    scopeChannel(gsc,    state.brand),
+    ga:     scopeChannel(ga,     state.brand),
+    ac:     scopeChannel(ac,     state.brand),
+    social: scopeChannel(social, state.brand),
   };
 
   /* If user picked a specific brand but a live channel has no brand column,
@@ -1789,35 +2137,38 @@ function repaint() {
     );
     pending.classList.toggle('hidden', !missingBrand);
   }
-  paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac);
+  paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac, scoped.social);
 }
 
 async function render() {
   try {
-    const [ads, gsc, ga, ac] = await Promise.all([
+    const [ads, gsc, ga, ac, social] = await Promise.all([
       loadChannel('ads', mockAds, REQUIRED_COLS.ads),
       loadChannel('gsc', mockGsc, REQUIRED_COLS.gsc),
       loadChannel('ga', mockGa, REQUIRED_COLS.ga),
       loadChannel('aircall', mockAircall, REQUIRED_COLS.aircall),
+      loadChannel('social', mockSocial, REQUIRED_COLS.social),
     ]);
 
     console.table([
-      { channel: 'ads',     source: ads.source, rows: ads.rows.length, reason: ads.reason || '', cols: ads.cols.join(', ') },
-      { channel: 'gsc',     source: gsc.source, rows: gsc.rows.length, reason: gsc.reason || '', cols: gsc.cols.join(', ') },
-      { channel: 'ga',      source: ga.source,  rows: ga.rows.length,  reason: ga.reason || '',  cols: ga.cols.join(', ') },
-      { channel: 'aircall', source: ac.source,  rows: ac.rows.length,  reason: ac.reason || '',  cols: ac.cols.join(', ') },
+      { channel: 'ads',     source: ads.source,    rows: ads.rows.length,    reason: ads.reason || '',    cols: ads.cols.join(', ') },
+      { channel: 'gsc',     source: gsc.source,    rows: gsc.rows.length,    reason: gsc.reason || '',    cols: gsc.cols.join(', ') },
+      { channel: 'ga',      source: ga.source,     rows: ga.rows.length,     reason: ga.reason || '',     cols: ga.cols.join(', ') },
+      { channel: 'aircall', source: ac.source,     rows: ac.rows.length,     reason: ac.reason || '',     cols: ac.cols.join(', ') },
+      { channel: 'social',  source: social.source, rows: social.rows.length, reason: social.reason || '', cols: social.cols.join(', ') },
     ]);
 
-    state.raw = { ads, gsc, ga, ac };
+    state.raw = { ads, gsc, ga, ac, social };
     repaint();
   } catch (err) {
     console.error('CMO render failed, falling back to mock:', err);
     const reason = `render error: ${err && err.message || err}`;
     state.raw = {
-      ads: mockChannel(mockAds, reason),
-      gsc: mockChannel(mockGsc, reason),
-      ga:  mockChannel(mockGa,  reason),
-      ac:  mockChannel(mockAircall, reason),
+      ads:    mockChannel(mockAds,     reason),
+      gsc:    mockChannel(mockGsc,     reason),
+      ga:     mockChannel(mockGa,      reason),
+      ac:     mockChannel(mockAircall, reason),
+      social: mockChannel(mockSocial,  reason),
     };
     repaint();
   }
@@ -2128,15 +2479,63 @@ function renderCalls({ rows, source, reason }, insight) {
   document.getElementById('callsWorst').innerHTML = worstHtml;
 }
 
-function renderPlaceholders() {
-  renderKpis('socialGrid', [
-    { label: 'LinkedIn followers', value: '—', delta: 'Not connected', placeholder: true },
-    { label: 'Meta followers', value: '—', delta: 'Not connected', placeholder: true },
-    { label: 'X followers', value: '—', delta: 'Not connected', placeholder: true },
-    { label: 'TikTok followers', value: '—', delta: 'Not connected', placeholder: true },
-    { label: 'YouTube subs', value: '—', delta: 'Not connected', placeholder: true },
-    { label: 'Engagement rate', value: '—', delta: 'Not connected', placeholder: true },
+function renderSocial({ rows, source, reason }, insight) {
+  document.getElementById('socialMeta').innerHTML = `${SHEETS.social.label} · ${sourceTag(source, reason)}`;
+  renderInsight('socialInsight', insight);
+  const totalPosts = rows.length;
+  const totalReach = sum(rows, 'reach');
+  const avgReach = totalPosts ? totalReach / totalPosts : 0;
+  const networks = {};
+  rows.forEach(r => {
+    const n = r.network || '—';
+    const e = networks[n] || (networks[n] = { posts: 0, reach: 0 });
+    e.posts += 1;
+    e.reach += Number(r.reach) || 0;
+  });
+  const netArr = Object.entries(networks).map(([name, v]) => ({
+    name, ...v, reachPer: v.posts ? v.reach / v.posts : 0,
+  })).sort((a, b) => b.reachPer - a.reachPer);
+  const bestNet = netArr[0];
+
+  renderKpis('socialKpis', [
+    { label: 'Posts (30d)', value: fmt(totalPosts) },
+    { label: 'Total Reach', value: fmt(totalReach) },
+    { label: 'Avg Reach / Post', value: fmt(Math.round(avgReach)) },
+    { label: 'Best Network', value: bestNet ? bestNet.name : '—', delta: bestNet ? `${fmt(Math.round(bestNet.reachPer))} avg` : '' },
+    { label: 'Networks Active', value: fmt(netArr.length) },
   ]);
+  document.getElementById('socialReach').textContent = fmt(totalReach);
+
+  const daily = byDay(rows, 'reach');
+  makeChart('socialChart', 'line', daily.map(([k]) => k.slice(5)), [{
+    data: daily.map(([,v]) => v),
+    borderColor: PURPLE,
+    backgroundColor: 'rgba(181,125,214,0.12)',
+    fill: true, tension: 0.35, pointRadius: 2, pointBackgroundColor: PURPLE,
+  }], { xTicks: { maxTicksLimit: 8 } });
+
+  const topPosts = [...rows].sort((a,b) => (Number(b.reach)||0) - (Number(a.reach)||0)).slice(0, 5);
+  document.getElementById('socialTopPosts').innerHTML = topPosts.length
+    ? topPosts.map(p => `
+        <tr>
+          <td>${p.network || '—'}</td>
+          <td>${p.post_type || '—'}</td>
+          <td class="num">${fmt(p.reach)}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="3" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No posts found.</td></tr>`;
+
+  document.getElementById('socialNetworks').innerHTML = netArr.length
+    ? netArr.map(n => `
+        <tr>
+          <td>${n.name}</td>
+          <td class="num">${fmt(n.posts)}</td>
+          <td class="num">${fmt(n.reach)}</td>
+          <td class="num">${fmt(Math.round(n.reachPer))}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No network data.</td></tr>`;
+}
+
+function renderPlaceholders() {
   renderKpis('emailGrid', [
     { label: 'Subscribers', value: '—', delta: 'Not connected', placeholder: true },
     { label: 'Sends (30d)', value: '—', delta: 'Not connected', placeholder: true },

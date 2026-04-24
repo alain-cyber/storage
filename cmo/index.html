@@ -681,350 +681,625 @@
     .metrics-grid { grid-template-columns: 1fr 1fr; }
     .ai-recs { grid-template-columns: 1fr; }
   }
+
+  /* ══════════════════════ APP SHELL ═══════════════════════════════════
+     Sidebar nav + topbar + main content area. Pages are hidden by
+     [hidden] and swapped via hash routing (#/ads, #/seo, ...). */
+  body.app {
+    display: grid;
+    grid-template-columns: 232px 1fr;
+    grid-template-rows: 56px 1fr auto;
+    grid-template-areas:
+      "side top"
+      "side main"
+      "side foot";
+    min-height: 100vh;
+  }
+  .side {
+    grid-area: side;
+    background: var(--surface2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: sticky; top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 5;
+  }
+  .side-brand {
+    padding: 1.1rem 1.15rem 0.9rem;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    border-bottom: 1px solid var(--border);
+  }
+  .side-brand-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-top: 0.25rem;
+  }
+  .side-nav { display: flex; flex-direction: column; padding: 0.5rem 0; gap: 1px; }
+  .side-link {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.55rem 1.15rem;
+    color: var(--text2);
+    font-size: 0.85rem;
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .side-link:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .side-link.is-active {
+    color: var(--text);
+    background: var(--purple-dim);
+    border-left-color: var(--purple);
+  }
+  .side-sep { height: 1px; background: var(--border); margin: 0.5rem 1.15rem; }
+  .side-foot {
+    margin-top: auto;
+    padding: 0.9rem 1.15rem 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-top: 1px solid var(--border);
+  }
+  .pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 18px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--red-dim);
+    color: var(--red);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+  }
+  .pill:empty { display: none; }
+
+  .topbar {
+    grid-area: top;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.9rem;
+    padding: 0 1.25rem;
+    position: sticky; top: 0;
+    z-index: 4;
+  }
+  .topbar-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.01em;
+  }
+  .topbar-spacer { flex: 1; }
+  .nav-toggle {
+    display: none;
+    width: 34px; height: 34px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+  .range-picker {
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .range-picker label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    text-transform: uppercase;
+  }
+  .range-picker select {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 5px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border2);
+    cursor: pointer;
+  }
+  .topbar .brand-toggle {
+    gap: 0.5rem;
+  }
+  .topbar .brand-toggle .label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    text-transform: uppercase;
+  }
+  .topbar .brand-toggle .group button {
+    padding: 0.28rem 0.55rem;
+    font-size: 0.68rem;
+  }
+  .topbar .last-updated {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    text-transform: uppercase;
+  }
+
+  .main {
+    grid-area: main;
+    overflow: visible;
+    padding: 1.25rem 1.75rem 2rem;
+  }
+  .page { display: block; }
+  .page[hidden] { display: none; }
+  .page > .section,
+  .page > .ai-briefing,
+  .page > .todo-panel { margin-left: 0; margin-right: 0; }
+
+  .section-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: var(--purple);
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+  .section-link:hover { color: var(--text); }
+
+  .overview-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.6rem;
+  }
+  .overview-action {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 0.75rem;
+    padding: 0.7rem 0.85rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .overview-action-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 0.92rem;
+    line-height: 1.25;
+  }
+  .overview-action-reason {
+    grid-column: 1 / -1;
+    font-size: 0.78rem;
+    color: var(--text2);
+    line-height: 1.45;
+  }
+
+  .footer { grid-area: foot; margin: 0; }
+
+  @media (max-width: 880px) {
+    body.app {
+      grid-template-columns: 1fr;
+      grid-template-rows: 56px 1fr auto;
+      grid-template-areas:
+        "top"
+        "main"
+        "foot";
+    }
+    .side {
+      position: fixed; top: 0; left: 0;
+      width: 260px; height: 100vh;
+      transform: translateX(-100%);
+      transition: transform 0.2s ease-out;
+    }
+    .side.is-open { transform: translateX(0); box-shadow: 0 0 24px rgba(0,0,0,0.5); }
+    .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+    .main { padding: 1rem 1.25rem 2rem; }
+    .topbar { padding: 0 0.9rem; gap: 0.6rem; }
+    .topbar-title { font-size: 0.95rem; }
+    .topbar .brand-toggle .label { display: none; }
+  }
 </style>
 </head>
-<body>
+<body class="app">
 <div class="noise"></div>
 
-<header class="header">
-  <div class="header-left">
-    <h1>CMO Dashboard</h1>
-    <p>Viatrading &amp; Liquidatenow · Marketing performance</p>
-  </div>
-  <div class="header-right">
-    <div class="brand-toggle">
-      <span class="label">Brand</span>
-      <div class="group" role="group" aria-label="Brand filter">
-        <button type="button" data-brand="all" aria-pressed="true">All</button>
-        <button type="button" data-brand="via" aria-pressed="false">Viatrading</button>
-        <button type="button" data-brand="liq" aria-pressed="false">Liquidatenow</button>
-      </div>
-      <span id="brandPending" class="brand-pending hidden">filter pending — awaiting tab names</span>
+<aside class="side" id="sideNav" aria-label="Channel navigation">
+  <div class="side-brand">CMO<div class="side-brand-sub">Copilot</div></div>
+  <nav class="side-nav">
+    <a class="side-link is-active" data-route="overview" href="#/overview">Overview</a>
+    <a class="side-link" data-route="ads"      href="#/ads">Ads</a>
+    <a class="side-link" data-route="seo"      href="#/seo">SEO</a>
+    <a class="side-link" data-route="web"      href="#/web">Web</a>
+    <a class="side-link" data-route="calls"    href="#/calls">Calls</a>
+    <a class="side-link" data-route="social"   href="#/social">Social</a>
+    <a class="side-link" data-route="content"  href="#/content">Content</a>
+    <a class="side-link" data-route="email"    href="#/email">Email</a>
+    <div class="side-sep"></div>
+    <a class="side-link" data-route="decisions" href="#/decisions">Decisions <span class="pill" id="sideDecisionsCount"></span></a>
+  </nav>
+  <div class="side-foot">Viatrading &amp; Liquidatenow</div>
+</aside>
+
+<header class="topbar">
+  <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
+  <div class="topbar-title" id="pageTitle">Overview</div>
+  <div class="topbar-spacer"></div>
+  <div class="brand-toggle">
+    <span class="label">Brand</span>
+    <div class="group" role="group" aria-label="Brand filter">
+      <button type="button" data-brand="all" aria-pressed="true">All</button>
+      <button type="button" data-brand="via" aria-pressed="false">Viatrading</button>
+      <button type="button" data-brand="liq" aria-pressed="false">Liquidatenow</button>
     </div>
-    <nav class="nav">
-      <a href="./" class="active">CMO</a>
-    </nav>
-    <div class="status-dot"></div>
-    <span class="last-updated" id="lastUpdated">Loading...</span>
+    <span id="brandPending" class="brand-pending hidden">filter pending — awaiting tab names</span>
   </div>
+  <div class="range-picker">
+    <label for="rangeSelect">Range</label>
+    <select id="rangeSelect">
+      <option value="today">Today</option>
+      <option value="yesterday">Yesterday</option>
+      <option value="7d">Last 7 days</option>
+      <option value="30d" selected>Last 30 days</option>
+      <option value="mtd">Month to date</option>
+      <option value="lastMonth">Last month</option>
+      <option value="qtd">Quarter to date</option>
+      <option value="90d">Last 90 days</option>
+    </select>
+  </div>
+  <span class="last-updated" id="lastUpdated">Loading…</span>
 </header>
 
-<section class="ai-briefing" id="aiBriefing" aria-live="polite">
-  <div class="ai-brief-head">
-    <div class="ai-avatar">AI</div>
-    <div>
-      <div class="ai-brief-title">CMO Copilot<span id="aiBriefScope" class="brand-scope" hidden></span></div>
-      <div class="ai-brief-sub" id="aiBriefSub">Analyzing last 30 days across 4 channels…</div>
-    </div>
-  </div>
-  <div class="ai-brief-text" id="aiBriefText">Generating briefing…</div>
-  <div class="action-bar">
-    <div class="action-counters" id="actionCounters"></div>
-    <div class="action-filters" id="actionFilters">
-      <div class="action-filter">
-        <label for="filterSource">Source</label>
-        <select id="filterSource">
-          <option value="all">All</option>
-          <option value="ads">Ads</option>
-          <option value="gsc">SEO</option>
-          <option value="ga">GA4</option>
-          <option value="aircall">Calls</option>
-          <option value="social">Social</option>
-          <option value="cross">Cross</option>
-        </select>
-      </div>
-      <div class="action-filter">
-        <label for="filterPriority">Priority</label>
-        <select id="filterPriority">
-          <option value="all">All</option>
-          <option value="HIGH">High</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="LOW">Low</option>
-        </select>
-      </div>
-      <div class="action-filter">
-        <label for="filterStatus">Status</label>
-        <select id="filterStatus">
-          <option value="active">Active (Open + In Progress)</option>
-          <option value="OPEN">Open</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="DISMISSED">Dismissed</option>
-          <option value="all">All</option>
-        </select>
+<main class="main" id="main">
+
+<section class="page" data-page="overview">
+  <section class="ai-briefing" id="aiBriefing" aria-live="polite">
+    <div class="ai-brief-head">
+      <div class="ai-avatar">AI</div>
+      <div>
+        <div class="ai-brief-title">CMO Copilot<span id="aiBriefScope" class="brand-scope" hidden></span></div>
+        <div class="ai-brief-sub" id="aiBriefSub">Analyzing last 30 days across 5 channels…</div>
       </div>
     </div>
+    <div class="ai-brief-text" id="aiBriefText">Generating briefing…</div>
+  </section>
+
+<section class="section" id="overviewSection">
+  <div class="section-head">
+    <div class="section-title">Overview</div>
+    <div class="section-meta">Cross-channel KPIs</div>
   </div>
-  <div class="ai-recs" id="aiRecs"></div>
+  <div class="metrics-grid" id="overviewGrid"></div>
 </section>
 
-<section class="todo-panel" id="todoPanel" aria-live="polite">
-  <div class="todo-head">
-    <div class="todo-title">This Week's To-Dos</div>
-    <span class="todo-meta" id="todoMeta">—</span>
-  </div>
-  <ul class="todo-list" id="todoList"></ul>
+  <section class="section" id="overviewTopActions">
+    <div class="section-head">
+      <div class="section-title">Top decisions</div>
+      <a class="section-link" href="#/decisions">See all →</a>
+    </div>
+    <div class="overview-actions" id="overviewActionsList"></div>
+  </section>
+
+  <section class="todo-panel" id="todoPanel" aria-live="polite">
+    <div class="todo-head">
+      <div class="todo-title">This Week's To-Dos</div>
+      <span class="todo-meta" id="todoMeta">—</span>
+    </div>
+    <ul class="todo-list" id="todoList"></ul>
+  </section>
 </section>
 
-<div class="dashboard">
-
-  <section class="section" id="overviewSection">
-    <div class="section-head">
-      <div class="section-title">Overview</div>
-      <div class="section-meta">Cross-channel KPIs</div>
-    </div>
-    <div class="metrics-grid" id="overviewGrid"></div>
-  </section>
-
-  <section class="section" id="adsSection">
-    <div class="section-head">
-      <div class="section-title">Paid — Google Ads</div>
-      <div class="section-meta" id="adsMeta">—</div>
-    </div>
-    <div class="insight-strip" id="adsInsight"></div>
-    <div class="metrics-grid" id="adsKpis"></div>
-    <div class="charts-grid-2" style="margin-top:1rem">
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Spend trend</div>
-            <div class="chart-value" id="adsSpend">—</div>
-          </div>
-          <span class="chart-badge badge-blue">Daily</span>
-        </div>
-        <div class="chart-wrap" style="height:200px"><canvas id="adsChart"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Top campaigns</div>
-            <div class="chart-value">By spend</div>
-          </div>
-          <span class="chart-badge badge-green">Top 5</span>
-        </div>
-        <table class="data-table">
-          <thead><tr><th>Campaign</th><th class="num">Spend</th><th class="num">Clicks</th><th class="num">Conv</th></tr></thead>
-          <tbody id="adsCampaigns"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="chart-card" style="margin-top:1rem">
+<section class="page" data-page="ads" hidden>
+<section class="section" id="adsSection">
+  <div class="section-head">
+    <div class="section-title">Paid — Google Ads</div>
+    <div class="section-meta" id="adsMeta">—</div>
+  </div>
+  <div class="insight-strip" id="adsInsight"></div>
+  <div class="metrics-grid" id="adsKpis"></div>
+  <div class="charts-grid-2" style="margin-top:1rem">
+    <div class="chart-card">
       <div class="chart-header">
         <div>
-          <div class="chart-title">Worst campaigns (dead spend)</div>
-          <div class="chart-value">By wasted spend</div>
+          <div class="chart-title">Spend trend</div>
+          <div class="chart-value" id="adsSpend">—</div>
         </div>
-        <span class="chart-badge badge-red">Action needed</span>
+        <span class="chart-badge badge-blue">Daily</span>
       </div>
-      <table class="data-table">
-        <thead><tr><th>Campaign</th><th class="num">Spend</th><th class="num">Conv</th><th class="num">CPA</th></tr></thead>
-        <tbody id="adsBottom"></tbody>
-      </table>
+      <div class="chart-wrap" style="height:200px"><canvas id="adsChart"></canvas></div>
     </div>
-  </section>
-
-  <section class="section" id="seoSection">
-    <div class="section-head">
-      <div class="section-title">SEO — Search Console</div>
-      <div class="section-meta" id="seoMeta">—</div>
-    </div>
-    <div class="insight-strip" id="seoInsight"></div>
-    <div class="metrics-grid" id="seoKpis"></div>
-    <div class="charts-grid-2" style="margin-top:1rem">
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Clicks vs impressions</div>
-            <div class="chart-value" id="seoClicks">—</div>
-          </div>
-          <span class="chart-badge badge-green">Trend</span>
-        </div>
-        <div class="chart-wrap" style="height:200px"><canvas id="seoChart"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Top queries</div>
-            <div class="chart-value">By clicks</div>
-          </div>
-        </div>
-        <table class="data-table">
-          <thead><tr><th>Query</th><th class="num">Clicks</th><th class="num">Impr</th><th class="num">Pos</th></tr></thead>
-          <tbody id="seoQueries"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="chart-card" style="margin-top:1rem">
+    <div class="chart-card">
       <div class="chart-header">
         <div>
-          <div class="chart-title">Opportunity queries</div>
-          <div class="chart-value">High impressions, page 2</div>
+          <div class="chart-title">Top campaigns</div>
+          <div class="chart-value">By spend</div>
         </div>
-        <span class="chart-badge badge-amber">Potential</span>
+        <span class="chart-badge badge-green">Top 5</span>
       </div>
       <table class="data-table">
-        <thead><tr><th>Query</th><th class="num">Impr</th><th class="num">Pos</th><th class="num">CTR</th></tr></thead>
-        <tbody id="seoOpps"></tbody>
+        <thead><tr><th>Campaign</th><th class="num">Spend</th><th class="num">Clicks</th><th class="num">Conv</th></tr></thead>
+        <tbody id="adsCampaigns"></tbody>
       </table>
     </div>
-  </section>
+  </div>
+  <div class="chart-card" style="margin-top:1rem">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Worst campaigns (dead spend)</div>
+        <div class="chart-value">By wasted spend</div>
+      </div>
+      <span class="chart-badge badge-red">Action needed</span>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Campaign</th><th class="num">Spend</th><th class="num">Conv</th><th class="num">CPA</th></tr></thead>
+      <tbody id="adsBottom"></tbody>
+    </table>
+  </div>
+</section>
+</section>
 
-  <section class="section" id="gaSection">
-    <div class="section-head">
-      <div class="section-title">Web — Google Analytics</div>
-      <div class="section-meta" id="gaMeta">—</div>
-    </div>
-    <div class="insight-strip" id="gaInsight"></div>
-    <div class="metrics-grid" id="gaKpis"></div>
-    <div class="charts-grid-2" style="margin-top:1rem">
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Sessions trend</div>
-            <div class="chart-value" id="gaSessions">—</div>
-          </div>
-          <span class="chart-badge badge-amber">Daily</span>
-        </div>
-        <div class="chart-wrap" style="height:200px"><canvas id="gaChart"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Channel mix</div>
-            <div class="chart-value">Sessions</div>
-          </div>
-        </div>
-        <div class="chart-wrap" style="height:200px"><canvas id="gaChannelChart"></canvas></div>
-      </div>
-    </div>
-    <div class="chart-card" style="margin-top:1rem">
+<section class="page" data-page="seo" hidden>
+<section class="section" id="seoSection">
+  <div class="section-head">
+    <div class="section-title">SEO — Search Console</div>
+    <div class="section-meta" id="seoMeta">—</div>
+  </div>
+  <div class="insight-strip" id="seoInsight"></div>
+  <div class="metrics-grid" id="seoKpis"></div>
+  <div class="charts-grid-2" style="margin-top:1rem">
+    <div class="chart-card">
       <div class="chart-header">
         <div>
-          <div class="chart-title">Channels by engagement</div>
-          <div class="chart-value">Best &amp; worst</div>
+          <div class="chart-title">Clicks vs impressions</div>
+          <div class="chart-value" id="seoClicks">—</div>
         </div>
-        <span class="chart-badge badge-purple">Quality</span>
+        <span class="chart-badge badge-green">Trend</span>
       </div>
-      <table class="data-table">
-        <thead><tr><th>Channel</th><th class="num">Sessions</th><th class="num">Engagement</th><th class="num">Rank</th></tr></thead>
-        <tbody id="gaEngage"></tbody>
-      </table>
+      <div class="chart-wrap" style="height:200px"><canvas id="seoChart"></canvas></div>
     </div>
-  </section>
-
-  <section class="section" id="callsSection">
-    <div class="section-head">
-      <div class="section-title">Calls — Aircall</div>
-      <div class="section-meta" id="callsMeta">—</div>
-    </div>
-    <div class="insight-strip" id="callsInsight"></div>
-    <div class="metrics-grid" id="callsKpis"></div>
-    <div class="charts-grid-2" style="margin-top:1rem">
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Calls per day</div>
-            <div class="chart-value" id="callsTotal">—</div>
-          </div>
-          <span class="chart-badge badge-blue">Volume</span>
-        </div>
-        <div class="chart-wrap" style="height:200px"><canvas id="callsChart"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Answered vs missed</div>
-            <div class="chart-value" id="callsAnsweredPct">—</div>
-          </div>
-        </div>
-        <div class="chart-wrap" style="height:200px"><canvas id="callsDonut"></canvas></div>
-      </div>
-    </div>
-    <div class="chart-card" style="margin-top:1rem">
+    <div class="chart-card">
       <div class="chart-header">
         <div>
-          <div class="chart-title">Worst days (miss rate)</div>
-          <div class="chart-value">Coverage gaps</div>
+          <div class="chart-title">Top queries</div>
+          <div class="chart-value">By clicks</div>
         </div>
-        <span class="chart-badge badge-red">Routing</span>
       </div>
       <table class="data-table">
-        <thead id="callsWorstHead"><tr><th>Date</th><th class="num">Calls</th><th class="num">Missed</th><th class="num">Miss %</th></tr></thead>
-        <tbody id="callsWorst"></tbody>
+        <thead><tr><th>Query</th><th class="num">Clicks</th><th class="num">Impr</th><th class="num">Pos</th></tr></thead>
+        <tbody id="seoQueries"></tbody>
       </table>
     </div>
-  </section>
+  </div>
+  <div class="chart-card" style="margin-top:1rem">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Opportunity queries</div>
+        <div class="chart-value">High impressions, page 2</div>
+      </div>
+      <span class="chart-badge badge-amber">Potential</span>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Query</th><th class="num">Impr</th><th class="num">Pos</th><th class="num">CTR</th></tr></thead>
+      <tbody id="seoOpps"></tbody>
+    </table>
+  </div>
+</section>
+</section>
 
-  <section class="section" id="socialSection">
-    <div class="section-head">
-      <div class="section-title">Social — Metricool</div>
-      <div class="section-meta" id="socialMeta">—</div>
-    </div>
-    <div class="insight-strip" id="socialInsight"></div>
-    <div class="metrics-grid" id="socialKpis"></div>
-    <div class="charts-grid-2" style="margin-top:1rem">
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Reach by day</div>
-            <div class="chart-value" id="socialReach">—</div>
-          </div>
-          <span class="chart-badge badge-purple">Daily</span>
-        </div>
-        <div class="chart-wrap" style="height:200px"><canvas id="socialChart"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Top posts</div>
-            <div class="chart-value">By reach</div>
-          </div>
-          <span class="chart-badge badge-green">Top 5</span>
-        </div>
-        <table class="data-table">
-          <thead><tr><th>Network</th><th>Type</th><th class="num">Reach</th></tr></thead>
-          <tbody id="socialTopPosts"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="chart-card" style="margin-top:1rem">
+<section class="page" data-page="web" hidden>
+<section class="section" id="gaSection">
+  <div class="section-head">
+    <div class="section-title">Web — Google Analytics</div>
+    <div class="section-meta" id="gaMeta">—</div>
+  </div>
+  <div class="insight-strip" id="gaInsight"></div>
+  <div class="metrics-grid" id="gaKpis"></div>
+  <div class="charts-grid-2" style="margin-top:1rem">
+    <div class="chart-card">
       <div class="chart-header">
         <div>
-          <div class="chart-title">Networks by performance</div>
-          <div class="chart-value">Reach per post</div>
+          <div class="chart-title">Sessions trend</div>
+          <div class="chart-value" id="gaSessions">—</div>
         </div>
-        <span class="chart-badge badge-blue">Efficiency</span>
+        <span class="chart-badge badge-amber">Daily</span>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="gaChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Channel mix</div>
+          <div class="chart-value">Sessions</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="gaChannelChart"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-top:1rem">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Channels by engagement</div>
+        <div class="chart-value">Best &amp; worst</div>
+      </div>
+      <span class="chart-badge badge-purple">Quality</span>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Channel</th><th class="num">Sessions</th><th class="num">Engagement</th><th class="num">Rank</th></tr></thead>
+      <tbody id="gaEngage"></tbody>
+    </table>
+  </div>
+</section>
+</section>
+
+<section class="page" data-page="calls" hidden>
+<section class="section" id="callsSection">
+  <div class="section-head">
+    <div class="section-title">Calls — Aircall</div>
+    <div class="section-meta" id="callsMeta">—</div>
+  </div>
+  <div class="insight-strip" id="callsInsight"></div>
+  <div class="metrics-grid" id="callsKpis"></div>
+  <div class="charts-grid-2" style="margin-top:1rem">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Calls per day</div>
+          <div class="chart-value" id="callsTotal">—</div>
+        </div>
+        <span class="chart-badge badge-blue">Volume</span>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="callsChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Answered vs missed</div>
+          <div class="chart-value" id="callsAnsweredPct">—</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="callsDonut"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-top:1rem">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Worst days (miss rate)</div>
+        <div class="chart-value">Coverage gaps</div>
+      </div>
+      <span class="chart-badge badge-red">Routing</span>
+    </div>
+    <table class="data-table">
+      <thead id="callsWorstHead"><tr><th>Date</th><th class="num">Calls</th><th class="num">Missed</th><th class="num">Miss %</th></tr></thead>
+      <tbody id="callsWorst"></tbody>
+    </table>
+  </div>
+</section>
+</section>
+
+<section class="page" data-page="social" hidden>
+<section class="section" id="socialSection">
+  <div class="section-head">
+    <div class="section-title">Social — Metricool</div>
+    <div class="section-meta" id="socialMeta">—</div>
+  </div>
+  <div class="insight-strip" id="socialInsight"></div>
+  <div class="metrics-grid" id="socialKpis"></div>
+  <div class="charts-grid-2" style="margin-top:1rem">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Reach by day</div>
+          <div class="chart-value" id="socialReach">—</div>
+        </div>
+        <span class="chart-badge badge-purple">Daily</span>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="socialChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Top posts</div>
+          <div class="chart-value">By reach</div>
+        </div>
+        <span class="chart-badge badge-green">Top 5</span>
       </div>
       <table class="data-table">
-        <thead><tr><th>Network</th><th class="num">Posts</th><th class="num">Total Reach</th><th class="num">Reach / Post</th></tr></thead>
-        <tbody id="socialNetworks"></tbody>
+        <thead><tr><th>Network</th><th>Type</th><th class="num">Reach</th></tr></thead>
+        <tbody id="socialTopPosts"></tbody>
       </table>
     </div>
-  </section>
+  </div>
+  <div class="chart-card" style="margin-top:1rem">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Networks by performance</div>
+        <div class="chart-value">Reach per post</div>
+      </div>
+      <span class="chart-badge badge-blue">Efficiency</span>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Network</th><th class="num">Posts</th><th class="num">Total Reach</th><th class="num">Reach / Post</th></tr></thead>
+      <tbody id="socialNetworks"></tbody>
+    </table>
+  </div>
+</section>
+</section>
 
-  <section class="section">
+<section class="page" data-page="content" hidden>
+<section class="section">
+  <div class="section-head">
+    <div class="section-title">Content / Blog</div>
+    <div class="section-meta">Placeholder · Not connected</div>
+  </div>
+  <div class="metrics-grid" id="contentGrid"></div>
+  <div class="placeholder-hint">
+    Stubbed metrics. Connect your CMS (WordPress, Webflow, Contentful) plus GA content grouping.
+  </div>
+</section>
+</section>
+
+<section class="page" data-page="email" hidden>
+<section class="section">
+  <div class="section-head">
+    <div class="section-title">Email / Lifecycle</div>
+    <div class="section-meta">Placeholder · Not connected</div>
+  </div>
+  <div class="metrics-grid" id="emailGrid"></div>
+  <div class="placeholder-hint">
+    Stubbed metrics. Connect HubSpot, Mailchimp, or Klaviyo to populate.
+  </div>
+</section>
+</section>
+
+<section class="page" data-page="decisions" hidden>
+  <section class="section" id="decisionsSection">
     <div class="section-head">
-      <div class="section-title">Email / Lifecycle</div>
-      <div class="section-meta">Placeholder · Not connected</div>
+      <div class="section-title">Decisions</div>
+      <div class="section-meta">Actions generated from summaries across all sources</div>
     </div>
-    <div class="metrics-grid" id="emailGrid"></div>
-    <div class="placeholder-hint">
-      Stubbed metrics. Connect HubSpot, Mailchimp, or Klaviyo to populate.
+    <div class="action-bar">
+      <div class="action-counters" id="actionCounters"></div>
+      <div class="action-filters" id="actionFilters">
+        <div class="action-filter">
+          <label for="filterSource">Source</label>
+          <select id="filterSource">
+            <option value="all">All</option>
+            <option value="ads">Ads</option>
+            <option value="gsc">SEO</option>
+            <option value="ga">GA4</option>
+            <option value="aircall">Calls</option>
+            <option value="social">Social</option>
+            <option value="cross">Cross</option>
+          </select>
+        </div>
+        <div class="action-filter">
+          <label for="filterPriority">Priority</label>
+          <select id="filterPriority">
+            <option value="all">All</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+        <div class="action-filter">
+          <label for="filterStatus">Status</label>
+          <select id="filterStatus">
+            <option value="active">Active (Open + In Progress)</option>
+            <option value="OPEN">Open</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="DISMISSED">Dismissed</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+      </div>
     </div>
+    <div class="ai-recs" id="aiRecs"></div>
   </section>
+</section>
 
-  <section class="section">
-    <div class="section-head">
-      <div class="section-title">Content / Blog</div>
-      <div class="section-meta">Placeholder · Not connected</div>
-    </div>
-    <div class="metrics-grid" id="contentGrid"></div>
-    <div class="placeholder-hint">
-      Stubbed metrics. Connect your CMS (WordPress, Webflow, Contentful) plus GA content grouping.
-    </div>
-  </section>
-
-</div>
+</main>
 
 <footer class="footer">
   CMO POC · Data may be partial · Connect missing sources to replace placeholders
@@ -1415,8 +1690,9 @@ function renderBriefing({ narrative, brand }) {
       scope.hidden = true;
     }
   }
+  const rangeLabel = (state.timeRange && state.timeRange.label) || 'Last 30 days';
   document.getElementById('aiBriefSub').textContent =
-    `Generated ${new Date().toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})} · Last 30 days · 5 channels`;
+    `Generated ${new Date().toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})} · ${rangeLabel} · 5 channels`;
   document.getElementById('aiBriefText').textContent = narrative;
 }
 
@@ -1517,6 +1793,8 @@ function updateActionStatus(actionId, status) {
     renderActionCards(state.actions, state.filters);
     renderTodoList(state.actions, state.filters);
     renderActionCounters(state.actions);
+    renderOverviewTopActions(state.actions, state.filters);
+    renderSideDecisionsCount(state.actions, state.filters);
   }
 }
 
@@ -1608,6 +1886,46 @@ function renderActionCards(actionsByDataset, filters) {
   });
 }
 
+/* Condensed top-5 actions strip for the Overview page. Brand-scoped,
+   active-status only, HIGH first. Links off to #/decisions for full list. */
+function renderOverviewTopActions(actionsByDataset, filters) {
+  const el = document.getElementById('overviewActionsList');
+  if (!el) return;
+  const flat = flattenActions(actionsByDataset);
+  const scoped = flat.filter(a =>
+    (a.status === 'OPEN' || a.status === 'IN_PROGRESS') &&
+    (!filters.brand || filters.brand === 'all' || a.brand === filters.brand || a.brand === 'all')
+  );
+  const top = sortActions(scoped).slice(0, 5);
+  if (!top.length) {
+    el.innerHTML = `<div class="action-empty">No active decisions for this range + brand. See Decisions for dismissed and completed items.</div>`;
+    return;
+  }
+  el.innerHTML = top.map(a => {
+    const sev = a.priority.toLowerCase();
+    const label = ACTION_TYPE_LABELS[a.action_type] || a.action_type;
+    return `
+      <div class="overview-action">
+        <span class="rec-sev rec-sev-${sev}">${a.priority}</span>
+        <div class="overview-action-title">${escapeHtml(label)} — ${escapeHtml(a.entity_name || '—')}</div>
+        <div class="overview-action-reason">${escapeHtml(a.reason)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* Count shown next to the Decisions sidebar link. */
+function renderSideDecisionsCount(actionsByDataset, filters) {
+  const el = document.getElementById('sideDecisionsCount');
+  if (!el) return;
+  const flat = flattenActions(actionsByDataset);
+  const n = flat.filter(a =>
+    (a.status === 'OPEN' || a.status === 'IN_PROGRESS') &&
+    (!filters.brand || filters.brand === 'all' || a.brand === filters.brand || a.brand === 'all')
+  ).length;
+  el.textContent = n ? String(n) : '';
+}
+
 /* To-Do list = OPEN + priority in [HIGH, MEDIUM], respecting brand filter. */
 function renderTodoList(actionsByDataset, filters) {
   const list = document.getElementById('todoList');
@@ -1657,6 +1975,9 @@ function renderInsight(id, text) {
 }
 
 /* ── Mock generators (used when a sheet is unreachable) ─────────── */
+/* Mocks produce the widest possible window (90 days). The time-range
+   filter then narrows rows per selection via filterByRange(). */
+const MOCK_WINDOW_DAYS = 90;
 function days(n) {
   const out = [];
   const today = new Date();
@@ -1721,7 +2042,7 @@ function forBrands(dayList, make) {
 }
 
 function mockAds() {
-  return forBrands(days(30), (d, brand, p) => ({
+  return forBrands(days(MOCK_WINDOW_DAYS), (d, brand, p) => ({
     Date: d,
     Spend: jitter(p.adsSpend, p.adsSpendJ),
     Impressions: jitter(p.adsImpr, p.adsImprJ),
@@ -1731,7 +2052,7 @@ function mockAds() {
   }));
 }
 function mockGsc() {
-  return forBrands(days(30), (d, brand, p) => ({
+  return forBrands(days(MOCK_WINDOW_DAYS), (d, brand, p) => ({
     Date: d,
     Clicks: jitter(p.gscClicks, p.gscClicksJ),
     Impressions: jitter(p.gscImpr, p.gscImprJ),
@@ -1740,7 +2061,7 @@ function mockGsc() {
   }));
 }
 function mockGa() {
-  return forBrands(days(30), (d, brand, p) => ({
+  return forBrands(days(MOCK_WINDOW_DAYS), (d, brand, p) => ({
     Date: d,
     Sessions: jitter(p.gaSessions, p.gaSessionsJ),
     Users: jitter(p.gaUsers, p.gaUsersJ),
@@ -1768,7 +2089,7 @@ const LIQ_PROBLEM_AGENT = 'Santiago Cruz';
 
 function mockAircall() {
   const out = [];
-  const dayList = days(30);
+  const dayList = days(MOCK_WINDOW_DAYS);
   dayList.forEach(dateStr => {
     const dow = new Date(dateStr).getDay();
     const isWeekday = WORK_HOURS.workDays.includes(dow);
@@ -1866,7 +2187,7 @@ function normalizeSocialRows(rows, cols) {
 
 function mockSocial() {
   const out = [];
-  const dayList = days(30);
+  const dayList = days(MOCK_WINDOW_DAYS);
   /* Post frequency + reach profile per network */
   const profile = {
     instagram: { postsPerDay: 2.5, reachBase: 520, reachJ: 320 },
@@ -2320,7 +2641,8 @@ function buildNarrative(actionsByDataset, summaries, brand) {
   const scopePhrase = brand === 'all' ? 'across both brands' : `for ${BRAND_LABEL[brand] || brand}`;
   const { adsSum, callsSum } = summaries;
   const bits = [];
-  bits.push(`Last 30 days ${scopePhrase}: ${fmtCur(adsSum.totalSpend)} ad spend drove ${fmt(adsSum.totalConv)} tracked conversions, alongside ${fmt(callsSum.totalCalls)} inbound calls.`);
+  const rangeLabel = (state.timeRange && state.timeRange.label) || 'Last 30 days';
+  bits.push(`${rangeLabel} ${scopePhrase}: ${fmtCur(adsSum.totalSpend)} ad spend drove ${fmt(adsSum.totalConv)} tracked conversions, alongside ${fmt(callsSum.totalCalls)} inbound calls.`);
   if (active.length === 0) {
     bits.push(`No open actions — everything's within expected thresholds.`);
   } else {
@@ -2374,6 +2696,8 @@ function paint(ads, gsc, ga, ac, social) {
   renderBriefing({ narrative: insights.narrative, brand: insights.brand });
   renderActionCounters(state.actions);
   renderActionCards(state.actions, state.filters);
+  renderOverviewTopActions(state.actions, state.filters);
+  renderSideDecisionsCount(state.actions, state.filters);
   renderTodoList(state.actions, state.filters);
   renderOverview(ads, gsc, ga, ac);
   renderAds(ads, insights.perSection.ads);
@@ -2387,12 +2711,13 @@ function paint(ads, gsc, ga, ac, social) {
 function repaint() {
   if (!state.raw) return;
   const { ads, gsc, ga, ac, social } = state.raw;
+  const range = state.timeRange;
   const scoped = {
-    ads:    scopeChannel(ads,    state.brand),
-    gsc:    scopeChannel(gsc,    state.brand),
-    ga:     scopeChannel(ga,     state.brand),
-    ac:     scopeChannel(ac,     state.brand),
-    social: scopeChannel(social, state.brand),
+    ads:    scopeChannel(scopeByRange(ads,    range), state.brand),
+    gsc:    scopeChannel(scopeByRange(gsc,    range), state.brand),
+    ga:     scopeChannel(scopeByRange(ga,     range), state.brand),
+    ac:     scopeChannel(scopeByRange(ac,     range), state.brand),
+    social: scopeChannel(scopeByRange(social, range), state.brand),
   };
 
   /* If user picked a specific brand but a live channel has no brand column,
@@ -2839,12 +3164,107 @@ function renderPlaceholders() {
 }
 
 const BRAND_LABEL = { all: 'All brands', via: 'Viatrading', liq: 'Liquidatenow' };
+/* ══════════════════════ TIME RANGE ═══════════════════════════════════
+   Range keys resolve to { key, label, start, end, days }. Dates are
+   YYYY-MM-DD strings so plain-string comparisons work against the
+   normalized `row.Date` column across every channel. */
+const RANGE_OPTIONS = [
+  { key: 'today',     label: 'Today' },
+  { key: 'yesterday', label: 'Yesterday' },
+  { key: '7d',        label: 'Last 7 days' },
+  { key: '30d',       label: 'Last 30 days' },
+  { key: 'mtd',       label: 'Month to date' },
+  { key: 'lastMonth', label: 'Last month' },
+  { key: 'qtd',       label: 'Quarter to date' },
+  { key: '90d',       label: 'Last 90 days' },
+];
+const RANGE_KEYS = new Set(RANGE_OPTIONS.map(o => o.key));
+
+function ymd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function diffDaysInclusive(start, end) {
+  return Math.round((new Date(end) - new Date(start)) / 86400000) + 1;
+}
+function resolveRange(key, now = new Date()) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let start = today, end = today;
+  switch (key) {
+    case 'today':     break;
+    case 'yesterday': start = end = addDays(today, -1); break;
+    case '7d':        start = addDays(today, -6);  break;
+    case '30d':       start = addDays(today, -29); break;
+    case '90d':       start = addDays(today, -89); break;
+    case 'mtd':       start = new Date(today.getFullYear(), today.getMonth(), 1); break;
+    case 'lastMonth': {
+      start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      end   = new Date(today.getFullYear(), today.getMonth(), 0);
+      break;
+    }
+    case 'qtd': {
+      const q = Math.floor(today.getMonth() / 3);
+      start = new Date(today.getFullYear(), q * 3, 1);
+      break;
+    }
+    default: start = addDays(today, -29); /* fallback to 30d */
+  }
+  const startStr = ymd(start), endStr = ymd(end);
+  const label = (RANGE_OPTIONS.find(o => o.key === key) || {}).label || 'Last 30 days';
+  return { key, label, start: startStr, end: endStr, days: diffDaysInclusive(startStr, endStr) };
+}
+function filterByRange(rows, start, end) {
+  return rows.filter(r => {
+    const d = typeof r.Date === 'string' ? r.Date.slice(0, 10) : '';
+    return d && d >= start && d <= end;
+  });
+}
+function scopeByRange(channel, range) {
+  if (!channel || !range) return channel;
+  return { ...channel, rows: filterByRange(channel.rows, range.start, range.end) };
+}
+
+/* ══════════════════════ ROUTING ══════════════════════════════════════ */
+const NAV_LABEL = {
+  overview: 'Overview', ads: 'Ads', seo: 'SEO', web: 'Web (GA4)',
+  calls: 'Calls', social: 'Social', content: 'Content', email: 'Email',
+  decisions: 'Decisions',
+};
+function currentRoute() {
+  const raw = (location.hash || '').replace(/^#\/?/, '').split('?')[0];
+  return NAV_LABEL[raw] ? raw : 'overview';
+}
+function route() {
+  const key = currentRoute();
+  document.querySelectorAll('.page').forEach(p => {
+    p.hidden = p.dataset.page !== key;
+  });
+  document.querySelectorAll('.side-link').forEach(a => {
+    a.classList.toggle('is-active', a.dataset.route === key);
+  });
+  const title = document.getElementById('pageTitle');
+  if (title) title.textContent = NAV_LABEL[key] || 'Overview';
+  state.activeChannel = key;
+  const side = document.getElementById('sideNav');
+  if (side) side.classList.remove('is-open');
+  window.scrollTo({ top: 0 });
+}
+
 const state = {
   brand: 'all',
   raw: null,
   actions: null,
   actionLog: loadActionLog(),
   filters: { brand: 'all', source: 'all', priority: 'all', status: 'active' },
+  activeChannel: 'overview',
+  timeRange: resolveRange(
+    (typeof localStorage !== 'undefined' && RANGE_KEYS.has(localStorage.getItem('cmoRange_v1')))
+      ? localStorage.getItem('cmoRange_v1')
+      : '30d'
+  ),
 };
 
 function initBrandToggle() {
@@ -2871,6 +3291,8 @@ function initActionFilters() {
       if (state.actions) {
         renderActionCards(state.actions, state.filters);
         renderTodoList(state.actions, state.filters);
+        renderOverviewTopActions(state.actions, state.filters);
+        renderSideDecisionsCount(state.actions, state.filters);
       }
     });
   };
@@ -2879,8 +3301,31 @@ function initActionFilters() {
   wire('filterStatus', 'status');
 }
 
+function initRangePicker() {
+  const sel = document.getElementById('rangeSelect');
+  if (!sel) return;
+  sel.value = state.timeRange.key;
+  sel.addEventListener('change', () => {
+    state.timeRange = resolveRange(sel.value);
+    try { localStorage.setItem('cmoRange_v1', sel.value); } catch {}
+    repaint();
+  });
+}
+
+function initNav() {
+  const toggle = document.getElementById('navToggle');
+  const side = document.getElementById('sideNav');
+  if (toggle && side) {
+    toggle.addEventListener('click', () => side.classList.toggle('is-open'));
+  }
+  window.addEventListener('hashchange', route);
+}
+
 initBrandToggle();
 initActionFilters();
+initRangePicker();
+initNav();
+route();
 render();
 </script>
 </body>

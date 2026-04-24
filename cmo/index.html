@@ -2653,8 +2653,15 @@ function renderCalls({ rows, source, reason }, insight) {
       .filter(([k]) => k !== 'answered')
       .map(([k, v]) => `${k}×${v}`)
       .join(', ') || 'no miss signal';
-    const activeCols = Object.entries(d.has).filter(([, v]) => v).map(([k]) => k).join(',');
-    meta += ` <span class="demo-reason" title="Detected columns: ${escapeHtml(activeCols)} · Examined ${d.examined} rows · ${d.missedDetected} missed">miss: ${escapeHtml(detected)}</span>`;
+    meta += ` <span class="demo-reason">miss: ${escapeHtml(detected)}</span>`;
+    /* When no miss signal fired, show the raw column names the sheet
+       actually has so the user (on iPad — no tooltips) can paste them
+       back and we add the right synonyms. */
+    const noSignal = !Object.keys(d.signalsUsed).some(k => k !== 'answered');
+    if (noSignal && d.cols && d.cols.length) {
+      const colsStr = d.cols.join(' · ');
+      meta += `<div class="demo-reason" style="margin-top:4px;display:block;max-width:100%">sheet columns: ${escapeHtml(colsStr)}</div>`;
+    }
   }
   document.getElementById('callsMeta').innerHTML = meta;
   renderInsight('callsInsight', insight);

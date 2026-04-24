@@ -45,6 +45,30 @@
   #end .card { background: #161a1d; border: 1px solid #2a3137; border-radius: 14px; padding: 30px 40px; text-align: center; }
   #end h2 { font-size: 40px; margin-bottom: 8px; }
   #end .taunt { color: #ffb347; font-style: italic; margin: 12px 0 20px; font-size: 18px; }
+
+  /* Touch overlay */
+  #touchUI { position: absolute; inset: 0; pointer-events: none; display: none; touch-action: none; }
+  #touchUI.on { display: block; }
+  .pad { position: absolute; bottom: 16px; display: flex; gap: 10px; pointer-events: auto; }
+  .pad.left { left: 16px; }
+  .pad.right { right: 16px; }
+  .tbtn { width: 64px; height: 64px; border-radius: 50%; background: rgba(20,25,30,0.55); border: 2px solid rgba(255,255,255,0.25); color: #fff; font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; touch-action: none; }
+  .tbtn:active, .tbtn.pressed { background: rgba(255,179,71,0.55); border-color: #ffb347; transform: scale(0.95); }
+  .tbtn.attack { background: rgba(255,111,97,0.55); border-color: #ff6f61; width: 80px; height: 80px; font-size: 26px; }
+  .tbtn.jump   { background: rgba(79,195,247,0.4); border-color: #4fc3f7; }
+  .tbtn.small  { width: 50px; height: 50px; font-size: 16px; }
+  .pad-col { display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: flex-end; }
+  #pauseBtn { position: absolute; top: 8px; right: 8px; padding: 6px 10px; font-size: 12px; pointer-events: auto; background: rgba(20,25,30,0.7); color: #fff; border: 1px solid #444; border-radius: 6px; }
+
+  @media (max-width: 720px) {
+    #app { align-items: stretch; justify-content: stretch; }
+    canvas { border-radius: 0; max-width: 100vw; max-height: 100vh; width: 100vw; height: auto; }
+    .help { display: none; }
+    h1 { font-size: 32px; margin-bottom: 4px; }
+    .sub { font-size: 12px; margin-bottom: 12px; }
+    button { padding: 10px 16px; font-size: 14px; }
+    .slot { min-width: 110px; padding: 6px 10px; }
+  }
 </style>
 </head>
 <body>
@@ -70,6 +94,25 @@
 
   <!-- Fight -->
   <canvas id="game" width="1000" height="560" class="hidden"></canvas>
+
+  <!-- Touch controls (P1) -->
+  <div id="touchUI">
+    <button id="pauseBtn">Quit</button>
+    <div class="pad left">
+      <div class="tbtn" data-key="left">◀</div>
+      <div class="tbtn" data-key="right">▶</div>
+    </div>
+    <div class="pad right">
+      <div class="pad-col">
+        <div class="tbtn small" data-key="taunt">😏</div>
+        <div class="tbtn small" data-key="pickup">✋</div>
+      </div>
+      <div class="pad-col">
+        <div class="tbtn jump" data-key="jump">▲</div>
+        <div class="tbtn attack" data-key="attack">👊</div>
+      </div>
+    </div>
+  </div>
 
   <!-- End -->
   <div id="end" class="screen hidden">
@@ -667,6 +710,7 @@ function startFight(){
   selectScreen.classList.add('hidden');
   endScreen.classList.add('hidden');
   gameCanvas.classList.remove('hidden');
+  if (isTouch) touchUI.classList.add('on');
   const cpuFlag = cpuMode;
   game = {
     p1: makeFighter(pickedP1, 200, 1, false),
@@ -692,6 +736,42 @@ addEventListener('keydown', e => {
   if ([' ','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) e.preventDefault();
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// ---------- Touch input ----------
+const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+const touchUI = document.getElementById('touchUI');
+const TOUCH_TO_KEY = { left: 'a', right: 'd', jump: 'w', pickup: 's', attack: 'f', taunt: 'g' };
+
+function bindTouchButton(btn){
+  const action = btn.dataset.key;
+  const key = TOUCH_TO_KEY[action];
+  const press = (e) => { e.preventDefault(); keys[key] = true; btn.classList.add('pressed'); };
+  const release = (e) => { e.preventDefault(); keys[key] = false; btn.classList.remove('pressed'); };
+  btn.addEventListener('touchstart', press, { passive: false });
+  btn.addEventListener('touchend', release, { passive: false });
+  btn.addEventListener('touchcancel', release, { passive: false });
+  btn.addEventListener('mousedown', press);
+  btn.addEventListener('mouseup', release);
+  btn.addEventListener('mouseleave', release);
+}
+document.querySelectorAll('#touchUI .tbtn').forEach(bindTouchButton);
+
+document.getElementById('pauseBtn').addEventListener('click', () => {
+  // Quit back to select
+  if (game) {
+    game = null;
+    gameCanvas.classList.add('hidden');
+    touchUI.classList.remove('on');
+    selectScreen.classList.remove('hidden');
+  }
+});
+
+// On touch devices: default to CPU mode and bigger select-screen layout hint
+if (isTouch) {
+  cpuMode = true;
+  document.getElementById('btnCpu').textContent = 'CPU: ON';
+  document.getElementById('btnCpu').classList.add('active');
+}
 
 function readP1(p){
   if (!game || game.endTimer) return;
@@ -1119,6 +1199,7 @@ function drawCenterText(text, color){
 
 function showEndScreen(){
   gameCanvas.classList.add('hidden');
+  touchUI.classList.remove('on');
   endScreen.classList.remove('hidden');
   const winner = game.winner;
   const endTitle = document.getElementById('endTitle');

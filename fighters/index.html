@@ -47,19 +47,56 @@
   #end .taunt { color: #ffb347; font-style: italic; margin: 12px 0 20px; font-size: 18px; }
 
   /* Touch overlay */
-  #touchUI { position: fixed; inset: 0; pointer-events: none; display: none; touch-action: none; z-index: 10; }
+  #touchUI { position: fixed; inset: 0; pointer-events: none; display: none; z-index: 100; }
   #touchUI.on { display: block; }
-  .pad { position: absolute; bottom: 20px; display: flex; gap: 14px; pointer-events: auto; align-items: flex-end; }
-  .pad.left { left: 20px; }
-  .pad.right { right: 20px; }
-  .tbtn { width: 72px; height: 72px; border-radius: 50%; background: rgba(20,25,30,0.7); border: 3px solid rgba(255,255,255,0.35); color: #fff; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; text-align: center; line-height: 1; }
-  .tbtn:active, .tbtn.pressed { background: rgba(255,179,71,0.75); border-color: #ffb347; transform: scale(0.92); }
-  .tbtn.attack { background: rgba(255,111,97,0.75); border-color: #ff6f61; width: 90px; height: 90px; font-size: 18px; }
-  .tbtn.jump   { background: rgba(79,195,247,0.6); border-color: #4fc3f7; }
-  .tbtn.small  { width: 58px; height: 58px; font-size: 12px; }
-  .tbtn .arrow { font-size: 28px; font-weight: 900; }
-  .pad-col { display: flex; flex-direction: column; gap: 10px; align-items: center; }
-  #pauseBtn { position: absolute; top: 10px; right: 10px; padding: 8px 14px; font-size: 13px; font-weight: 800; pointer-events: auto; background: rgba(20,25,30,0.85); color: #fff; border: 1px solid #666; border-radius: 8px; z-index: 11; }
+  #touchBar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 10px 14px 14px;
+    gap: 8px;
+    pointer-events: none;
+    z-index: 101;
+  }
+  #touchBar .group { display: flex; gap: 10px; align-items: flex-end; pointer-events: auto; }
+  .tbtn {
+    min-width: 64px; min-height: 64px;
+    padding: 0 10px;
+    border-radius: 16px;
+    background: rgba(20,25,30,0.8);
+    border: 2px solid rgba(255,255,255,0.45);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    text-align: center;
+    line-height: 1;
+  }
+  .tbtn:active, .tbtn.pressed {
+    background: rgba(255,179,71,0.85);
+    border-color: #ffb347;
+    transform: scale(0.94);
+  }
+  .tbtn.hit    { background: rgba(255,111,97,0.9); border-color: #ff6f61; min-width: 86px; min-height: 86px; font-size: 16px; }
+  .tbtn.jump   { background: rgba(79,195,247,0.75); border-color: #4fc3f7; }
+  .tbtn.arrow  { min-width: 72px; font-size: 28px; font-weight: 900; }
+  #pauseBtn {
+    position: fixed; top: 10px; right: 10px;
+    padding: 8px 14px; font-size: 13px; font-weight: 800;
+    pointer-events: auto;
+    background: rgba(20,25,30,0.9); color: #fff;
+    border: 1px solid #777; border-radius: 8px;
+    z-index: 102;
+  }
 
   @media (max-width: 720px) {
     #app { align-items: stretch; justify-content: stretch; }
@@ -99,18 +136,16 @@
   <!-- Touch controls (P1) -->
   <div id="touchUI">
     <button id="pauseBtn">QUIT</button>
-    <div class="pad left">
-      <div class="tbtn" data-key="left"><span class="arrow">&#9664;</span></div>
-      <div class="tbtn" data-key="right"><span class="arrow">&#9654;</span></div>
-    </div>
-    <div class="pad right">
-      <div class="pad-col">
-        <div class="tbtn small" data-key="taunt">TAUNT</div>
-        <div class="tbtn small" data-key="pickup">GRAB</div>
+    <div id="touchBar">
+      <div class="group">
+        <div class="tbtn arrow" data-key="left">&lt;</div>
+        <div class="tbtn arrow" data-key="right">&gt;</div>
       </div>
-      <div class="pad-col">
+      <div class="group">
+        <div class="tbtn" data-key="taunt">TAUNT</div>
+        <div class="tbtn" data-key="pickup">GRAB</div>
         <div class="tbtn jump" data-key="jump">JUMP</div>
-        <div class="tbtn attack" data-key="attack">HIT</div>
+        <div class="tbtn hit" data-key="attack">HIT</div>
       </div>
     </div>
   </div>

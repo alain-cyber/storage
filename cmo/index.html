@@ -929,18 +929,31 @@ const LIQ_AIRCALL_LINES = new Set(['Justin Prescott', 'LiquidateNow Department',
 const LIQ_TEAM_PATTERN = /liquidate\s*now|liqnow/i;
 
 const AIRCALL_LINE_COLS = ['Number Name','Line','Line Name','Phone Line','Called Number'];
-const AIRCALL_TEAM_COLS = ['Teams Name','Team Name','Team'];
+const AIRCALL_TEAM_COLS = ['Teams Name','Team Name','Team','Teams'];
 const AIRCALL_USER_COLS = ['User Name','User','Assignee','Agent','Owner','Assigned User','Assigned','Handled By','Answered By'];
 const AIRCALL_TIME_COLS = ['Started At','Start Time','Time','Timestamp','Datetime','DateTime','Date Time','Call Time'];
-const AIRCALL_MISS_COLS = ['Missed Call Reason','Missed Reason','Miss Reason'];
+const AIRCALL_MISS_COLS = ['Missed Call Reason','Missed Reason','Miss Reason','Missed_call_reason'];
+const AIRCALL_ANSWERED_AT_COLS = ['Answered At','Answered_at','Answer Time','Answered Time'];
 const AIRCALL_DIRECTION_COLS = ['Direction','Call Direction','Type'];
 const WORK_HOURS = { start: 9, end: 18, workDays: [1,2,3,4,5] }; /* Mon-Fri 9am-6pm */
 
+/* Case/space/underscore-insensitive key matching — Aircall exports sometimes
+   arrive as "missed_call_reason" or "Started_At" depending on who exported. */
+function normKey(s) { return String(s == null ? '' : s).toLowerCase().replace(/[\s_]+/g, ''); }
+
 function getFirstFieldValue(row, candidates) {
-  for (const c of candidates) {
-    if (row[c] != null && row[c] !== '') return row[c];
+  const wanted = new Set(candidates.map(normKey));
+  for (const key of Object.keys(row)) {
+    if (!wanted.has(normKey(key))) continue;
+    const v = row[key];
+    if (v != null && v !== '') return v;
   }
   return null;
+}
+
+function hasAnyCol(cols, candidates) {
+  const set = new Set(candidates.map(normKey));
+  return cols.some(c => set.has(normKey(c)));
 }
 
 function inferCallBrand(row) {
@@ -1011,10 +1024,11 @@ function localDateString(d) {
 
 function normalizeAircallRows(rows, cols) {
   if (!rows || !rows.length) return rows;
-  const hasTotal = cols.some(c => /^total calls$/i.test(c));
-  const hasMissCol = AIRCALL_MISS_COLS.some(c => cols.includes(c));
-  const hasStatus = cols.some(c => /^status$/i.test(c));
-  const hasDirection = AIRCALL_DIRECTION_COLS.some(c => cols.includes(c));
+  const hasTotal = hasAnyCol(cols, ['Total Calls']);
+  const hasMissCol = hasAnyCol(cols, AIRCALL_MISS_COLS);
+  const hasAnsweredAt = hasAnyCol(cols, AIRCALL_ANSWERED_AT_COLS);
+  const hasStatus = hasAnyCol(cols, ['Status']);
+  const hasDirection = hasAnyCol(cols, AIRCALL_DIRECTION_COLS);
   const out = [];
   rows.forEach(r => {
     /* Filter to inbound only when the sheet tells us direction — outbound
@@ -1026,14 +1040,18 @@ function normalizeAircallRows(rows, cols) {
 
     const row = { ...r };
     if (!hasTotal) {
-      /* Miss detection priority: explicit Missed Call Reason column (Aircall
-         export), then Status column pattern matching as a fallback. */
+      /* Miss detection priority: Missed Call Reason (explicit), then empty
+         Answered At timestamp (Aircall fills this only on answered calls),
+         then Status column pattern matching. */
       let missed = 0;
       if (hasMissCol) {
         const reason = String(getFirstFieldValue(r, AIRCALL_MISS_COLS) || '').trim().toLowerCase();
         missed = reason && reason !== 'none' && reason !== 'n/a' ? 1 : 0;
+      } else if (hasAnsweredAt) {
+        const ans = getFirstFieldValue(r, AIRCALL_ANSWERED_AT_COLS);
+        missed = (ans == null || ans === '') ? 1 : 0;
       } else if (hasStatus) {
-        const st = String(r.Status || r.status || '').toLowerCase();
+        const st = String(getFirstFieldValue(r, ['Status']) || '').toLowerCase();
         missed = /miss|voicemail|no.answer|abandon/.test(st) ? 1 : 0;
       }
       row['Total Calls'] = 1;

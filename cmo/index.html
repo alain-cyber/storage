@@ -1059,7 +1059,7 @@ async function fetchSheet(id, opts = {}) {
   else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
   const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?${params.join('&')}`;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 6000);
+  const timer = setTimeout(() => controller.abort(), 25000);
   let text;
   try {
     const res = await fetch(url, { signal: controller.signal });
@@ -1078,6 +1078,55 @@ async function fetchSheet(id, opts = {}) {
   return { rows, cols };
 }
 
+const COLUMN_ALIASES = {
+  ads: {
+    Spend:       ['Cost', 'Cost (USD)', 'Amount spent', 'Ad spend', 'Total cost', 'Spend (USD)'],
+    Clicks:      ['Click', 'Total clicks'],
+    Impressions: ['Impr.', 'Impr', 'Total impressions'],
+    Conversions: ['Conv.', 'Conv', 'All conv.', 'All conversions'],
+    Date:        ['Day', 'Report date'],
+    Campaign:    ['Campaign name'],
+  },
+  gsc: {
+    Clicks:       ['Total clicks'],
+    Impressions:  ['Impr.', 'Total impressions'],
+    'Avg Position': ['Average Position', 'Position', 'Avg. position', 'Avg position'],
+    Date:         ['Day'],
+    Query:        ['Search query', 'Queries'],
+  },
+  ga: {
+    Sessions:         ['sessions', 'Total sessions'],
+    Users:            ['Total Users', 'Active Users', 'Total users', 'Active users'],
+    'Engagement Rate': ['Engagement rate', 'engagement rate'],
+    Date:             ['Day'],
+    Channel:          ['Default channel group', 'Channel grouping', 'Session default channel group'],
+  },
+};
+
+function applyAliases(key, rows, cols) {
+  const aliases = COLUMN_ALIASES[key];
+  if (!aliases) return { rows, cols };
+  const renames = {};
+  const aliasedCols = [...cols];
+  Object.entries(aliases).forEach(([canonical, synonyms]) => {
+    if (cols.includes(canonical)) return;
+    const hit = synonyms.find(s => cols.includes(s));
+    if (!hit) return;
+    renames[hit] = canonical;
+    const idx = aliasedCols.indexOf(hit);
+    if (idx >= 0) aliasedCols[idx] = canonical;
+  });
+  if (!Object.keys(renames).length) return { rows, cols };
+  const aliasedRows = rows.map(r => {
+    const out = { ...r };
+    Object.entries(renames).forEach(([from, to]) => {
+      if (from in out && !(to in out)) out[to] = out[from];
+    });
+    return out;
+  });
+  return { rows: aliasedRows, cols: aliasedCols };
+}
+
 function normalizeByKey(key, rows, cols) {
   if (key === 'aircall') return normalizeAircallRows(rows, cols);
   if (key === 'social') return normalizeSocialRows(rows, cols);
@@ -1092,10 +1141,11 @@ async function loadChannel(key, mockFn, requiredCols = []) {
   }
   try {
     const sheet = SHEETS[key];
-    const { rows, cols } = await fetchSheet(sheet.id, { gid: sheet.gid, sheetName: sheet.sheetName });
-    if (!rows || !rows.length) throw new Error('empty');
+    const fetched = await fetchSheet(sheet.id, { gid: sheet.gid, sheetName: sheet.sheetName });
+    if (!fetched.rows || !fetched.rows.length) throw new Error('empty');
+    const { rows, cols } = applyAliases(key, fetched.rows, fetched.cols);
     const missing = requiredCols.filter(c => !cols.includes(c));
-    if (missing.length) throw new Error(`missing cols: ${missing.join(', ')}`);
+    if (missing.length) throw new Error(`missing cols: ${missing.join(', ')} — found: ${cols.join(', ')}`);
     const normalized = normalizeByKey(key, rows, cols);
     return { rows: normalized, source: 'live', cols };
   } catch (e) {

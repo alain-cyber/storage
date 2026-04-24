@@ -47,18 +47,19 @@
   #end .taunt { color: #ffb347; font-style: italic; margin: 12px 0 20px; font-size: 18px; }
 
   /* Touch overlay */
-  #touchUI { position: absolute; inset: 0; pointer-events: none; display: none; touch-action: none; }
+  #touchUI { position: fixed; inset: 0; pointer-events: none; display: none; touch-action: none; z-index: 10; }
   #touchUI.on { display: block; }
-  .pad { position: absolute; bottom: 16px; display: flex; gap: 10px; pointer-events: auto; }
-  .pad.left { left: 16px; }
-  .pad.right { right: 16px; }
-  .tbtn { width: 64px; height: 64px; border-radius: 50%; background: rgba(20,25,30,0.55); border: 2px solid rgba(255,255,255,0.25); color: #fff; font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; touch-action: none; }
-  .tbtn:active, .tbtn.pressed { background: rgba(255,179,71,0.55); border-color: #ffb347; transform: scale(0.95); }
-  .tbtn.attack { background: rgba(255,111,97,0.55); border-color: #ff6f61; width: 80px; height: 80px; font-size: 26px; }
-  .tbtn.jump   { background: rgba(79,195,247,0.4); border-color: #4fc3f7; }
-  .tbtn.small  { width: 50px; height: 50px; font-size: 16px; }
-  .pad-col { display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: flex-end; }
-  #pauseBtn { position: absolute; top: 8px; right: 8px; padding: 6px 10px; font-size: 12px; pointer-events: auto; background: rgba(20,25,30,0.7); color: #fff; border: 1px solid #444; border-radius: 6px; }
+  .pad { position: absolute; bottom: 20px; display: flex; gap: 14px; pointer-events: auto; align-items: flex-end; }
+  .pad.left { left: 20px; }
+  .pad.right { right: 20px; }
+  .tbtn { width: 72px; height: 72px; border-radius: 50%; background: rgba(20,25,30,0.7); border: 3px solid rgba(255,255,255,0.35); color: #fff; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; text-align: center; line-height: 1; }
+  .tbtn:active, .tbtn.pressed { background: rgba(255,179,71,0.75); border-color: #ffb347; transform: scale(0.92); }
+  .tbtn.attack { background: rgba(255,111,97,0.75); border-color: #ff6f61; width: 90px; height: 90px; font-size: 18px; }
+  .tbtn.jump   { background: rgba(79,195,247,0.6); border-color: #4fc3f7; }
+  .tbtn.small  { width: 58px; height: 58px; font-size: 12px; }
+  .tbtn .arrow { font-size: 28px; font-weight: 900; }
+  .pad-col { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  #pauseBtn { position: absolute; top: 10px; right: 10px; padding: 8px 14px; font-size: 13px; font-weight: 800; pointer-events: auto; background: rgba(20,25,30,0.85); color: #fff; border: 1px solid #666; border-radius: 8px; z-index: 11; }
 
   @media (max-width: 720px) {
     #app { align-items: stretch; justify-content: stretch; }
@@ -97,19 +98,19 @@
 
   <!-- Touch controls (P1) -->
   <div id="touchUI">
-    <button id="pauseBtn">Quit</button>
+    <button id="pauseBtn">QUIT</button>
     <div class="pad left">
-      <div class="tbtn" data-key="left">◀</div>
-      <div class="tbtn" data-key="right">▶</div>
+      <div class="tbtn" data-key="left"><span class="arrow">&#9664;</span></div>
+      <div class="tbtn" data-key="right"><span class="arrow">&#9654;</span></div>
     </div>
     <div class="pad right">
       <div class="pad-col">
-        <div class="tbtn small" data-key="taunt">😏</div>
-        <div class="tbtn small" data-key="pickup">✋</div>
+        <div class="tbtn small" data-key="taunt">TAUNT</div>
+        <div class="tbtn small" data-key="pickup">GRAB</div>
       </div>
       <div class="pad-col">
-        <div class="tbtn jump" data-key="jump">▲</div>
-        <div class="tbtn attack" data-key="attack">👊</div>
+        <div class="tbtn jump" data-key="jump">JUMP</div>
+        <div class="tbtn attack" data-key="attack">HIT</div>
       </div>
     </div>
   </div>
@@ -131,6 +132,65 @@
 <script>
 // === FIGHTERS — Caricature Brawler ===
 // Single-file game. No assets, no deps.
+
+// ---------- Audio (synthesized, no assets) ----------
+let audioCtx = null;
+function ensureAudio(){
+  if (audioCtx) return audioCtx;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  audioCtx = new AC();
+  return audioCtx;
+}
+function playTone({freq=440, freq2=null, dur=0.12, type='sine', vol=0.3, attack=0.005, decay=null}){
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+  const t0 = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (freq2 != null) osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq2), t0 + dur);
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(vol, t0 + attack);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + (decay || dur));
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + (decay || dur) + 0.02);
+}
+function playNoise({dur=0.1, vol=0.3, filter=1200}){
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+  const t0 = ctx.currentTime;
+  const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i/data.length);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = filter;
+  const g = ctx.createGain(); g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  src.connect(bp).connect(g).connect(ctx.destination);
+  src.start(t0);
+}
+const SFX = {
+  punch:   () => { playNoise({dur:0.08, vol:0.35, filter:700}); playTone({freq:180,freq2:60,dur:0.1,type:'square',vol:0.15}); },
+  slap:    () => { playNoise({dur:0.05, vol:0.4, filter:2500}); },
+  clang:   () => { playTone({freq:1200,freq2:300,dur:0.35,type:'triangle',vol:0.25}); playTone({freq:2400,freq2:500,dur:0.3,type:'square',vol:0.08}); },
+  squeak:  () => { playTone({freq:900,freq2:1800,dur:0.12,type:'sawtooth',vol:0.25}); },
+  bonk:    () => { playTone({freq:300,freq2:80,dur:0.2,type:'sine',vol:0.3}); },
+  shatter: () => { playNoise({dur:0.4, vol:0.35, filter:4500}); },
+  jump:    () => { playTone({freq:260,freq2:520,dur:0.12,type:'square',vol:0.12}); },
+  pickup:  () => { playTone({freq:520,freq2:880,dur:0.1,type:'triangle',vol:0.18}); playTone({freq:880,freq2:1200,dur:0.08,type:'sine',vol:0.12}); },
+  drop:    () => { playTone({freq:400,freq2:200,dur:0.08,type:'triangle',vol:0.15}); },
+  taunt:   () => { playTone({freq:600,freq2:900,dur:0.1,type:'sine',vol:0.15}); playTone({freq:900,freq2:700,dur:0.15,type:'sine',vol:0.15}); },
+  ko:      () => { playTone({freq:800,freq2:80,dur:0.8,type:'sawtooth',vol:0.35}); playNoise({dur:0.6, vol:0.2, filter:400}); },
+  win:     () => { [0,0.12,0.24].forEach((t,i)=>setTimeout(()=>playTone({freq:[523,659,784][i],dur:0.25,type:'triangle',vol:0.2}), t*1000)); },
+  countdown:() => { playTone({freq:880,dur:0.08,type:'square',vol:0.15}); },
+  go:      () => { playTone({freq:1320,freq2:880,dur:0.3,type:'triangle',vol:0.25}); },
+  coffee:  () => { playNoise({dur:0.3, vol:0.15, filter:1000}); },
+  throw:   () => { playTone({freq:180,freq2:540,dur:0.15,type:'sawtooth',vol:0.15}); }
+};
 
 // ---------- Character configs ----------
 const FIGHTERS = {
@@ -675,6 +735,9 @@ btnStart.addEventListener('click', () => {
     if (!pickedP1) pickedP1 = shuffled[0];
     if (!pickedP2 || pickedP2 === pickedP1) pickedP2 = shuffled.find(k => k !== pickedP1);
   }
+  // Unlock audio on this user gesture (iOS Safari requirement)
+  const ctx = ensureAudio();
+  if (ctx && ctx.state === 'suspended') ctx.resume();
   startFight();
 });
 
@@ -723,8 +786,13 @@ function startFight(){
     paused: false,
     endTimer: 0,
     winner: null,
-    freezeFrame: 0
+    freezeFrame: 0,
+    intro: 180 // 3s READY/FIGHT intro, no attacks allowed
   };
+  // audio countdown
+  setTimeout(() => SFX.countdown(), 0);
+  setTimeout(() => SFX.countdown(), 1000);
+  setTimeout(() => SFX.go(), 2000);
   lastTime = performance.now();
   requestAnimationFrame(loop);
 }
@@ -745,7 +813,14 @@ const TOUCH_TO_KEY = { left: 'a', right: 'd', jump: 'w', pickup: 's', attack: 'f
 function bindTouchButton(btn){
   const action = btn.dataset.key;
   const key = TOUCH_TO_KEY[action];
-  const press = (e) => { e.preventDefault(); keys[key] = true; btn.classList.add('pressed'); };
+  const press = (e) => {
+    e.preventDefault();
+    // iOS: must resume AudioContext inside user gesture
+    const ctx = ensureAudio();
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+    keys[key] = true;
+    btn.classList.add('pressed');
+  };
   const release = (e) => { e.preventDefault(); keys[key] = false; btn.classList.remove('pressed'); };
   btn.addEventListener('touchstart', press, { passive: false });
   btn.addEventListener('touchend', release, { passive: false });
@@ -779,7 +854,7 @@ function readP1(p){
   if (keys['a']) { p.vx = -MOVE_SPEED; p.facing = -1; }
   else if (keys['d']) { p.vx = MOVE_SPEED; p.facing = 1; }
   else p.vx *= 0.6;
-  if (keys['w'] && p.onGround) { p.vy = JUMP_V; p.onGround = false; }
+  if (keys['w'] && p.onGround) { p.vy = JUMP_V; p.onGround = false; SFX.jump(); }
   if (keys['s'] && p.pickupCd <= 0) { doPickupDrop(p); p.pickupCd = 15; }
   if (keys['f'] && p.cooldown <= 0) { doAttack(p); }
   if (keys['g'] && p.taunt <= 0) { doTaunt(p); }
@@ -791,7 +866,7 @@ function readP2(p){
   if (keys['arrowleft']) { p.vx = -MOVE_SPEED; p.facing = -1; }
   else if (keys['arrowright']) { p.vx = MOVE_SPEED; p.facing = 1; }
   else p.vx *= 0.6;
-  if (keys['arrowup'] && p.onGround) { p.vy = JUMP_V; p.onGround = false; }
+  if (keys['arrowup'] && p.onGround) { p.vy = JUMP_V; p.onGround = false; SFX.jump(); }
   if (keys['arrowdown'] && p.pickupCd <= 0) { doPickupDrop(p); p.pickupCd = 15; }
   if (keys['k'] && p.cooldown <= 0) { doAttack(p); }
   if (keys['l'] && p.taunt <= 0) { doTaunt(p); }
@@ -805,7 +880,7 @@ function aiControl(p, target){
     const w = game.weapons.filter(w => w.alive).sort((a,b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x))[0];
     if (w && Math.abs(w.x - p.x) > 20) {
       p.facing = w.x > p.x ? 1 : -1;
-      p.vx = (w.x > p.x ? 1 : -1) * MOVE_SPEED * 0.9;
+      p.vx = (w.x > p.x ? 1 : -1) * MOVE_SPEED * 0.75;
     } else if (w) {
       if (p.pickupCd <= 0) { doPickupDrop(p); p.pickupCd = 15; }
       p.vx *= 0.5;
@@ -817,7 +892,7 @@ function aiControl(p, target){
     engageAI(p, target);
   }
   if (!p.onGround) return;
-  if (target.y < p.y - 30 && Math.abs(target.x - p.x) < 120 && Math.random() < 0.04) {
+  if (target.y < p.y - 30 && Math.abs(target.x - p.x) < 120 && Math.random() < 0.03) {
     p.vy = JUMP_V; p.onGround = false;
   }
 }
@@ -827,10 +902,11 @@ function engageAI(p, target){
   p.facing = dx >= 0 ? 1 : -1;
   const reach = p.holding ? WEAPONS[p.holding].range : 46;
   if (dist > reach - 6) {
-    p.vx = Math.sign(dx) * MOVE_SPEED * 0.9;
+    p.vx = Math.sign(dx) * MOVE_SPEED * 0.75;
   } else {
     p.vx *= 0.5;
-    if (p.cooldown <= 0 && Math.random() < 0.5) doAttack(p);
+    // Slower, more fightable AI — hesitates before attacks
+    if (p.cooldown <= 0 && Math.random() < 0.12) doAttack(p);
   }
 }
 
@@ -839,6 +915,7 @@ function doPickupDrop(p){
     // drop
     game.weapons.push({ key: p.holding, x: p.x, y: GROUND_Y, bob: 0, alive: true });
     p.holding = null;
+    SFX.drop();
     return;
   }
   const w = game.weapons.find(w => w.alive && Math.abs(w.x - p.x) < 34);
@@ -846,6 +923,7 @@ function doPickupDrop(p){
     p.holding = w.key;
     w.alive = false;
     game.texts.push({ x: p.x, y: p.y - 140, text: WEAPONS[w.key].icon + ' ' + WEAPONS[w.key].name, life: 40, color: '#ffd96a' });
+    SFX.pickup();
   }
 }
 
@@ -859,8 +937,10 @@ function doAttack(p){
       vx: p.facing * 10, vy: -3, life: 90, owner: p
     });
     p.holding = null;
+    SFX.throw();
     return;
   }
+  SFX.punch();
   // melee hit check
   const other = (p === game.p1) ? game.p2 : game.p1;
   const reach = p.holding ? WEAPONS[p.holding].range : 46;
@@ -889,14 +969,23 @@ function hitFighter(t, weaponKey, fromFacing){
       life: 20, color: '#ffd96a'
     });
   }
-  const popText = !w ? 'SLAP!' : (weaponKey==='pan'?'CLANG!':weaponKey==='fish'?'WHAP!':weaponKey==='chicken'?'SQUEAK!':weaponKey==='whisky'?'BONK!':'POW!');
+  const popText = !w ? 'SLAP!' : (weaponKey==='pan'?'CLANG!':weaponKey==='fish'?'WHAP!':weaponKey==='chicken'?'SQUEAK!':weaponKey==='whisky'?'BONK!':weaponKey==='coffee'?'SPLASH!':'POW!');
   game.texts.push({ x: t.x, y: t.y - 120, text: popText, life: 28, color: '#ff6f61' });
+  // SFX by weapon
+  if (!w) SFX.slap();
+  else if (weaponKey === 'pan') SFX.clang();
+  else if (weaponKey === 'chicken') SFX.squeak();
+  else if (weaponKey === 'whisky') SFX.bonk();
+  else if (weaponKey === 'fish') SFX.slap();
+  else if (weaponKey === 'coffee') SFX.coffee();
+  else SFX.punch();
   if (weaponKey === 'whisky') {
     // 1-in-3 shatter
     if (Math.random() < 0.34) {
       const src = (t === game.p1) ? game.p2 : game.p1;
       src.holding = null;
       game.texts.push({ x: src.x, y: src.y - 140, text: '*SHATTER*', life: 30, color: '#caa' });
+      SFX.shatter();
     }
   }
   if (t.hp <= 0) {
@@ -905,6 +994,8 @@ function hitFighter(t, weaponKey, fromFacing){
     game.freezeFrame = 20;
     game.winner = (t === game.p1) ? game.p2 : game.p1;
     game.endTimer = 120;
+    SFX.ko();
+    setTimeout(() => SFX.win(), 800);
   }
 }
 
@@ -912,6 +1003,7 @@ function doTaunt(p){
   p.taunt = 50;
   p.tauntText = FIGHTERS[p.key].taunt;
   game.texts.push({ x: p.x, y: p.y - 150, text: p.tauntText, life: 50, color: '#4fc3f7' });
+  SFX.taunt();
 }
 
 // ---------- Main loop ----------
@@ -939,6 +1031,12 @@ function loop(now){
 }
 
 function update(dt){
+  // intro countdown
+  if (game.intro > 0) {
+    game.intro -= dt;
+    // allow facing but no timer / no input
+    return;
+  }
   // timer
   if (game.timer > 0 && !game.winner) {
     game.timer -= dt;
@@ -1061,7 +1159,11 @@ function render(){
 
   drawHUD();
 
-  if (game.winner === null && game.timer === 0) {
+  if (game.intro > 0) {
+    const s = Math.ceil(game.intro / 60);
+    const txt = s >= 3 ? 'READY' : s === 2 ? 'SET' : s === 1 ? 'GO!' : 'FIGHT!';
+    drawCenterText(txt, s === 1 ? '#ff6f61' : '#ffb347');
+  } else if (game.winner === null && game.timer === 0) {
     drawCenterText('DRAW!', '#ffb347');
   } else if (game.freezeFrame > 0 && game.winner) {
     drawCenterText('K.O.', '#ff6f61');

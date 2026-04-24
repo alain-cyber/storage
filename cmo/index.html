@@ -933,7 +933,7 @@
       <button type="button" data-brand="via" aria-pressed="false">Viatrading</button>
       <button type="button" data-brand="liq" aria-pressed="false">Liquidatenow</button>
     </div>
-    <span id="brandPending" class="brand-pending hidden">filter pending — awaiting tab names</span>
+    <span id="brandPending" class="brand-pending hidden">social shown across both brands</span>
   </div>
   <div class="range-picker">
     <label for="rangeSelect">Range</label>
@@ -1306,13 +1306,28 @@
 </footer>
 
 <script id="appScript">
+/* Each sheet with per-brand tabs lists them under `brandTabs`. loadChannel
+   fetches both tabs in parallel, tags each row with `brand: 'via' | 'liq'`,
+   and concatenates so the existing brand toggle can slice locally.
+   Aircall + Social are single-source (Aircall infers brand from line/team,
+   Social is shared across brands). All Coefficient-imported sheets have a
+   banner on row 1, so headers: 2 is required for gviz to label correctly. */
 const SHEETS = {
-  ads:     { id: '1oR4yEYbOYkzQcOyyMliKe__4KErtKFZyCnGDnjKI_JE', label: 'Google Ads' },
-  gsc:     { id: '1UZ7fp46L83YdPEcjEp7Zdl4-8-taK5zMueZNd1pI7k8', label: 'Search Console' },
-  ga:      { id: '1gZ_ahjqHMMSmqF2av0pOV2nkLj0oA5IVGqTHm6w7_nw', label: 'Google Analytics' },
-  /* Aircall sheet is imported by Coefficient — row 1 is a merged import
-     banner, real headers on row 2. Tell gviz to treat 2 rows as headers
-     so it uses row 2's labels (id, Started At, Answered At, ...). */
+  ads: {
+    id: '1oR4yEYbOYkzQcOyyMliKe__4KErtKFZyCnGDnjKI_JE',
+    label: 'Google Ads', headers: 2,
+    brandTabs: { via: 'raw_ads_via', liq: 'raw_ads_lnow' },
+  },
+  gsc: {
+    id: '1UZ7fp46L83YdPEcjEp7Zdl4-8-taK5zMueZNd1pI7k8',
+    label: 'Search Console', headers: 2,
+    brandTabs: { via: 'raw_gsc_via', liq: 'raw_gsc_lnow' },
+  },
+  ga: {
+    id: '1gZ_ahjqHMMSmqF2av0pOV2nkLj0oA5IVGqTHm6w7_nw',
+    label: 'Google Analytics', headers: 2,
+    brandTabs: { via: 'raw_ga4_via', liq: 'raw_ga4_lnow' },
+  },
   aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall', headers: 2 },
   social:  { id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk', gid: 1914162846, label: 'Metricool · Posts' },
 };
@@ -1560,40 +1575,53 @@ async function fetchSheet(id, opts = {}) {
 
 const COLUMN_ALIASES = {
   ads: {
-    Spend:       ['Cost', 'Cost (USD)', 'Amount spent', 'Ad spend', 'Total cost', 'Spend (USD)'],
+    /* Coefficient exports "Cost Micros" as the total spend (already converted
+       to dollars per Coefficient's format — not raw micros). */
+    Spend:       ['Cost', 'Cost (USD)', 'Amount spent', 'Ad spend', 'Total cost', 'Spend (USD)', 'Cost Micros', 'Cost micros'],
     Clicks:      ['Click', 'Total clicks'],
     Impressions: ['Impr.', 'Impr', 'Total impressions'],
     Conversions: ['Conv.', 'Conv', 'All conv.', 'All conversions'],
     Date:        ['Day', 'Report date'],
-    Campaign:    ['Campaign name'],
+    Campaign:    ['Campaign name', 'Campaign Name'],
+    CTR:         ['Ctr', 'ctr'],
   },
   gsc: {
-    Clicks:       ['Total clicks'],
-    Impressions:  ['Impr.', 'Total impressions'],
-    'Avg Position': ['Average Position', 'Position', 'Avg. position', 'Avg position'],
-    Date:         ['Day'],
-    Query:        ['Search query', 'Queries'],
+    Clicks:        ['Total clicks'],
+    Impressions:   ['Impr.', 'Total impressions'],
+    'Avg Position':['Average Position', 'Position', 'Avg. position', 'Avg position'],
+    Date:          ['Day'],
+    Query:         ['Search query', 'Queries'],
+    CTR:           ['Ctr'],
   },
   ga: {
     Sessions:         ['sessions', 'Total sessions'],
     Users:            ['Total Users', 'Active Users', 'Total users', 'Active users'],
-    'Engagement Rate': ['Engagement rate', 'engagement rate'],
+    'Engagement Rate':['Engagement rate', 'engagement rate'],
     Date:             ['Day'],
     Channel:          ['Default channel group', 'Channel grouping', 'Session default channel group'],
   },
 };
 
+/* Case/space/underscore-insensitive column match. `Campaign name` / `CAMPAIGN_NAME`
+   / `campaign name` all resolve to the same canonical key. */
 function applyAliases(key, rows, cols) {
   const aliases = COLUMN_ALIASES[key];
   if (!aliases) return { rows, cols };
+  const colByNorm = {};
+  cols.forEach(c => { colByNorm[normKey(c)] = c; });
   const renames = {};
   const aliasedCols = [...cols];
   Object.entries(aliases).forEach(([canonical, synonyms]) => {
-    if (cols.includes(canonical)) return;
-    const hit = synonyms.find(s => cols.includes(s));
-    if (!hit) return;
-    renames[hit] = canonical;
-    const idx = aliasedCols.indexOf(hit);
+    if (colByNorm[normKey(canonical)] === canonical) return; /* exact match already */
+    const candidates = [canonical, ...synonyms];
+    let actual = null;
+    for (const cand of candidates) {
+      const k = colByNorm[normKey(cand)];
+      if (k) { actual = k; break; }
+    }
+    if (!actual || actual === canonical) return;
+    renames[actual] = canonical;
+    const idx = aliasedCols.indexOf(actual);
     if (idx >= 0) aliasedCols[idx] = canonical;
   });
   if (!Object.keys(renames).length) return { rows, cols };
@@ -1621,9 +1649,37 @@ async function loadChannel(key, mockFn, requiredCols = []) {
   }
   try {
     const sheet = SHEETS[key];
-    const fetched = await fetchSheet(sheet.id, { gid: sheet.gid, sheetName: sheet.sheetName, headers: sheet.headers });
-    if (!fetched.rows || !fetched.rows.length) throw new Error('empty');
-    const { rows, cols } = applyAliases(key, fetched.rows, fetched.cols);
+    let rawRows, rawCols;
+    if (sheet.brandTabs) {
+      /* Fetch both brand tabs in parallel; tag each row with its brand so
+         scopeChannel() can slice locally without re-fetching. A failure on
+         one brand falls back to whatever the other returned. */
+      const entries = Object.entries(sheet.brandTabs); /* [['via','raw_..._via'], ['liq','raw_..._lnow']] */
+      const results = await Promise.allSettled(entries.map(([, tab]) =>
+        fetchSheet(sheet.id, { sheetName: tab, headers: sheet.headers })
+      ));
+      const colsSet = new Set();
+      const allRows = [];
+      const problems = [];
+      results.forEach((r, i) => {
+        const [brand, tab] = entries[i];
+        if (r.status === 'fulfilled' && r.value.rows && r.value.rows.length) {
+          r.value.cols.forEach(c => colsSet.add(c));
+          r.value.rows.forEach(row => allRows.push({ ...row, brand }));
+        } else {
+          problems.push(`${tab}: ${r.status === 'rejected' ? (r.reason && r.reason.message) : 'empty'}`);
+        }
+      });
+      if (!allRows.length) throw new Error(problems.join(' · ') || 'no brand tabs returned data');
+      rawRows = allRows;
+      rawCols = [...colsSet];
+    } else {
+      const fetched = await fetchSheet(sheet.id, { gid: sheet.gid, sheetName: sheet.sheetName, headers: sheet.headers });
+      if (!fetched.rows || !fetched.rows.length) throw new Error('empty');
+      rawRows = fetched.rows;
+      rawCols = fetched.cols;
+    }
+    const { rows, cols } = applyAliases(key, rawRows, rawCols);
     const missing = requiredCols.filter(c => !cols.includes(c));
     if (missing.length) throw new Error(`missing cols: ${missing.join(', ')} — found: ${cols.join(', ')}`);
     const normalized = normalizeByKey(key, rows, cols);

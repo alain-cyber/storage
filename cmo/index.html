@@ -1035,7 +1035,10 @@ const SHEETS = {
   ads:     { id: '1oR4yEYbOYkzQcOyyMliKe__4KErtKFZyCnGDnjKI_JE', label: 'Google Ads' },
   gsc:     { id: '1UZ7fp46L83YdPEcjEp7Zdl4-8-taK5zMueZNd1pI7k8', label: 'Search Console' },
   ga:      { id: '1gZ_ahjqHMMSmqF2av0pOV2nkLj0oA5IVGqTHm6w7_nw', label: 'Google Analytics' },
-  aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall' },
+  /* Aircall sheet is imported by Coefficient — row 1 is a merged import
+     banner, real headers on row 2. Tell gviz to treat 2 rows as headers
+     so it uses row 2's labels (id, Started At, Answered At, ...). */
+  aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall', headers: 2 },
   social:  { id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk', gid: 1914162846, label: 'Metricool · Posts' },
 };
 
@@ -1258,6 +1261,7 @@ async function fetchSheet(id, opts = {}) {
   const params = ['tqx=out:json'];
   if (opts.gid != null) params.push(`gid=${encodeURIComponent(opts.gid)}`);
   else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
+  if (opts.headers != null) params.push(`headers=${encodeURIComponent(opts.headers)}`);
   const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?${params.join('&')}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000);
@@ -1342,7 +1346,7 @@ async function loadChannel(key, mockFn, requiredCols = []) {
   }
   try {
     const sheet = SHEETS[key];
-    const fetched = await fetchSheet(sheet.id, { gid: sheet.gid, sheetName: sheet.sheetName });
+    const fetched = await fetchSheet(sheet.id, { gid: sheet.gid, sheetName: sheet.sheetName, headers: sheet.headers });
     if (!fetched.rows || !fetched.rows.length) throw new Error('empty');
     const { rows, cols } = applyAliases(key, fetched.rows, fetched.cols);
     const missing = requiredCols.filter(c => !cols.includes(c));

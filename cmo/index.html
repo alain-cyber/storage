@@ -879,9 +879,19 @@ function coerceCell(v) {
 }
 
 /* ── Aircall brand + working-hours helpers ──────────────────────── */
-const LIQ_CALL_USERS = new Set(['Justin Prescott', 'LiquidateNow Department', 'Ashley Sheppard']);
-const AIRCALL_USER_COLS = ['User','Assignee','Agent','Department','Owner','Assigned User','Assigned','Handled By','Answered By'];
-const AIRCALL_TIME_COLS = ['Time','Timestamp','Started At','Start Time','Datetime','DateTime','Date Time','Call Time'];
+/* Line names (column J / Number Name) that belong to Liquidatenow.
+   Matches here are authoritative per the user's mapping. */
+const LIQ_AIRCALL_LINES = new Set(['Justin Prescott', 'LiquidateNow Department', 'Ashley Sheppard']);
+/* Team names (column O / Teams Name) that indicate Liquidatenow. Checked by
+   regex so "Sales - LiquidateNow", "Liquidate Now - Support" etc. all match. */
+const LIQ_TEAM_PATTERN = /liquidate\s*now|liqnow/i;
+
+const AIRCALL_LINE_COLS = ['Number Name','Line','Line Name','Phone Line','Called Number'];
+const AIRCALL_TEAM_COLS = ['Teams Name','Team Name','Team'];
+const AIRCALL_USER_COLS = ['User Name','User','Assignee','Agent','Owner','Assigned User','Assigned','Handled By','Answered By'];
+const AIRCALL_TIME_COLS = ['Started At','Start Time','Time','Timestamp','Datetime','DateTime','Date Time','Call Time'];
+const AIRCALL_MISS_COLS = ['Missed Call Reason','Missed Reason','Miss Reason'];
+const AIRCALL_DIRECTION_COLS = ['Direction','Call Direction','Type'];
 const WORK_HOURS = { start: 9, end: 18, workDays: [1,2,3,4,5] }; /* Mon-Fri 9am-6pm */
 
 function getFirstFieldValue(row, candidates) {
@@ -893,62 +903,112 @@ function getFirstFieldValue(row, candidates) {
 
 function inferCallBrand(row) {
   if (row.brand) return row.brand;
-  const user = getFirstFieldValue(row, AIRCALL_USER_COLS);
-  if (user == null) return null;
-  return LIQ_CALL_USERS.has(String(user).trim()) ? 'liq' : 'via';
+  /* 1. Explicit team label wins — "Sales - LiquidateNow" etc. */
+  const team = String(getFirstFieldValue(row, AIRCALL_TEAM_COLS) || '');
+  if (LIQ_TEAM_PATTERN.test(team)) return 'liq';
+  /* 2. Number Name is column J per the user's rule */
+  const line = String(getFirstFieldValue(row, AIRCALL_LINE_COLS) || '').trim();
+  if (LIQ_AIRCALL_LINES.has(line)) return 'liq';
+  /* 3. Default: Viatrading */
+  return 'via';
 }
 
 function parseCallDate(row) {
   const t = getFirstFieldValue(row, AIRCALL_TIME_COLS);
   if (t) {
-    const iso = typeof t === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(t) ? t
-              : typeof t === 'string' && /^\d{1,2}:\d{2}/.test(t)
-                ? `${row.Date || '1970-01-01'}T${t.length === 5 ? t + ':00' : t}`
-                : null;
-    if (iso) {
-      const d = new Date(iso);
+    let s = String(t);
+    /* Normalize "YYYY-MM-DD HH:MM:SS" (Aircall export) -> ISO with T */
+    if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s)) {
+      s = s.replace(' ', 'T');
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d;
+    } else if (/^\d{1,2}:\d{2}/.test(s)) {
+      /* Separate Time field paired with a Date column */
+      const dateStr = (typeof row.Date === 'string') ? row.Date.slice(0, 10) : null;
+      if (dateStr) {
+        const d = new Date(`${dateStr}T${s.length === 5 ? s + ':00' : s}`);
+        if (!isNaN(d.getTime())) return d;
+      }
+    } else {
+      /* Last resort: trust whatever the engine can parse */
+      const d = new Date(s);
       if (!isNaN(d.getTime())) return d;
     }
   }
-  const dateOnly = row.Date;
-  if (dateOnly) {
-    const d = new Date(typeof dateOnly === 'string' ? dateOnly : dateOnly);
+  /* Fallback: date-only row */
+  if (typeof row.Date === 'string' && row.Date.length >= 10) {
+    const d = new Date(row.Date.slice(0, 10) + 'T00:00:00');
     if (!isNaN(d.getTime())) return d;
   }
   return null;
 }
 
+function rowHasCallTimestamp(row) {
+  const t = getFirstFieldValue(row, AIRCALL_TIME_COLS);
+  if (typeof t === 'string' && /\d{1,2}:\d{2}/.test(t)) return true;
+  if (typeof row.Date === 'string' && row.Date.includes('T')) return true;
+  return false;
+}
+
 function isCallInHours(row) {
+  if (!rowHasCallTimestamp(row)) return null;
   const d = parseCallDate(row);
   if (!d) return null;
-  const hasTimeInfo = getFirstFieldValue(row, AIRCALL_TIME_COLS) != null
-    || (typeof row.Date === 'string' && row.Date.includes('T'));
-  if (!hasTimeInfo) return null; /* date-only rows can't be hour-segmented */
   const dow = d.getDay();
   if (!WORK_HOURS.workDays.includes(dow)) return false;
   const h = d.getHours();
   return h >= WORK_HOURS.start && h < WORK_HOURS.end;
 }
 
+function localDateString(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function normalizeAircallRows(rows, cols) {
   if (!rows || !rows.length) return rows;
-  const hasStatus = cols.some(c => /^status$/i.test(c));
   const hasTotal = cols.some(c => /^total calls$/i.test(c));
-  return rows.map(r => {
-    const out = { ...r };
-    if (!hasTotal && hasStatus) {
-      const status = String(r.Status || r.status || '').toLowerCase();
-      const missed = /miss|voicemail|no.answer/.test(status) ? 1 : 0;
-      out['Total Calls'] = 1;
-      out.Missed = missed;
-      out.Answered = missed ? 0 : 1;
+  const hasMissCol = AIRCALL_MISS_COLS.some(c => cols.includes(c));
+  const hasStatus = cols.some(c => /^status$/i.test(c));
+  const hasDirection = AIRCALL_DIRECTION_COLS.some(c => cols.includes(c));
+  const out = [];
+  rows.forEach(r => {
+    /* Filter to inbound only when the sheet tells us direction — outbound
+       sales calls going unanswered shouldn't pollute inbound miss rates. */
+    if (hasDirection) {
+      const dir = String(getFirstFieldValue(r, AIRCALL_DIRECTION_COLS) || '').toLowerCase();
+      if (dir && !/in(bound)?/.test(dir)) return;
     }
-    if (!out.brand) {
-      const inferred = inferCallBrand(out);
-      if (inferred) out.brand = inferred;
+
+    const row = { ...r };
+    if (!hasTotal) {
+      /* Miss detection priority: explicit Missed Call Reason column (Aircall
+         export), then Status column pattern matching as a fallback. */
+      let missed = 0;
+      if (hasMissCol) {
+        const reason = String(getFirstFieldValue(r, AIRCALL_MISS_COLS) || '').trim().toLowerCase();
+        missed = reason && reason !== 'none' && reason !== 'n/a' ? 1 : 0;
+      } else if (hasStatus) {
+        const st = String(r.Status || r.status || '').toLowerCase();
+        missed = /miss|voicemail|no.answer|abandon/.test(st) ? 1 : 0;
+      }
+      row['Total Calls'] = 1;
+      row.Missed = missed;
+      row.Answered = missed ? 0 : 1;
     }
-    return out;
+
+    /* Ensure row.Date exists so byDay() works. Derive from Started At if missing. */
+    if (!row.Date || typeof row.Date !== 'string' || row.Date.length < 10) {
+      const parsed = parseCallDate(row);
+      if (parsed) row.Date = localDateString(parsed);
+    }
+
+    if (!row.brand) row.brand = inferCallBrand(row);
+    out.push(row);
   });
+  return out;
 }
 
 async function fetchSheet(id) {
@@ -1215,7 +1275,7 @@ function mockGa() {
    sum()-based renderers keep working, and the new in-hours vs after-hours
    split can be computed from Time + Date day-of-week. */
 const VIA_CALL_AGENTS = ['Maria Lopez', 'Derek Chen', 'Viatrading Sales', 'Sofia Ramirez', 'Jordan Wells'];
-const LIQ_CALL_AGENTS = Array.from(LIQ_CALL_USERS);
+const LIQ_CALL_AGENTS = Array.from(LIQ_AIRCALL_LINES);
 
 function mockAircall() {
   const out = [];

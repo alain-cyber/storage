@@ -360,9 +360,54 @@
     max-width: 62rem;
   }
   .ai-recs {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .rec-source-group { display: flex; flex-direction: column; gap: 0.6rem; }
+  .rec-source-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px dashed var(--border);
+  }
+  .rec-source-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    font-weight: 400;
+  }
+  .rec-source-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    background: var(--surface);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  .rec-source-count.empty { opacity: 0.55; }
+  .rec-source-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text3);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+  .rec-source-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 0.75rem;
+  }
+  .rec-source-empty {
+    grid-column: 1 / -1;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    font-style: italic;
+    padding: 0.25rem 0 0.5rem;
   }
   .rec-card {
     background: var(--surface2);
@@ -679,7 +724,7 @@
     .todo-panel { margin: 0.75rem 1.5rem 0; padding: 1rem 1.25rem; }
     .charts-grid-2 { grid-template-columns: 1fr; }
     .metrics-grid { grid-template-columns: 1fr 1fr; }
-    .ai-recs { grid-template-columns: 1fr; }
+    .rec-source-grid { grid-template-columns: 1fr; }
   }
 
   /* ══════════════════════ APP SHELL ═══════════════════════════════════
@@ -1264,13 +1309,13 @@
         <div class="action-filter">
           <label for="filterSource">Source</label>
           <select id="filterSource">
-            <option value="all">All</option>
+            <option value="all">All sources</option>
             <option value="ads">Ads</option>
-            <option value="gsc">SEO</option>
-            <option value="ga">GA4</option>
-            <option value="aircall">Calls</option>
+            <option value="gsc">SEO / Search</option>
+            <option value="ga">Web Analytics</option>
             <option value="social">Social</option>
-            <option value="cross">Cross</option>
+            <option value="aircall">Calls</option>
+            <option value="cross">Cross-Channel</option>
           </select>
         </div>
         <div class="action-filter">
@@ -1777,6 +1822,18 @@ const ACTION_TYPE_LABELS = {
   STAFFING_REVIEW: 'Staffing review',
 };
 const SOURCE_LABELS = { ads: 'Ads', gsc: 'SEO', ga: 'GA4', aircall: 'Calls', social: 'Social', cross: 'Cross' };
+/* Display order + descriptive copy for the grouped Decisions view. Cards are
+   bucketed under these headers so it's obvious which source generated what,
+   and which sources had nothing to flag in the current filter window. */
+const SOURCE_ORDER = ['ads', 'gsc', 'ga', 'social', 'aircall', 'cross'];
+const SOURCE_DETAIL = {
+  ads:     { label: 'Ads',           hint: 'Google Ads campaigns' },
+  gsc:     { label: 'SEO / Search',  hint: 'Search Console queries' },
+  ga:      { label: 'Web Analytics', hint: 'GA4 channels & landings' },
+  social:  { label: 'Social',        hint: 'Metricool posts' },
+  aircall: { label: 'Calls',         hint: 'Aircall lines & volume' },
+  cross:   { label: 'Cross-Channel', hint: 'Multi-source signals' },
+};
 
 const ACTION_LOG_KEY = 'cmoActionLog_v1';
 function loadActionLog() {
@@ -1899,41 +1956,66 @@ function renderActionCounters(actionsByDataset) {
   `;
 }
 
+function renderActionCardHtml(a) {
+  const sev = a.priority.toLowerCase();
+  const label = ACTION_TYPE_LABELS[a.action_type] || a.action_type;
+  const trigger = a.metric_trigger ? `<div class="rec-trigger">${escapeHtml(a.metric_trigger)}</div>` : '';
+  const metaBits = [`<span>${a.grain}</span>`];
+  if (a.brand && a.brand !== 'all') metaBits.push(`<span>${a.brand === 'via' ? 'Viatrading' : a.brand === 'liq' ? 'Liquidatenow' : a.brand}</span>`);
+  return `
+    <div class="rec-card status-${a.status}" data-action-id="${a.action_id}">
+      <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+        <span class="rec-sev rec-sev-${sev}">${a.priority}</span>
+        <span class="rec-status-tag rec-status-${a.status}">${a.status.replace('_', ' ')}</span>
+      </div>
+      <div class="rec-title">${escapeHtml(label)} — ${escapeHtml(a.entity_name || '—')}</div>
+      <div class="rec-rationale">${escapeHtml(a.reason)}</div>
+      ${trigger}
+      <div class="rec-meta-row">${metaBits.join('')}</div>
+      <div class="rec-actions">
+        <button class="rec-btn rec-btn-complete" type="button" data-action-set="${a.action_id}:COMPLETED">Complete</button>
+        <button class="rec-btn rec-btn-progress" type="button" data-action-set="${a.action_id}:IN_PROGRESS">In Progress</button>
+        <button class="rec-btn rec-btn-dismiss" type="button" data-action-set="${a.action_id}:DISMISSED">Dismiss</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderActionCards(actionsByDataset, filters) {
   const el = document.getElementById('aiRecs');
   if (!el) return;
   const flat = flattenActions(actionsByDataset);
   const filtered = sortActions(filterActions(flat, filters));
-  if (!filtered.length) {
-    el.innerHTML = `<div class="action-empty">No actions match the current filters.</div>`;
-    return;
-  }
-  el.innerHTML = filtered.slice(0, 24).map(a => {
-    const sev = a.priority.toLowerCase();
-    const label = ACTION_TYPE_LABELS[a.action_type] || a.action_type;
-    const trigger = a.metric_trigger ? `<div class="rec-trigger">${escapeHtml(a.metric_trigger)}</div>` : '';
-    const metaBits = [];
-    metaBits.push(`<span>${SOURCE_LABELS[a.source] || a.source}</span>`);
-    metaBits.push(`<span>${a.grain}</span>`);
-    if (a.brand && a.brand !== 'all') metaBits.push(`<span>${a.brand === 'via' ? 'Viatrading' : a.brand === 'liq' ? 'Liquidatenow' : a.brand}</span>`);
+
+  /* Bucket the filtered actions by source so each channel renders under its
+     own header. Always show every source group (even empty ones) when the
+     source filter is "all" — empty sections are themselves a useful signal
+     that ads/seo/etc. produced nothing in the current window. */
+  const grouped = {};
+  filtered.forEach(a => { (grouped[a.source] = grouped[a.source] || []).push(a); });
+
+  const visibleSources = filters.source && filters.source !== 'all'
+    ? [filters.source]
+    : SOURCE_ORDER;
+
+  el.innerHTML = visibleSources.map(src => {
+    const list = (grouped[src] || []).slice(0, 24);
+    const detail = SOURCE_DETAIL[src] || { label: src, hint: '' };
+    const cards = list.length
+      ? list.map(renderActionCardHtml).join('')
+      : `<div class="rec-source-empty">No ${detail.label.toLowerCase()} decisions match the current filters.</div>`;
     return `
-      <div class="rec-card status-${a.status}" data-action-id="${a.action_id}">
-        <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
-          <span class="rec-sev rec-sev-${sev}">${a.priority}</span>
-          <span class="rec-status-tag rec-status-${a.status}">${a.status.replace('_', ' ')}</span>
-        </div>
-        <div class="rec-title">${escapeHtml(label)} — ${escapeHtml(a.entity_name || '—')}</div>
-        <div class="rec-rationale">${escapeHtml(a.reason)}</div>
-        ${trigger}
-        <div class="rec-meta-row">${metaBits.join('')}</div>
-        <div class="rec-actions">
-          <button class="rec-btn rec-btn-complete" type="button" data-action-set="${a.action_id}:COMPLETED">Complete</button>
-          <button class="rec-btn rec-btn-progress" type="button" data-action-set="${a.action_id}:IN_PROGRESS">In Progress</button>
-          <button class="rec-btn rec-btn-dismiss" type="button" data-action-set="${a.action_id}:DISMISSED">Dismiss</button>
-        </div>
-      </div>
+      <section class="rec-source-group" data-source="${src}">
+        <header class="rec-source-head">
+          <h3 class="rec-source-title">${detail.label}</h3>
+          <span class="rec-source-count${list.length ? '' : ' empty'}">${list.length}</span>
+          <span class="rec-source-hint">${detail.hint}</span>
+        </header>
+        <div class="rec-source-grid">${cards}</div>
+      </section>
     `;
   }).join('');
+
   el.querySelectorAll('[data-action-set]').forEach(btn => {
     btn.addEventListener('click', () => {
       const [id, status] = btn.dataset.actionSet.split(':');

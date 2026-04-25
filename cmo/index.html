@@ -360,9 +360,218 @@
     max-width: 62rem;
   }
   .ai-recs {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .rec-source-group { display: flex; flex-direction: column; gap: 0.6rem; }
+  .rec-source-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px dashed var(--border);
+  }
+  .rec-source-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    font-weight: 400;
+  }
+  .rec-source-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    background: var(--surface);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  .rec-source-count.empty { opacity: 0.55; }
+  .rec-source-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text3);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+  .rec-source-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 0.75rem;
+  }
+  .rec-source-empty {
+    grid-column: 1 / -1;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    font-style: italic;
+    padding: 0.25rem 0 0.5rem;
+  }
+
+  /* Data Sources page */
+  .sources-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+  }
+  .src-counter {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+  }
+  .src-counter-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .src-counter-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    margin-top: 0.2rem;
+  }
+  .src-counter-value.live { color: var(--green); }
+  .src-counter-value.demo { color: var(--amber); }
+  .src-counter-value.fail { color: var(--red); }
+  .sources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 0.85rem;
+  }
+  .src-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .src-card.is-live   { border-left: 3px solid var(--green); }
+  .src-card.is-demo   { border-left: 3px solid var(--amber); }
+  .src-card.is-fail   { border-left: 3px solid var(--red); }
+  .src-card-head {
+    display: flex; align-items: baseline; gap: 0.55rem; flex-wrap: wrap;
+  }
+  .src-card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+  }
+  .src-card-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text3);
+    letter-spacing: 0.06em;
+  }
+  .src-status {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+  .src-status.live { background: var(--green-dim); color: var(--green); }
+  .src-status.demo { background: var(--amber-dim); color: var(--amber); }
+  .src-status.fail { background: var(--red-dim); color: var(--red); }
+  .src-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem 0.75rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+  }
+  .src-stat-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .src-stat-value { color: var(--text); }
+  .src-stat-value.dim { color: var(--text3); font-style: italic; }
+  .src-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text3);
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .src-meta a {
+    color: var(--text2);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--border2);
+  }
+  .src-meta a:hover { color: var(--text); }
+  .src-cols {
+    display: flex; flex-wrap: wrap; gap: 0.3rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+  }
+  .src-col-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .src-reason {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--amber);
+    background: var(--amber-dim);
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    line-height: 1.45;
+  }
+  .src-reason.fail { color: var(--red); background: var(--red-dim); }
+  .pill.warn { background: var(--amber-dim); color: var(--amber); }
+
+  /* "Last refreshed" strip on Overview */
+  .refresh-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin: 0 2.5rem 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+  .refresh-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .refresh-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .refresh-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+  }
+  .refresh-value.warn { color: var(--amber); }
+  .refresh-value.fail { color: var(--red); }
+  a.refresh-link {
+    text-decoration: none;
+    transition: border-color 0.2s;
+  }
+  a.refresh-link:hover { border-color: var(--border2); }
+  @media (max-width: 768px) {
+    .refresh-strip { margin: 0 1.5rem 1rem; }
   }
   .rec-card {
     background: var(--surface2);
@@ -679,7 +888,7 @@
     .todo-panel { margin: 0.75rem 1.5rem 0; padding: 1rem 1.25rem; }
     .charts-grid-2 { grid-template-columns: 1fr; }
     .metrics-grid { grid-template-columns: 1fr 1fr; }
-    .ai-recs { grid-template-columns: 1fr; }
+    .rec-source-grid { grid-template-columns: 1fr; }
   }
 
   /* ══════════════════════ APP SHELL ═══════════════════════════════════
@@ -918,6 +1127,7 @@
     <a class="side-link" data-route="email"    href="#/email">Email</a>
     <div class="side-sep"></div>
     <a class="side-link" data-route="decisions" href="#/decisions">Decisions <span class="pill" id="sideDecisionsCount"></span></a>
+    <a class="side-link" data-route="sources"   href="#/sources">Data Sources <span class="pill" id="sideSourcesPill"></span></a>
   </nav>
   <div class="side-foot">Viatrading &amp; Liquidatenow</div>
 </aside>
@@ -964,6 +1174,13 @@
     </div>
     <div class="ai-brief-text" id="aiBriefText">Generating briefing…</div>
   </section>
+
+  <div class="refresh-strip" id="refreshStrip" role="status" aria-live="polite">
+    <div class="refresh-tile"><span class="refresh-label">Last refreshed</span><span class="refresh-value" id="refreshTime">—</span></div>
+    <div class="refresh-tile"><span class="refresh-label">Date range</span><span class="refresh-value" id="refreshRange">—</span></div>
+    <div class="refresh-tile"><span class="refresh-label">Brand</span><span class="refresh-value" id="refreshBrand">—</span></div>
+    <a class="refresh-tile refresh-link" href="#/sources"><span class="refresh-label">Sources</span><span class="refresh-value" id="refreshSources">—</span></a>
+  </div>
 
 <section class="section" id="overviewSection">
   <div class="section-head">
@@ -1264,13 +1481,13 @@
         <div class="action-filter">
           <label for="filterSource">Source</label>
           <select id="filterSource">
-            <option value="all">All</option>
+            <option value="all">All sources</option>
             <option value="ads">Ads</option>
-            <option value="gsc">SEO</option>
-            <option value="ga">GA4</option>
-            <option value="aircall">Calls</option>
+            <option value="gsc">SEO / Search</option>
+            <option value="ga">Web Analytics</option>
             <option value="social">Social</option>
-            <option value="cross">Cross</option>
+            <option value="aircall">Calls</option>
+            <option value="cross">Cross-Channel</option>
           </select>
         </div>
         <div class="action-filter">
@@ -1296,6 +1513,17 @@
       </div>
     </div>
     <div class="ai-recs" id="aiRecs"></div>
+  </section>
+</section>
+
+<section class="page" data-page="sources" hidden>
+  <section class="section" id="sourcesSection">
+    <div class="section-head">
+      <div class="section-title">Data Sources</div>
+      <div class="section-meta">Live · Demo · Failed status for every connector</div>
+    </div>
+    <div class="sources-summary" id="sourcesSummary"></div>
+    <div class="sources-grid" id="sourcesGrid"></div>
   </section>
 </section>
 
@@ -1777,6 +2005,18 @@ const ACTION_TYPE_LABELS = {
   STAFFING_REVIEW: 'Staffing review',
 };
 const SOURCE_LABELS = { ads: 'Ads', gsc: 'SEO', ga: 'GA4', aircall: 'Calls', social: 'Social', cross: 'Cross' };
+/* Display order + descriptive copy for the grouped Decisions view. Cards are
+   bucketed under these headers so it's obvious which source generated what,
+   and which sources had nothing to flag in the current filter window. */
+const SOURCE_ORDER = ['ads', 'gsc', 'ga', 'social', 'aircall', 'cross'];
+const SOURCE_DETAIL = {
+  ads:     { label: 'Ads',           hint: 'Google Ads campaigns' },
+  gsc:     { label: 'SEO / Search',  hint: 'Search Console queries' },
+  ga:      { label: 'Web Analytics', hint: 'GA4 channels & landings' },
+  social:  { label: 'Social',        hint: 'Metricool posts' },
+  aircall: { label: 'Calls',         hint: 'Aircall lines & volume' },
+  cross:   { label: 'Cross-Channel', hint: 'Multi-source signals' },
+};
 
 const ACTION_LOG_KEY = 'cmoActionLog_v1';
 function loadActionLog() {
@@ -1899,41 +2139,66 @@ function renderActionCounters(actionsByDataset) {
   `;
 }
 
+function renderActionCardHtml(a) {
+  const sev = a.priority.toLowerCase();
+  const label = ACTION_TYPE_LABELS[a.action_type] || a.action_type;
+  const trigger = a.metric_trigger ? `<div class="rec-trigger">${escapeHtml(a.metric_trigger)}</div>` : '';
+  const metaBits = [`<span>${a.grain}</span>`];
+  if (a.brand && a.brand !== 'all') metaBits.push(`<span>${a.brand === 'via' ? 'Viatrading' : a.brand === 'liq' ? 'Liquidatenow' : a.brand}</span>`);
+  return `
+    <div class="rec-card status-${a.status}" data-action-id="${a.action_id}">
+      <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+        <span class="rec-sev rec-sev-${sev}">${a.priority}</span>
+        <span class="rec-status-tag rec-status-${a.status}">${a.status.replace('_', ' ')}</span>
+      </div>
+      <div class="rec-title">${escapeHtml(label)} — ${escapeHtml(a.entity_name || '—')}</div>
+      <div class="rec-rationale">${escapeHtml(a.reason)}</div>
+      ${trigger}
+      <div class="rec-meta-row">${metaBits.join('')}</div>
+      <div class="rec-actions">
+        <button class="rec-btn rec-btn-complete" type="button" data-action-set="${a.action_id}:COMPLETED">Complete</button>
+        <button class="rec-btn rec-btn-progress" type="button" data-action-set="${a.action_id}:IN_PROGRESS">In Progress</button>
+        <button class="rec-btn rec-btn-dismiss" type="button" data-action-set="${a.action_id}:DISMISSED">Dismiss</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderActionCards(actionsByDataset, filters) {
   const el = document.getElementById('aiRecs');
   if (!el) return;
   const flat = flattenActions(actionsByDataset);
   const filtered = sortActions(filterActions(flat, filters));
-  if (!filtered.length) {
-    el.innerHTML = `<div class="action-empty">No actions match the current filters.</div>`;
-    return;
-  }
-  el.innerHTML = filtered.slice(0, 24).map(a => {
-    const sev = a.priority.toLowerCase();
-    const label = ACTION_TYPE_LABELS[a.action_type] || a.action_type;
-    const trigger = a.metric_trigger ? `<div class="rec-trigger">${escapeHtml(a.metric_trigger)}</div>` : '';
-    const metaBits = [];
-    metaBits.push(`<span>${SOURCE_LABELS[a.source] || a.source}</span>`);
-    metaBits.push(`<span>${a.grain}</span>`);
-    if (a.brand && a.brand !== 'all') metaBits.push(`<span>${a.brand === 'via' ? 'Viatrading' : a.brand === 'liq' ? 'Liquidatenow' : a.brand}</span>`);
+
+  /* Bucket the filtered actions by source so each channel renders under its
+     own header. Always show every source group (even empty ones) when the
+     source filter is "all" — empty sections are themselves a useful signal
+     that ads/seo/etc. produced nothing in the current window. */
+  const grouped = {};
+  filtered.forEach(a => { (grouped[a.source] = grouped[a.source] || []).push(a); });
+
+  const visibleSources = filters.source && filters.source !== 'all'
+    ? [filters.source]
+    : SOURCE_ORDER;
+
+  el.innerHTML = visibleSources.map(src => {
+    const list = (grouped[src] || []).slice(0, 24);
+    const detail = SOURCE_DETAIL[src] || { label: src, hint: '' };
+    const cards = list.length
+      ? list.map(renderActionCardHtml).join('')
+      : `<div class="rec-source-empty">No ${detail.label.toLowerCase()} decisions match the current filters.</div>`;
     return `
-      <div class="rec-card status-${a.status}" data-action-id="${a.action_id}">
-        <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
-          <span class="rec-sev rec-sev-${sev}">${a.priority}</span>
-          <span class="rec-status-tag rec-status-${a.status}">${a.status.replace('_', ' ')}</span>
-        </div>
-        <div class="rec-title">${escapeHtml(label)} — ${escapeHtml(a.entity_name || '—')}</div>
-        <div class="rec-rationale">${escapeHtml(a.reason)}</div>
-        ${trigger}
-        <div class="rec-meta-row">${metaBits.join('')}</div>
-        <div class="rec-actions">
-          <button class="rec-btn rec-btn-complete" type="button" data-action-set="${a.action_id}:COMPLETED">Complete</button>
-          <button class="rec-btn rec-btn-progress" type="button" data-action-set="${a.action_id}:IN_PROGRESS">In Progress</button>
-          <button class="rec-btn rec-btn-dismiss" type="button" data-action-set="${a.action_id}:DISMISSED">Dismiss</button>
-        </div>
-      </div>
+      <section class="rec-source-group" data-source="${src}">
+        <header class="rec-source-head">
+          <h3 class="rec-source-title">${detail.label}</h3>
+          <span class="rec-source-count${list.length ? '' : ' empty'}">${list.length}</span>
+          <span class="rec-source-hint">${detail.hint}</span>
+        </header>
+        <div class="rec-source-grid">${cards}</div>
+      </section>
     `;
   }).join('');
+
   el.querySelectorAll('[data-action-set]').forEach(btn => {
     btn.addEventListener('click', () => {
       const [id, status] = btn.dataset.actionSet.split(':');
@@ -2742,9 +3007,188 @@ function mockChannel(mockFn, reason) {
   return { rows, source: 'demo', cols: Object.keys(rows[0] || {}), reason };
 }
 
+/* ── Data Sources report ─────────────────────────────────────────
+   Reads what `loadChannel` actually produced for each connector
+   (live vs. demo vs. failed, row counts, brand split, columns,
+   error reason if any) and renders a per-source health card. */
+const SOURCE_DETAIL_REPORT = [
+  { key: 'ads',     prop: 'ads',    label: 'Google Ads',           bucket: 'Ads' },
+  { key: 'gsc',     prop: 'gsc',    label: 'Google Search Console',bucket: 'SEO / Search' },
+  { key: 'ga',      prop: 'ga',     label: 'Google Analytics 4',   bucket: 'Web Analytics' },
+  { key: 'aircall', prop: 'ac',     label: 'Aircall',              bucket: 'Calls' },
+  { key: 'social',  prop: 'social', label: 'Metricool · Social',   bucket: 'Social' },
+];
+
+function dateRangeFromRows(rows) {
+  let min = null, max = null;
+  for (const r of rows) {
+    /* Canonical column is `Date` after applyAliases/normalize. Fall back to
+       `date` only for safety on raw mock objects. */
+    const v = r && (r.Date || r.date);
+    if (!v) continue;
+    const t = typeof v === 'string' ? Date.parse(v) : (v instanceof Date ? v.getTime() : NaN);
+    if (isNaN(t)) continue;
+    if (min == null || t < min) min = t;
+    if (max == null || t > max) max = t;
+  }
+  if (min == null) return null;
+  const f = ms => new Date(ms).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  return { min: f(min), max: f(max) };
+}
+
+function summarizeSourceHealth(raw) {
+  const counts = { live: 0, demo: 0, fail: 0 };
+  if (!raw) return counts;
+  SOURCE_DETAIL_REPORT.forEach(s => {
+    const ch = raw[s.prop];
+    if (!ch) { counts.fail++; return; }
+    if (ch.source === 'live') counts.live++;
+    else if (ch.source === 'demo' && (ch.rows || []).length) counts.demo++;
+    else counts.fail++;
+  });
+  return counts;
+}
+
+function brandSplit(rows) {
+  let via = 0, liq = 0, none = 0;
+  for (const r of rows) {
+    if (!r) continue;
+    if (r.brand === 'via') via++;
+    else if (r.brand === 'liq') liq++;
+    else none++;
+  }
+  return { via, liq, none };
+}
+
+function renderDataSources(raw) {
+  const grid = document.getElementById('sourcesGrid');
+  const summary = document.getElementById('sourcesSummary');
+  const sidePill = document.getElementById('sideSourcesPill');
+  if (!grid || !summary) return;
+
+  const rows = SOURCE_DETAIL_REPORT.map(s => {
+    const ch = raw[s.prop] || { rows: [], cols: [], source: 'fail', reason: 'no channel object' };
+    return { ...s, channel: ch };
+  });
+
+  let live = 0, demo = 0, fail = 0, totalRows = 0;
+  rows.forEach(r => {
+    totalRows += r.channel.rows.length;
+    if (r.channel.source === 'live') live++;
+    else if (r.channel.source === 'demo' && r.channel.rows.length) demo++;
+    else fail++;
+  });
+
+  summary.innerHTML = `
+    <div class="src-counter"><div class="src-counter-label">Sources connected</div><div class="src-counter-value live">${live} / ${rows.length}</div></div>
+    <div class="src-counter"><div class="src-counter-label">On demo data</div><div class="src-counter-value demo">${demo}</div></div>
+    <div class="src-counter"><div class="src-counter-label">Failed</div><div class="src-counter-value fail">${fail}</div></div>
+    <div class="src-counter"><div class="src-counter-label">Total rows pulled</div><div class="src-counter-value">${fmt(totalRows)}</div></div>
+  `;
+
+  if (sidePill) {
+    const off = demo + fail;
+    sidePill.textContent = off ? String(off) : '';
+    sidePill.classList.toggle('warn', off > 0);
+  }
+
+  grid.innerHTML = rows.map(r => {
+    const ch = r.channel;
+    const sheet = SHEETS[r.key] || {};
+    const status = ch.source === 'live' ? 'live' : (ch.rows.length ? 'demo' : 'fail');
+    const statusLabel = status === 'live' ? 'LIVE' : status === 'demo' ? 'DEMO' : 'FAILED';
+    const range = dateRangeFromRows(ch.rows);
+    const split = brandSplit(ch.rows);
+    const tabs = sheet.brandTabs
+      ? Object.entries(sheet.brandTabs).map(([b, t]) => `${b}: ${t}`).join(' · ')
+      : (sheet.sheetName || (sheet.gid != null ? `gid=${sheet.gid}` : 'default tab'));
+    const sheetLink = sheet.id
+      ? `<a href="https://docs.google.com/spreadsheets/d/${sheet.id}/edit" target="_blank" rel="noopener">${sheet.id.slice(0, 8)}…${sheet.id.slice(-4)}</a>`
+      : '<span class="src-stat-value dim">—</span>';
+    const cols = (ch.cols || []).slice(0, 12).map(c => `<span class="src-col-chip">${escapeHtml(String(c))}</span>`).join('');
+    const colsExtra = (ch.cols || []).length > 12 ? `<span class="src-col-chip">+${ch.cols.length - 12} more</span>` : '';
+    const splitLine = sheet.brandTabs
+      ? `<span class="src-stat-value">${fmt(split.via)} via · ${fmt(split.liq)} liq${split.none ? ` · ${fmt(split.none)} untagged` : ''}</span>`
+      : `<span class="src-stat-value dim">single tab</span>`;
+    const reasonBlock = ch.reason
+      ? `<div class="src-reason${status === 'fail' ? ' fail' : ''}">${escapeHtml(String(ch.reason))}</div>`
+      : '';
+
+    return `
+      <article class="src-card is-${status}">
+        <header class="src-card-head">
+          <div>
+            <div class="src-card-title">${escapeHtml(r.label)}</div>
+            <div class="src-card-sub">${escapeHtml(r.bucket)} · ${escapeHtml(r.key)}</div>
+          </div>
+          <span class="src-status ${status}">${statusLabel}</span>
+        </header>
+        <div class="src-stats">
+          <div>
+            <div class="src-stat-label">Rows</div>
+            <div class="src-stat-value">${fmt(ch.rows.length)}</div>
+          </div>
+          <div>
+            <div class="src-stat-label">Brand split</div>
+            ${splitLine}
+          </div>
+          <div>
+            <div class="src-stat-label">Date range</div>
+            ${range ? `<span class="src-stat-value">${range.min} → ${range.max}</span>` : '<span class="src-stat-value dim">no date column</span>'}
+          </div>
+          <div>
+            <div class="src-stat-label">Columns</div>
+            <div class="src-stat-value">${(ch.cols || []).length}</div>
+          </div>
+        </div>
+        <div class="src-meta">
+          <div><strong>Sheet</strong> ${sheetLink}</div>
+          <div><strong>Tabs</strong> ${escapeHtml(tabs)}</div>
+        </div>
+        ${cols ? `<div class="src-cols">${cols}${colsExtra}</div>` : ''}
+        ${reasonBlock}
+      </article>
+    `;
+  }).join('');
+}
+
+const BRAND_DISPLAY = { all: 'All brands', via: 'Viatrading', liq: 'Liquidatenow' };
+
+/* Short suffix shown on KPI labels so the user can confirm at a glance which
+   window the value covers. Mirrors the dropdown but compresses copy. */
+const RANGE_SUFFIX = {
+  today: 'today', yesterday: 'yest.', '7d': '7d', '30d': '30d',
+  mtd: 'MTD', lastMonth: 'last mo.', qtd: 'QTD', '90d': '90d',
+};
+function rangeSuffix() {
+  const k = state.timeRange && state.timeRange.key;
+  return RANGE_SUFFIX[k] || '30d';
+}
+
+function renderRefreshStrip() {
+  const ts = state.lastRefreshAt instanceof Date ? state.lastRefreshAt : new Date();
+  const tEl = document.getElementById('refreshTime');
+  const rEl = document.getElementById('refreshRange');
+  const bEl = document.getElementById('refreshBrand');
+  const sEl = document.getElementById('refreshSources');
+  if (tEl) tEl.textContent = ts.toLocaleString('en-US', { month:'short', day:'numeric', hour: 'numeric', minute: '2-digit' });
+  if (rEl) rEl.textContent = (state.timeRange && state.timeRange.label) || 'Last 30 days';
+  if (bEl) bEl.textContent = BRAND_DISPLAY[state.brand] || state.brand;
+  if (sEl) {
+    const h = summarizeSourceHealth(state.raw);
+    sEl.textContent = `${h.live} live · ${h.demo} demo · ${h.fail} failed`;
+    sEl.classList.remove('warn', 'fail');
+    if (h.fail > 0) sEl.classList.add('fail');
+    else if (h.demo > 0) sEl.classList.add('warn');
+  }
+  /* Mirror the timestamp in the topbar. */
+  const top = document.getElementById('lastUpdated');
+  if (top) top.textContent = `Updated ${ts.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`;
+}
+
 function paint(ads, gsc, ga, ac, social) {
-  document.getElementById('lastUpdated').textContent =
-    new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  state.lastRefreshAt = new Date();
+  renderRefreshStrip();
   const insights = generateInsights({ ads, gsc, ga, ac, social }, state.brand);
   /* Hydrate generated actions with persisted status overrides, then
      store for filter/status interactions to mutate + re-render. */
@@ -2761,6 +3205,8 @@ function paint(ads, gsc, ga, ac, social) {
   renderGa(ga, insights.perSection.ga);
   renderCalls(ac, insights.perSection.calls);
   renderSocial(social, insights.perSection.social);
+  /* Always show what was actually pulled — not the brand/range slice. */
+  if (state.raw) renderDataSources(state.raw);
   renderPlaceholders();
 }
 
@@ -2777,15 +3223,20 @@ function repaint() {
   };
 
   /* If user picked a specific brand but a live channel has no brand column,
-     surface the "filter pending" hint so the user knows that channel isn't
-     actually being sliced. Mock data always has brand tags, so on DEMO
-     sources the toggle is always fully active. */
+     surface the "filter pending" hint with the channel names so the user
+     knows exactly which datasets aren't being sliced. Mock data always has
+     brand tags via forBrands(), so demo sources are always fully active. */
   const pending = document.getElementById('brandPending');
   if (pending) {
     const needsBrand = state.brand !== 'all';
-    const missingBrand = needsBrand && Object.values(state.raw).some(
-      c => c.source === 'live' && !c.rows.some(r => r && r.brand)
-    );
+    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social' };
+    const unsliceable = Object.entries(state.raw)
+      .filter(([, c]) => c && c.source === 'live' && c.rows.length && !c.rows.some(r => r && r.brand))
+      .map(([k]) => NAME[k] || k);
+    const missingBrand = needsBrand && unsliceable.length > 0;
+    if (missingBrand) {
+      pending.textContent = `${unsliceable.join(' + ')} not brand-tagged — shown across both brands`;
+    }
     pending.classList.toggle('hidden', !missingBrand);
   }
   paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac, scoped.social);
@@ -2834,7 +3285,7 @@ function renderOverview(ads, gsc, ga, ac) {
   const conv = sum(ads.rows, 'Conversions');
   const cpl = conv > 0 ? spend / conv : null;
   renderKpis('overviewGrid', [
-    { label: 'Ad Spend (30d)', value: fmtCur(spend) },
+    { label: `Ad Spend (${rangeSuffix()})`, value: fmtCur(spend) },
     { label: 'Impressions', value: fmt(impr) },
     { label: 'Clicks', value: fmt(clicks) },
     { label: 'Web Sessions', value: fmt(sessions) },
@@ -2855,7 +3306,7 @@ function renderAds({ rows, source, reason }, insight) {
   const cpc = clicks > 0 ? (spend/clicks) : 0;
   const cpa = conv > 0 ? (spend/conv) : 0;
   renderKpis('adsKpis', [
-    { label: 'Spend (30d)', value: fmtCur(spend) },
+    { label: `Spend (${rangeSuffix()})`, value: fmtCur(spend) },
     { label: 'Clicks', value: fmt(clicks) },
     { label: 'CTR', value: fmtPct(ctr) },
     { label: 'CPC', value: fmtCur(cpc) },
@@ -2914,7 +3365,7 @@ function renderSeo({ rows, source, reason }, insight) {
   const ctr = impr > 0 ? clicks/impr*100 : 0;
   const pos = avg(rows, 'Avg Position');
   renderKpis('seoKpis', [
-    { label: 'Clicks (30d)', value: fmt(clicks) },
+    { label: `Clicks (${rangeSuffix()})`, value: fmt(clicks) },
     { label: 'Impressions', value: fmt(impr) },
     { label: 'CTR', value: fmtPct(ctr) },
     { label: 'Avg Position', value: pos ? pos.toFixed(1) : '—' },
@@ -2981,7 +3432,7 @@ function renderGa({ rows, source, reason }, insight) {
   const users = sum(rows, 'Users');
   const eng = avg(rows, 'Engagement Rate');
   renderKpis('gaKpis', [
-    { label: 'Sessions (30d)', value: fmt(sessions) },
+    { label: `Sessions (${rangeSuffix()})`, value: fmt(sessions) },
     { label: 'Users', value: fmt(users) },
     { label: 'Engagement', value: fmtPct(eng) },
     { label: 'Pages / Session', value: '—' },
@@ -3062,7 +3513,7 @@ function renderCalls({ rows, source, reason }, insight) {
   const inMissPct  = b.inTotal  ? b.inMissed  / b.inTotal  * 100 : null;
   const outMissPct = b.outTotal ? b.outMissed / b.outTotal * 100 : null;
   const kpis = [
-    { label: 'Total Calls (30d)', value: fmt(total) },
+    { label: `Total Calls (${rangeSuffix()})`, value: fmt(total) },
     { label: 'Answered', value: fmt(answered) },
     { label: 'Missed', value: fmt(missed) },
     { label: 'Answer Rate', value: fmtPct(ansPct) },
@@ -3166,7 +3617,7 @@ function renderSocial({ rows, source, reason }, insight) {
   const bestNet = netArr[0];
 
   renderKpis('socialKpis', [
-    { label: 'Posts (30d)', value: fmt(totalPosts) },
+    { label: `Posts (${rangeSuffix()})`, value: fmt(totalPosts) },
     { label: 'Total Reach', value: fmt(totalReach) },
     { label: 'Avg Reach / Post', value: fmt(Math.round(avgReach)) },
     { label: 'Best Network', value: bestNet ? bestNet.name : '—', delta: bestNet ? `${fmt(Math.round(bestNet.reachPer))} avg` : '' },
@@ -3287,7 +3738,7 @@ function scopeByRange(channel, range) {
 const NAV_LABEL = {
   overview: 'Overview', ads: 'Ads', seo: 'SEO', web: 'Web (GA4)',
   calls: 'Calls', social: 'Social', content: 'Content', email: 'Email',
-  decisions: 'Decisions',
+  decisions: 'Decisions', sources: 'Data Sources',
 };
 function currentRoute() {
   const raw = (location.hash || '').replace(/^#\/?/, '').split('?')[0];
@@ -3316,6 +3767,7 @@ const state = {
   actionLog: loadActionLog(),
   filters: { brand: 'all', source: 'all', priority: 'all', status: 'active' },
   activeChannel: 'overview',
+  lastRefreshAt: null,
   timeRange: resolveRange(
     (typeof localStorage !== 'undefined' && RANGE_KEYS.has(localStorage.getItem('cmoRange_v1')))
       ? localStorage.getItem('cmoRange_v1')

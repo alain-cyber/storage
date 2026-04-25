@@ -573,6 +573,144 @@
   @media (max-width: 768px) {
     .refresh-strip { margin: 0 1.5rem 1rem; }
   }
+
+  /* Decisions from Claude page */
+  .claude-key-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .claude-key-input {
+    flex: 1 1 320px;
+    min-width: 280px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .claude-key-input:focus { outline: none; border-color: var(--purple); }
+  .claude-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text3);
+    margin-bottom: 1rem;
+    min-height: 1.1rem;
+  }
+  .claude-status.error { color: var(--red); }
+  .claude-status.busy { color: var(--amber); }
+  .claude-status.ok { color: var(--green); }
+
+  /* Thresholds page */
+  .threshold-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+  .threshold-brand { display: flex; align-items: center; gap: 0.5rem; }
+  .threshold-brand .label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .threshold-brand .group {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .threshold-brand button {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    background: transparent;
+    border: 0;
+    padding: 0.4rem 0.85rem;
+    cursor: pointer;
+  }
+  .threshold-brand button + button { border-left: 1px solid var(--border); }
+  .threshold-brand button[aria-pressed="true"] {
+    color: var(--text);
+    background: var(--surface);
+  }
+  .threshold-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .threshold-saved {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--green);
+    transition: opacity 0.4s;
+  }
+  .threshold-saved.fading { opacity: 0; }
+  .threshold-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .threshold-source { display: flex; flex-direction: column; gap: 0.75rem; }
+  .threshold-source-head {
+    display: flex; align-items: baseline; gap: 0.5rem;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 0.4rem;
+  }
+  .threshold-source-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+  }
+  .threshold-source-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text3);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .threshold-rows {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  @media (min-width: 720px) {
+    .threshold-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .threshold-row {
+    display: grid;
+    grid-template-columns: 1fr 110px;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.75rem;
+  }
+  .threshold-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text2);
+    line-height: 1.3;
+  }
+  .threshold-input {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    padding: 0.35rem 0.5rem;
+    text-align: right;
+  }
+  .threshold-input:focus { outline: none; border-color: var(--purple); }
+  .threshold-input.dirty { border-color: var(--amber); }
+
   .rec-card {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -1119,6 +1257,7 @@
   <nav class="side-nav">
     <a class="side-link is-active" data-route="overview" href="#/overview">Overview</a>
     <a class="side-link" data-route="ads"      href="#/ads">Ads</a>
+    <a class="side-link" data-route="keywords" href="#/keywords">Keywords</a>
     <a class="side-link" data-route="seo"      href="#/seo">SEO</a>
     <a class="side-link" data-route="web"      href="#/web">Web</a>
     <a class="side-link" data-route="calls"    href="#/calls">Calls</a>
@@ -1126,7 +1265,9 @@
     <a class="side-link" data-route="content"  href="#/content">Content</a>
     <a class="side-link" data-route="email"    href="#/email">Email</a>
     <div class="side-sep"></div>
-    <a class="side-link" data-route="decisions" href="#/decisions">Decisions <span class="pill" id="sideDecisionsCount"></span></a>
+    <a class="side-link" data-route="decisions_filters" href="#/decisions_filters">Decisions from Filters <span class="pill" id="sideDecisionsCount"></span></a>
+    <a class="side-link" data-route="decisions_claude"  href="#/decisions_claude">Decisions from Claude</a>
+    <a class="side-link" data-route="thresholds" href="#/thresholds">Thresholds</a>
     <a class="side-link" data-route="sources"   href="#/sources">Data Sources <span class="pill" id="sideSourcesPill"></span></a>
   </nav>
   <div class="side-foot">Viatrading &amp; Liquidatenow</div>
@@ -1193,7 +1334,7 @@
   <section class="section" id="overviewTopActions">
     <div class="section-head">
       <div class="section-title">Top decisions</div>
-      <a class="section-link" href="#/decisions">See all →</a>
+      <a class="section-link" href="#/decisions_filters">See all →</a>
     </div>
     <div class="overview-actions" id="overviewActionsList"></div>
   </section>
@@ -1469,11 +1610,11 @@
 </section>
 </section>
 
-<section class="page" data-page="decisions" hidden>
+<section class="page" data-page="decisions_filters" hidden>
   <section class="section" id="decisionsSection">
     <div class="section-head">
-      <div class="section-title">Decisions</div>
-      <div class="section-meta">Actions generated from summaries across all sources</div>
+      <div class="section-title">Decisions from Filters</div>
+      <div class="section-meta">Rule-based actions · thresholds editable on the Thresholds page</div>
     </div>
     <div class="action-bar">
       <div class="action-counters" id="actionCounters"></div>
@@ -1483,6 +1624,7 @@
           <select id="filterSource">
             <option value="all">All sources</option>
             <option value="ads">Ads</option>
+            <option value="keywords">Keywords</option>
             <option value="gsc">SEO / Search</option>
             <option value="ga">Web Analytics</option>
             <option value="social">Social</option>
@@ -1513,6 +1655,86 @@
       </div>
     </div>
     <div class="ai-recs" id="aiRecs"></div>
+  </section>
+</section>
+
+<section class="page" data-page="keywords" hidden>
+  <section class="section" id="keywordsSection">
+    <div class="section-head">
+      <div class="section-title">Paid — Keywords</div>
+      <div class="section-meta" id="keywordsMeta">Google Ads · Keywords</div>
+    </div>
+    <div class="insight-strip" id="keywordsInsight"></div>
+    <div class="metrics-grid" id="keywordsKpis"></div>
+    <div class="charts-grid-2" style="margin-top:1rem">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Top spenders</div>
+            <div class="chart-value">By spend</div>
+          </div>
+          <span class="chart-badge badge-blue">Top 8</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Keyword</th><th>Match</th><th class="num">Spend</th><th class="num">Clicks</th><th class="num">Conv</th><th class="num">CPA</th></tr></thead>
+          <tbody id="keywordsTopSpend"></tbody>
+        </table>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Wasters</div>
+            <div class="chart-value">Spend, zero conversions</div>
+          </div>
+          <span class="chart-badge badge-red">Negate</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Keyword</th><th>Match</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">CTR</th></tr></thead>
+          <tbody id="keywordsWasters"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</section>
+
+<section class="page" data-page="decisions_claude" hidden>
+  <section class="section" id="decisionsClaudeSection">
+    <div class="section-head">
+      <div class="section-title">Decisions from Claude</div>
+      <div class="section-meta">LLM-reasoned actions over the same data — independent of the rule thresholds</div>
+    </div>
+    <div class="claude-key-row">
+      <input type="password" id="claudeKey" class="claude-key-input" placeholder="sk-ant-…  Anthropic API key (stored locally)" autocomplete="off" />
+      <button type="button" class="rec-btn" id="claudeKeySave">Save key</button>
+      <button type="button" class="rec-btn" id="claudeKeyClear">Clear</button>
+      <button type="button" class="rec-btn rec-btn-primary" id="claudeGenerate">Generate decisions</button>
+    </div>
+    <div class="claude-status" id="claudeStatus"></div>
+    <div class="ai-recs" id="claudeRecs"></div>
+  </section>
+</section>
+
+<section class="page" data-page="thresholds" hidden>
+  <section class="section" id="thresholdsSection">
+    <div class="section-head">
+      <div class="section-title">Thresholds</div>
+      <div class="section-meta">Tune what triggers each rule · per brand · saved locally</div>
+    </div>
+    <div class="threshold-bar">
+      <div class="threshold-brand">
+        <span class="label">Editing</span>
+        <div class="group" role="group" aria-label="Threshold brand">
+          <button type="button" data-tbrand="via" aria-pressed="true">Viatrading</button>
+          <button type="button" data-tbrand="liq" aria-pressed="false">Liquidatenow</button>
+        </div>
+      </div>
+      <div class="threshold-actions">
+        <button type="button" class="rec-btn rec-btn-primary" id="thresholdsSave">Save</button>
+        <button type="button" class="rec-btn" id="thresholdsReset">Reset to defaults</button>
+        <span class="threshold-saved" id="thresholdsSaved"></span>
+      </div>
+    </div>
+    <div class="threshold-grid" id="thresholdsGrid"></div>
   </section>
 </section>
 
@@ -1558,6 +1780,13 @@ const SHEETS = {
   },
   aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall', headers: 2 },
   social:  { id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk', gid: 1914162846, label: 'Metricool · Posts' },
+  /* Keyword-grain Ads data — split out of the Google Ads sheet when it hit the
+     10M cell cap. Same Coefficient banner-on-row-1 quirk → headers: 2. */
+  keywords: {
+    id: '1YNnopbYftG4CVhcna3mBvfx4WuxrVqNvi_zfAiOkav0',
+    label: 'Google Ads · Keywords', headers: 2,
+    brandTabs: { via: 'raw_ads_via_kw', liq: 'raw_ads_lnow_kw' },
+  },
 };
 
 const GREEN = '#4caf7d';
@@ -1828,6 +2057,23 @@ const COLUMN_ALIASES = {
     Date:             ['Day'],
     Channel:          ['Default channel group', 'Channel grouping', 'Session default channel group'],
   },
+  /* Keyword-grain Ads export from Coefficient. "Cost Micros" is already
+     dollars (Coefficient's quirk — see ads block above). */
+  keywords: {
+    Keyword:      ['Ad Group Criterion Keyword Text', 'Search keyword', 'Keyword text'],
+    'Match Type': ['Ad Group Criterion Keyword Match Type', 'Match type'],
+    'Ad Group':   ['Ad Group Name', 'Ad group name'],
+    Campaign:     ['Campaign Name', 'Campaign name'],
+    Spend:        ['Cost Micros', 'Cost', 'Cost (USD)', 'Amount spent', 'Ad spend', 'Cost micros'],
+    Clicks:       ['Click', 'Total clicks'],
+    Impressions:  ['Impr.', 'Impr', 'Total impressions'],
+    Conversions:  ['Conv.', 'Conv', 'All conv.', 'All conversions'],
+    'Avg CPC':    ['Average Cpc', 'Avg. CPC', 'CPC'],
+    CPA:          ['Cost Per Conversion', 'Cost per conv.', 'Cost / conv.'],
+    'Conv Value': ['Conversions Value', 'Conversion Value', 'Conv. value', 'All conv. value'],
+    Date:         ['Day', 'Report date'],
+    CTR:          ['Ctr', 'ctr'],
+  },
 };
 
 /* Case/space/underscore-insensitive column match. `Campaign name` / `CAMPAIGN_NAME`
@@ -2003,19 +2249,23 @@ const ACTION_TYPE_LABELS = {
   AUDIT_LANDING_PAGE: 'Audit landing page',
   FIX_ROUTING: 'Fix routing',
   STAFFING_REVIEW: 'Staffing review',
+  KILL_KEYWORD: 'Kill keyword',
+  NEGATE_KEYWORD: 'Add as negative',
+  SCALE_KEYWORD: 'Scale keyword',
 };
-const SOURCE_LABELS = { ads: 'Ads', gsc: 'SEO', ga: 'GA4', aircall: 'Calls', social: 'Social', cross: 'Cross' };
+const SOURCE_LABELS = { ads: 'Ads', gsc: 'SEO', ga: 'GA4', aircall: 'Calls', social: 'Social', cross: 'Cross', keywords: 'Keywords' };
 /* Display order + descriptive copy for the grouped Decisions view. Cards are
    bucketed under these headers so it's obvious which source generated what,
    and which sources had nothing to flag in the current filter window. */
-const SOURCE_ORDER = ['ads', 'gsc', 'ga', 'social', 'aircall', 'cross'];
+const SOURCE_ORDER = ['ads', 'keywords', 'gsc', 'ga', 'social', 'aircall', 'cross'];
 const SOURCE_DETAIL = {
-  ads:     { label: 'Ads',           hint: 'Google Ads campaigns' },
-  gsc:     { label: 'SEO / Search',  hint: 'Search Console queries' },
-  ga:      { label: 'Web Analytics', hint: 'GA4 channels & landings' },
-  social:  { label: 'Social',        hint: 'Metricool posts' },
-  aircall: { label: 'Calls',         hint: 'Aircall lines & volume' },
-  cross:   { label: 'Cross-Channel', hint: 'Multi-source signals' },
+  ads:      { label: 'Ads',           hint: 'Google Ads campaigns' },
+  keywords: { label: 'Keywords',      hint: 'Google Ads keywords' },
+  gsc:      { label: 'SEO / Search',  hint: 'Search Console queries' },
+  ga:       { label: 'Web Analytics', hint: 'GA4 channels & landings' },
+  social:   { label: 'Social',        hint: 'Metricool posts' },
+  aircall:  { label: 'Calls',         hint: 'Aircall lines & volume' },
+  cross:    { label: 'Cross-Channel', hint: 'Multi-source signals' },
 };
 
 const ACTION_LOG_KEY = 'cmoActionLog_v1';
@@ -2372,6 +2622,53 @@ function mockAds() {
     Campaign: pick(p.adsCampaigns),
   }));
 }
+const MOCK_KEYWORDS = {
+  via: ['liquidation pallets', 'wholesale liquidation', 'amazon return pallets', 'truckload liquidation', 'mystery box pallets', 'returns pallets near me', 'discount overstock', 'cheap pallets'],
+  liq: ['b2b liquidation', 'liquidation marketplace', 'wholesale returns auction', 'liquidate inventory', 'bulk liquidation buyer', 'closeout overstock buyer'],
+};
+const MOCK_MATCH_TYPES = ['EXACT', 'PHRASE', 'BROAD'];
+/* Keyword-grain mock: many rows per (day, brand) so KILL/NEGATE/SCALE rules
+   actually fire in demo mode. Spend is deliberately spiky so a few keywords
+   cross the KILL threshold ($100, 0 conv) on the demo path. */
+function mockKeywords() {
+  const out = [];
+  const dayList = days(MOCK_WINDOW_DAYS);
+  dayList.forEach(d => {
+    ['via', 'liq'].forEach(brand => {
+      const kws = MOCK_KEYWORDS[brand];
+      const profile = BRAND_PROFILES[brand];
+      kws.forEach((kw, idx) => {
+        const isWaster = idx === 0;       /* first kw spends, no conversions */
+        const isWinner = idx === 1;       /* second kw is efficient — for SCALE */
+        const baseCost  = isWaster ? 25 : isWinner ? 18 : 6 + Math.random() * 12;
+        const baseImpr  = isWaster ? 1800 : isWinner ? 1200 : 200 + Math.floor(Math.random() * 1500);
+        const baseClicks = isWaster ? 30 : isWinner ? 90 : Math.floor(baseImpr * (0.005 + Math.random() * 0.04));
+        const baseConv = isWaster ? 0 : isWinner ? 6 : Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 3) : 0;
+        const cost = jitter(baseCost, baseCost * 0.4);
+        const clicks = Math.max(1, jitter(baseClicks, baseClicks * 0.4));
+        const impr = Math.max(clicks * 5, jitter(baseImpr, baseImpr * 0.4));
+        const conv = Math.max(0, jitter(baseConv, 1));
+        out.push({
+          Date: d,
+          Keyword: kw,
+          'Match Type': MOCK_MATCH_TYPES[idx % MOCK_MATCH_TYPES.length],
+          'Ad Group': `${brand === 'via' ? 'Via' : 'LiqNow'}-AG-${(idx % 3) + 1}`,
+          Campaign: pick(profile.adsCampaigns),
+          Spend: +cost.toFixed(2),
+          Impressions: impr,
+          Clicks: clicks,
+          Conversions: conv,
+          CTR: +(clicks / impr * 100).toFixed(2),
+          'Avg CPC': clicks ? +(cost / clicks).toFixed(2) : 0,
+          CPA: conv ? +(cost / conv).toFixed(2) : 0,
+          'Conv Value': conv ? +(conv * (40 + Math.random() * 60)).toFixed(2) : 0,
+          brand,
+        });
+      });
+    });
+  });
+  return out;
+}
 function mockGsc() {
   return forBrands(days(MOCK_WINDOW_DAYS), (d, brand, p) => ({
     Date: d,
@@ -2626,6 +2923,29 @@ function summarizeAds(rows) {
   return { camps, medianCpa, withConv, totalSpend, totalConv, totalClicks };
 }
 
+function summarizeKeywords(rows) {
+  const map = {};
+  rows.forEach(r => {
+    const k = r.Keyword || '—';
+    const e = map[k] || (map[k] = { name: k, brand: r.brand || null, matchType: r['Match Type'] || '', campaign: r.Campaign || '', Spend: 0, Clicks: 0, Impressions: 0, Conversions: 0 });
+    if (!e.brand && r.brand) e.brand = r.brand;
+    e.Spend += Number(r.Spend) || 0;
+    e.Clicks += Number(r.Clicks) || 0;
+    e.Impressions += Number(r.Impressions) || 0;
+    e.Conversions += Number(r.Conversions) || 0;
+  });
+  const kws = Object.values(map).map(k => ({
+    ...k,
+    cpa: k.Conversions ? k.Spend / k.Conversions : null,
+    ctr: k.Impressions ? k.Clicks / k.Impressions * 100 : 0,
+  }));
+  const withConv = kws.filter(k => k.cpa != null).sort((a, b) => a.cpa - b.cpa);
+  const medianCpa = withConv.length ? withConv[Math.floor(withConv.length / 2)].cpa : null;
+  const totalSpend = kws.reduce((a, k) => a + k.Spend, 0);
+  const totalConv = kws.reduce((a, k) => a + k.Conversions, 0);
+  return { kws, medianCpa, withConv, totalSpend, totalConv };
+}
+
 function summarizeGsc(rows) {
   const map = {};
   rows.forEach(r => {
@@ -2742,85 +3062,209 @@ function summarizeCalls(rows) {
 /* ══════════════════════ ACTION GENERATION ══════════════════════════
    Each rule emits a structured action row via newAction(). Action IDs
    are deterministic so status survives refresh. Brand is a column, not
-   structure — we pass brand through per-entity so the filter works. */
+   structure — we pass brand through per-entity so the filter works.
+
+   Numeric thresholds for every rule live in `state.thresholds[brand][KEY]`
+   and are read via `t(brand, key)`. Defaults sit in `THRESHOLD_DEFAULTS`.
+   The user edits these on the /thresholds page and they persist to
+   localStorage as `cmoThresholds_v1`. */
+
+const THRESHOLD_DEFAULTS = {
+  /* Ads */
+  KILL_SPEND: 500,
+  SCALE_CPA_MULT: 0.8,
+  FIX_CREATIVE_CTR: 1,
+  FIX_CREATIVE_IMPR: 1000,
+  /* Keywords */
+  KILL_KW_SPEND: 100,
+  NEGATE_KW_IMPR: 1000,
+  NEGATE_KW_CTR: 0.5,
+  SCALE_KW_CPA_MULT: 0.8,
+  SCALE_KW_CONV_MIN: 3,
+  /* GSC */
+  OPTIMIZE_PAGE_IMPR: 10000,
+  OPTIMIZE_PAGE_POS_MIN: 5,
+  OPTIMIZE_PAGE_POS_MAX: 15,
+  FIX_TITLE_IMPR: 10000,
+  FIX_TITLE_CTR: 1,
+  INVESTIGATE_DROP_DELTA: -0.25,
+  INVESTIGATE_DROP_PRIOR: 20,
+  /* GA4 */
+  AUDIT_LANDING_SHARE: 0.15,
+  AUDIT_LANDING_ENG: 45,
+  /* Social */
+  REPLICATE_REACH_MULT: 1.5,
+  REPLICATE_POSTS_MIN: 3,
+  PAUSE_POSTS_MIN: 10,
+  /* Aircall */
+  FIX_ROUTING_TOTAL_MIN: 10,
+  FIX_ROUTING_RATE_MIN: 0.05,
+  FIX_ROUTING_HIGH_RATE: 0.15,
+  STAFFING_DELTA: 0.25,
+  /* Cross */
+  ATTR_GAP_CALLS_MIN: 50,
+  ATTR_GAP_MULT: 2,
+};
+
+const THRESHOLD_KEY = 'cmoThresholds_v1';
+
+function loadThresholds() {
+  let stored = {};
+  try { stored = JSON.parse(localStorage.getItem(THRESHOLD_KEY) || '{}') || {}; } catch {}
+  return {
+    via: { ...THRESHOLD_DEFAULTS, ...(stored.via || {}) },
+    liq: { ...THRESHOLD_DEFAULTS, ...(stored.liq || {}) },
+  };
+}
+
+function saveThresholds() {
+  try { localStorage.setItem(THRESHOLD_KEY, JSON.stringify(state.thresholds)); } catch {}
+}
+
+/* Cross-brand rules (cross/aircall_volume) read via the 'via' set as a
+   sensible default — bigger brand, broadly applicable. */
+function t(brand, key) {
+  const b = (brand === 'via' || brand === 'liq') ? brand : 'via';
+  const tbl = state.thresholds && state.thresholds[b];
+  const v = tbl ? tbl[key] : undefined;
+  if (v != null && !isNaN(v)) return Number(v);
+  return THRESHOLD_DEFAULTS[key];
+}
 
 function generateActionsFromSummaries(summaries, brand) {
-  const { adsSum, gscSum, gaSum, callsSum, socialSum } = summaries;
+  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum } = summaries;
 
   /* ── 1. campaign_actions (Google Ads) ──────────────────────────── */
   const campaign_actions = [];
   adsSum.camps.forEach(c => {
     const cBrand = c.brand || (brand === 'all' ? 'all' : brand);
-    /* KILL: spend > $500 with 0 conversions */
-    if (c.Spend > 500 && c.Conversions === 0) {
+    const KILL_SPEND = t(cBrand, 'KILL_SPEND');
+    const SCALE_MULT = t(cBrand, 'SCALE_CPA_MULT');
+    const FIX_CTR    = t(cBrand, 'FIX_CREATIVE_CTR');
+    const FIX_IMPR   = t(cBrand, 'FIX_CREATIVE_IMPR');
+    /* KILL: spend > KILL_SPEND with 0 conversions */
+    if (c.Spend > KILL_SPEND && c.Conversions === 0) {
       campaign_actions.push(newAction({
         source: 'ads', grain: 'campaign', brand: cBrand,
         entity_id: c.name, entity_name: c.name,
         action_type: 'KILL', priority: 'HIGH',
         reason: `${fmtCur(c.Spend)} spent with 0 conversions in 30d. Redirect budget to a winning campaign.`,
-        metric_trigger: 'Spend > $500 AND Conversions = 0',
+        metric_trigger: `Spend > ${fmtCur(KILL_SPEND)} AND Conversions = 0`,
         current_value: c.Conversions, benchmark_value: 0,
       }));
     }
-    /* SCALE: CPA < median CPA × 0.8 */
-    if (adsSum.medianCpa != null && c.cpa != null && c.cpa < adsSum.medianCpa * 0.8) {
+    /* SCALE: CPA < median CPA × SCALE_MULT */
+    if (adsSum.medianCpa != null && c.cpa != null && c.cpa < adsSum.medianCpa * SCALE_MULT) {
       campaign_actions.push(newAction({
         source: 'ads', grain: 'campaign', brand: cBrand,
         entity_id: c.name, entity_name: c.name,
         action_type: 'SCALE', priority: 'MEDIUM',
         reason: `CPA ${fmtCur(c.cpa)} vs median ${fmtCur(adsSum.medianCpa)}. Efficient — shift budget toward it.`,
-        metric_trigger: 'CPA < median × 0.8',
+        metric_trigger: `CPA < median × ${SCALE_MULT}`,
         current_value: c.cpa, benchmark_value: adsSum.medianCpa,
       }));
     }
-    /* FIX_CREATIVE: CTR < 1% (with meaningful impressions) */
-    if (c.Impressions >= 1000 && c.ctr < 1) {
+    /* FIX_CREATIVE: CTR < FIX_CTR% with FIX_IMPR+ impressions */
+    if (c.Impressions >= FIX_IMPR && c.ctr < FIX_CTR) {
       campaign_actions.push(newAction({
         source: 'ads', grain: 'campaign', brand: cBrand,
         entity_id: c.name, entity_name: c.name,
         action_type: 'FIX_CREATIVE', priority: 'MEDIUM',
-        reason: `CTR ${fmtPct(c.ctr)} below the 1% floor on ${fmt(c.Impressions)} impressions — creative isn't resonating.`,
-        metric_trigger: 'CTR < 1% (Impressions ≥ 1000)',
-        current_value: c.ctr, benchmark_value: 1,
+        reason: `CTR ${fmtPct(c.ctr)} below the ${FIX_CTR}% floor on ${fmt(c.Impressions)} impressions — creative isn't resonating.`,
+        metric_trigger: `CTR < ${FIX_CTR}% (Impressions ≥ ${fmt(FIX_IMPR)})`,
+        current_value: c.ctr, benchmark_value: FIX_CTR,
       }));
     }
   });
+
+  /* ── 1b. keyword_actions (Google Ads keywords) ─────────────────── */
+  const keyword_actions = [];
+  if (kwSum && kwSum.kws) {
+    kwSum.kws.forEach(k => {
+      const kBrand = k.brand || (brand === 'all' ? 'all' : brand);
+      const KILL_KW   = t(kBrand, 'KILL_KW_SPEND');
+      const NEG_IMPR  = t(kBrand, 'NEGATE_KW_IMPR');
+      const NEG_CTR   = t(kBrand, 'NEGATE_KW_CTR');
+      const SCALE_KW  = t(kBrand, 'SCALE_KW_CPA_MULT');
+      const SCALE_MIN = t(kBrand, 'SCALE_KW_CONV_MIN');
+      /* KILL_KEYWORD: spend > X, 0 conv */
+      if (k.Spend > KILL_KW && k.Conversions === 0) {
+        keyword_actions.push(newAction({
+          source: 'keywords', grain: 'keyword', brand: kBrand,
+          entity_id: k.name, entity_name: `${k.name}${k.matchType ? ` [${k.matchType}]` : ''}`,
+          action_type: 'KILL_KEYWORD', priority: 'HIGH',
+          reason: `${fmtCur(k.Spend)} spent on "${k.name}" with 0 conversions. Pause it or move budget to a converting keyword.`,
+          metric_trigger: `Spend > ${fmtCur(KILL_KW)} AND Conversions = 0`,
+          current_value: k.Conversions, benchmark_value: 0,
+        }));
+      }
+      /* NEGATE_KEYWORD: high impressions, low CTR, no conv */
+      if (k.Impressions >= NEG_IMPR && k.ctr < NEG_CTR && k.Conversions === 0) {
+        keyword_actions.push(newAction({
+          source: 'keywords', grain: 'keyword', brand: kBrand,
+          entity_id: k.name, entity_name: `${k.name}${k.matchType ? ` [${k.matchType}]` : ''}`,
+          action_type: 'NEGATE_KEYWORD', priority: 'MEDIUM',
+          reason: `${fmt(k.Impressions)} impressions but ${fmtPct(k.ctr)} CTR and 0 conversions — likely off-intent traffic. Add as a negative.`,
+          metric_trigger: `Impressions ≥ ${fmt(NEG_IMPR)} AND CTR < ${NEG_CTR}% AND Conversions = 0`,
+          current_value: k.ctr, benchmark_value: NEG_CTR,
+        }));
+      }
+      /* SCALE_KEYWORD: efficient AND meaningful conv volume */
+      if (kwSum.medianCpa != null && k.cpa != null && k.cpa < kwSum.medianCpa * SCALE_KW && k.Conversions >= SCALE_MIN) {
+        keyword_actions.push(newAction({
+          source: 'keywords', grain: 'keyword', brand: kBrand,
+          entity_id: k.name, entity_name: `${k.name}${k.matchType ? ` [${k.matchType}]` : ''}`,
+          action_type: 'SCALE_KEYWORD', priority: 'MEDIUM',
+          reason: `CPA ${fmtCur(k.cpa)} vs median ${fmtCur(kwSum.medianCpa)} on ${fmt(k.Conversions)} conversions — push more budget here.`,
+          metric_trigger: `CPA < median × ${SCALE_KW} AND Conversions ≥ ${SCALE_MIN}`,
+          current_value: k.cpa, benchmark_value: kwSum.medianCpa,
+        }));
+      }
+    });
+  }
 
   /* ── 2. query_actions (Search Console) ─────────────────────────── */
   const query_actions = [];
   gscSum.queries.forEach(q => {
     const qBrand = q.brand || (brand === 'all' ? 'all' : brand);
-    /* OPTIMIZE_PAGE: impressions > 10k AND position 5-15 */
-    if (q.Impressions > 10000 && q.avgPos != null && q.avgPos >= 5 && q.avgPos <= 15) {
+    const OPT_IMPR    = t(qBrand, 'OPTIMIZE_PAGE_IMPR');
+    const OPT_POS_MIN = t(qBrand, 'OPTIMIZE_PAGE_POS_MIN');
+    const OPT_POS_MAX = t(qBrand, 'OPTIMIZE_PAGE_POS_MAX');
+    const TITLE_IMPR  = t(qBrand, 'FIX_TITLE_IMPR');
+    const TITLE_CTR   = t(qBrand, 'FIX_TITLE_CTR');
+    const DROP_DELTA  = t(qBrand, 'INVESTIGATE_DROP_DELTA');
+    const DROP_PRIOR  = t(qBrand, 'INVESTIGATE_DROP_PRIOR');
+    /* OPTIMIZE_PAGE: high impressions AND mid-range position */
+    if (q.Impressions > OPT_IMPR && q.avgPos != null && q.avgPos >= OPT_POS_MIN && q.avgPos <= OPT_POS_MAX) {
       query_actions.push(newAction({
         source: 'gsc', grain: 'query', brand: qBrand,
         entity_id: q.name, entity_name: q.name,
         action_type: 'OPTIMIZE_PAGE', priority: 'MEDIUM',
-        reason: `${fmt(q.Impressions)} impressions at avg position ${q.avgPos.toFixed(1)} — a content refresh could push it into the top 5.`,
-        metric_trigger: 'Impressions > 10000 AND 5 ≤ position ≤ 15',
-        current_value: q.avgPos, benchmark_value: 5,
+        reason: `${fmt(q.Impressions)} impressions at avg position ${q.avgPos.toFixed(1)} — a content refresh could push it into the top ${OPT_POS_MIN}.`,
+        metric_trigger: `Impressions > ${fmt(OPT_IMPR)} AND ${OPT_POS_MIN} ≤ position ≤ ${OPT_POS_MAX}`,
+        current_value: q.avgPos, benchmark_value: OPT_POS_MIN,
       }));
     }
-    /* FIX_TITLE: impressions > 10k AND CTR < 1% */
-    if (q.Impressions > 10000 && q.ctr < 1) {
+    /* FIX_TITLE: high impressions AND low CTR */
+    if (q.Impressions > TITLE_IMPR && q.ctr < TITLE_CTR) {
       query_actions.push(newAction({
         source: 'gsc', grain: 'query', brand: qBrand,
         entity_id: q.name, entity_name: q.name,
         action_type: 'FIX_TITLE', priority: 'MEDIUM',
         reason: `${fmt(q.Impressions)} impressions but only ${fmtPct(q.ctr)} CTR — rewrite the title and meta description to match intent.`,
-        metric_trigger: 'Impressions > 10000 AND CTR < 1%',
-        current_value: q.ctr, benchmark_value: 1,
+        metric_trigger: `Impressions > ${fmt(TITLE_IMPR)} AND CTR < ${TITLE_CTR}%`,
+        current_value: q.ctr, benchmark_value: TITLE_CTR,
       }));
     }
-    /* INVESTIGATE_DROP: clicks down > 25% WoW */
+    /* INVESTIGATE_DROP: clicks down WoW */
     const d = gscSum.queryDeltas[q.name];
-    if (d && d.delta < -0.25 && d.prior >= 20) {
+    if (d && d.delta < DROP_DELTA && d.prior >= DROP_PRIOR) {
       query_actions.push(newAction({
         source: 'gsc', grain: 'query', brand: qBrand,
         entity_id: q.name, entity_name: q.name,
         action_type: 'INVESTIGATE_DROP', priority: 'HIGH',
         reason: `Clicks dropped ${fmtPct(Math.abs(d.delta) * 100)} WoW (${fmt(d.prior)} → ${fmt(d.recent)}). Check for ranking loss or SERP feature changes.`,
-        metric_trigger: 'Clicks WoW change < -25%',
+        metric_trigger: `Clicks WoW change < ${fmtPct(DROP_DELTA * 100)}`,
         current_value: d.recent, benchmark_value: d.prior,
       }));
     }
@@ -2830,25 +3274,28 @@ function generateActionsFromSummaries(summaries, brand) {
   const post_actions = [];
   socialSum.platforms.forEach(p => {
     const pBrand = p.brand || (brand === 'all' ? 'all' : brand);
-    /* REPLICATE_FORMAT: platform avg reach/post > global avg × 1.5 */
-    if (socialSum.avgReachPerPost > 0 && p.posts >= 3 && p.reachPer > socialSum.avgReachPerPost * 1.5) {
+    const REP_MULT  = t(pBrand, 'REPLICATE_REACH_MULT');
+    const REP_POSTS = t(pBrand, 'REPLICATE_POSTS_MIN');
+    const PAUSE_POSTS = t(pBrand, 'PAUSE_POSTS_MIN');
+    /* REPLICATE_FORMAT: platform reach/post > overall × REP_MULT */
+    if (socialSum.avgReachPerPost > 0 && p.posts >= REP_POSTS && p.reachPer > socialSum.avgReachPerPost * REP_MULT) {
       post_actions.push(newAction({
         source: 'social', grain: 'platform', brand: pBrand,
         entity_id: p.name, entity_name: p.name,
         action_type: 'REPLICATE_FORMAT', priority: 'MEDIUM',
         reason: `${p.name} averages ${fmt(Math.round(p.reachPer))} reach/post vs ${fmt(Math.round(socialSum.avgReachPerPost))} overall — study the top posts and replicate the format on other networks.`,
-        metric_trigger: 'Platform reach/post > overall × 1.5',
+        metric_trigger: `Platform reach/post > overall × ${REP_MULT}`,
         current_value: p.reachPer, benchmark_value: socialSum.avgReachPerPost,
       }));
     }
-    /* PAUSE_OR_REVIEW_CHANNEL: avg reach = 0 AND posts > 10 */
-    if (p.reachPer === 0 && p.posts > 10) {
+    /* PAUSE_OR_REVIEW_CHANNEL: zero reach AND many posts */
+    if (p.reachPer === 0 && p.posts > PAUSE_POSTS) {
       post_actions.push(newAction({
         source: 'social', grain: 'platform', brand: pBrand,
         entity_id: p.name, entity_name: p.name,
         action_type: 'PAUSE_OR_REVIEW_CHANNEL', priority: 'HIGH',
         reason: `${fmt(p.posts)} posts on ${p.name} with zero reach — either tracking is broken or the channel is dead. Pause or review.`,
-        metric_trigger: 'Avg reach = 0 AND posts > 10',
+        metric_trigger: `Avg reach = 0 AND posts > ${PAUSE_POSTS}`,
         current_value: 0, benchmark_value: 1,
       }));
     }
@@ -2859,38 +3306,45 @@ function generateActionsFromSummaries(summaries, brand) {
   /* GA4: AUDIT_LANDING_PAGE for high-traffic low-engagement channels */
   gaSum.channels.forEach(c => {
     const cBrand = c.brand || (brand === 'all' ? 'all' : brand);
-    if (c.share > 0.15 && c.engagement > 0 && c.engagement < 45) {
+    const SHARE = t(cBrand, 'AUDIT_LANDING_SHARE');
+    const ENG   = t(cBrand, 'AUDIT_LANDING_ENG');
+    if (c.share > SHARE && c.engagement > 0 && c.engagement < ENG) {
       channel_actions.push(newAction({
         source: 'ga', grain: 'channel', brand: cBrand,
         entity_id: c.name, entity_name: c.name,
         action_type: 'AUDIT_LANDING_PAGE', priority: 'MEDIUM',
         reason: `${fmtPct(c.share * 100)} of sessions but only ${fmtPct(c.engagement)} engagement rate — visitors are bouncing on the landing experience from this channel.`,
-        metric_trigger: 'Sessions share > 15% AND engagement rate < 45%',
-        current_value: c.engagement, benchmark_value: 45,
+        metric_trigger: `Sessions share > ${fmtPct(SHARE * 100)} AND engagement rate < ${fmtPct(ENG)}`,
+        current_value: c.engagement, benchmark_value: ENG,
       }));
     }
   });
-  /* Aircall: FIX_ROUTING per line with miss rate > 5% */
+  /* Aircall: FIX_ROUTING per line with miss rate above threshold */
   callsSum.lines.forEach(l => {
-    if (l.total >= 10 && l.rate > 0.05) {
+    const lBrand = l.brand || (brand === 'all' ? 'all' : brand);
+    const TOTAL_MIN = t(lBrand, 'FIX_ROUTING_TOTAL_MIN');
+    const RATE_MIN  = t(lBrand, 'FIX_ROUTING_RATE_MIN');
+    const HIGH_RATE = t(lBrand, 'FIX_ROUTING_HIGH_RATE');
+    if (l.total >= TOTAL_MIN && l.rate > RATE_MIN) {
       channel_actions.push(newAction({
-        source: 'aircall', grain: 'line', brand: l.brand || (brand === 'all' ? 'all' : brand),
+        source: 'aircall', grain: 'line', brand: lBrand,
         entity_id: l.name, entity_name: l.name,
-        action_type: 'FIX_ROUTING', priority: l.rate > 0.15 ? 'HIGH' : 'MEDIUM',
-        reason: `${fmt(l.missed)} of ${fmt(l.total)} (${fmtPct(l.rate * 100)}) missed on "${l.name}" — above the 5% ceiling. Check the routing group and add a backup.`,
-        metric_trigger: 'Missed call rate > 5%',
-        current_value: l.rate, benchmark_value: 0.05,
+        action_type: 'FIX_ROUTING', priority: l.rate > HIGH_RATE ? 'HIGH' : 'MEDIUM',
+        reason: `${fmt(l.missed)} of ${fmt(l.total)} (${fmtPct(l.rate * 100)}) missed on "${l.name}" — above the ${fmtPct(RATE_MIN * 100)} ceiling. Check the routing group and add a backup.`,
+        metric_trigger: `Missed call rate > ${fmtPct(RATE_MIN * 100)}`,
+        current_value: l.rate, benchmark_value: RATE_MIN,
       }));
     }
   });
-  /* Aircall: STAFFING_REVIEW when volume spikes > 25% WoW */
-  if (callsSum.volumeDelta && callsSum.volumeDelta.delta > 0.25) {
+  /* Aircall: STAFFING_REVIEW when volume spikes WoW */
+  const STAFF_DELTA = t(brand === 'all' ? 'via' : brand, 'STAFFING_DELTA');
+  if (callsSum.volumeDelta && callsSum.volumeDelta.delta > STAFF_DELTA) {
     channel_actions.push(newAction({
       source: 'aircall', grain: 'volume', brand: brand === 'all' ? 'all' : brand,
       entity_id: 'call-volume', entity_name: 'Call volume (all lines)',
       action_type: 'STAFFING_REVIEW', priority: 'MEDIUM',
       reason: `Call volume up ${fmtPct(callsSum.volumeDelta.delta * 100)} WoW (${fmt(callsSum.volumeDelta.prior)} → ${fmt(callsSum.volumeDelta.recent)}). Review staffing before miss rate follows.`,
-      metric_trigger: 'Call volume WoW change > 25%',
+      metric_trigger: `Call volume WoW change > ${fmtPct(STAFF_DELTA * 100)}`,
       current_value: callsSum.volumeDelta.recent, benchmark_value: callsSum.volumeDelta.prior,
     }));
   }
@@ -2898,18 +3352,20 @@ function generateActionsFromSummaries(summaries, brand) {
   /* ── 5. site_actions (cross-channel) ───────────────────────────── */
   const site_actions = [];
   /* Attribution gap: many calls but few ad conversions */
-  if (callsSum.totalCalls > 50 && adsSum.totalConv > 0 && callsSum.totalCalls > adsSum.totalConv * 2) {
+  const ATTR_CALLS = t(brand === 'all' ? 'via' : brand, 'ATTR_GAP_CALLS_MIN');
+  const ATTR_MULT  = t(brand === 'all' ? 'via' : brand, 'ATTR_GAP_MULT');
+  if (callsSum.totalCalls > ATTR_CALLS && adsSum.totalConv > 0 && callsSum.totalCalls > adsSum.totalConv * ATTR_MULT) {
     site_actions.push(newAction({
       source: 'cross', grain: 'site', brand: brand === 'all' ? 'all' : brand,
       entity_id: 'call-tracking', entity_name: 'Call conversion tracking',
       action_type: 'AUDIT_LANDING_PAGE', priority: 'MEDIUM',
       reason: `${fmt(callsSum.totalCalls)} inbound calls vs only ${fmt(adsSum.totalConv)} tracked ad conversions — paid channels are under-credited. Wire up call conversion tracking.`,
-      metric_trigger: 'Calls > Ad conversions × 2',
-      current_value: callsSum.totalCalls, benchmark_value: adsSum.totalConv * 2,
+      metric_trigger: `Calls > Ad conversions × ${ATTR_MULT}`,
+      current_value: callsSum.totalCalls, benchmark_value: adsSum.totalConv * ATTR_MULT,
     }));
   }
 
-  return { campaign_actions, query_actions, post_actions, channel_actions, site_actions };
+  return { campaign_actions, keyword_actions, query_actions, post_actions, channel_actions, site_actions };
 }
 
 /* ══════════════════════ PER-SECTION SUMMARY STRINGS ═════════════════
@@ -2917,14 +3373,25 @@ function generateActionsFromSummaries(summaries, brand) {
    just "what's happening on this channel". */
 
 function buildPerSection(summaries, brand) {
-  const { adsSum, gscSum, gaSum, callsSum, socialSum } = summaries;
-  const out = { ads: '', seo: '', ga: '', calls: '', social: '' };
+  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum } = summaries;
+  const out = { ads: '', keywords: '', seo: '', ga: '', calls: '', social: '' };
 
   if (adsSum.withConv.length) {
     const best = adsSum.withConv[0];
     out.ads = `${best.name} is your most efficient campaign (${fmtCur(best.cpa)} CPA${adsSum.medianCpa ? ` vs ${fmtCur(adsSum.medianCpa)} median` : ''}).`;
   } else {
     out.ads = `${adsSum.camps.length} campaigns running · ${fmtCur(adsSum.totalSpend)} spend · ${fmt(adsSum.totalConv)} conversions over 30d.`;
+  }
+
+  if (kwSum && kwSum.kws && kwSum.kws.length) {
+    if (kwSum.withConv.length) {
+      const best = kwSum.withConv[0];
+      out.keywords = `${kwSum.kws.length} keywords · ${fmtCur(kwSum.totalSpend)} spend · top: "${best.name}" at ${fmtCur(best.cpa)} CPA.`;
+    } else {
+      out.keywords = `${kwSum.kws.length} keywords · ${fmtCur(kwSum.totalSpend)} spend · ${fmt(kwSum.totalConv)} conversions.`;
+    }
+  } else {
+    out.keywords = `No keyword data for this period.`;
   }
 
   const tClicks = gscSum.queries.reduce((a, q) => a + q.Clicks, 0);
@@ -2975,14 +3442,16 @@ function buildNarrative(actionsByDataset, summaries, brand) {
   return bits.join(' ');
 }
 
-function generateInsights({ ads, gsc, ga, ac, social }, brand = 'all') {
+function generateInsights({ ads, gsc, ga, ac, social, keywords }, brand = 'all') {
   social = social || { rows: [] };
+  keywords = keywords || { rows: [] };
   const summaries = {
     adsSum: summarizeAds(ads.rows),
     gscSum: summarizeGsc(gsc.rows),
     gaSum: summarizeGa(ga.rows),
     callsSum: summarizeCalls(ac.rows),
     socialSum: summarizeSocial(social.rows),
+    kwSum: summarizeKeywords(keywords.rows),
   };
   const actionsByDataset = generateActionsFromSummaries(summaries, brand);
   const perSection = buildPerSection(summaries, brand);
@@ -3000,6 +3469,9 @@ const REQUIRED_COLS = {
   aircall: [],
   /* Social: Metricool export — one row per post */
   social:  ['network'],
+  /* Keywords: keyword-grain ads export — Spend + Clicks are enough to drive
+     KILL/NEGATE/SCALE rules. Impressions checked too because NEGATE keys on it. */
+  keywords:['Spend', 'Clicks'],
 };
 
 function mockChannel(mockFn, reason) {
@@ -3012,11 +3484,12 @@ function mockChannel(mockFn, reason) {
    (live vs. demo vs. failed, row counts, brand split, columns,
    error reason if any) and renders a per-source health card. */
 const SOURCE_DETAIL_REPORT = [
-  { key: 'ads',     prop: 'ads',    label: 'Google Ads',           bucket: 'Ads' },
-  { key: 'gsc',     prop: 'gsc',    label: 'Google Search Console',bucket: 'SEO / Search' },
-  { key: 'ga',      prop: 'ga',     label: 'Google Analytics 4',   bucket: 'Web Analytics' },
-  { key: 'aircall', prop: 'ac',     label: 'Aircall',              bucket: 'Calls' },
-  { key: 'social',  prop: 'social', label: 'Metricool · Social',   bucket: 'Social' },
+  { key: 'ads',      prop: 'ads',      label: 'Google Ads',           bucket: 'Ads' },
+  { key: 'keywords', prop: 'keywords', label: 'Google Ads · Keywords',bucket: 'Keywords' },
+  { key: 'gsc',      prop: 'gsc',      label: 'Google Search Console',bucket: 'SEO / Search' },
+  { key: 'ga',       prop: 'ga',       label: 'Google Analytics 4',   bucket: 'Web Analytics' },
+  { key: 'aircall',  prop: 'ac',       label: 'Aircall',              bucket: 'Calls' },
+  { key: 'social',   prop: 'social',   label: 'Metricool · Social',   bucket: 'Social' },
 ];
 
 function dateRangeFromRows(rows) {
@@ -3186,10 +3659,10 @@ function renderRefreshStrip() {
   if (top) top.textContent = `Updated ${ts.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`;
 }
 
-function paint(ads, gsc, ga, ac, social) {
+function paint(ads, gsc, ga, ac, social, keywords) {
   state.lastRefreshAt = new Date();
   renderRefreshStrip();
-  const insights = generateInsights({ ads, gsc, ga, ac, social }, state.brand);
+  const insights = generateInsights({ ads, gsc, ga, ac, social, keywords }, state.brand);
   /* Hydrate generated actions with persisted status overrides, then
      store for filter/status interactions to mutate + re-render. */
   state.actions = hydrateActions(insights.actionsByDataset, state.actionLog);
@@ -3201,6 +3674,7 @@ function paint(ads, gsc, ga, ac, social) {
   renderTodoList(state.actions, state.filters);
   renderOverview(ads, gsc, ga, ac);
   renderAds(ads, insights.perSection.ads);
+  renderKeywords(keywords, insights.perSection.keywords);
   renderSeo(gsc, insights.perSection.seo);
   renderGa(ga, insights.perSection.ga);
   renderCalls(ac, insights.perSection.calls);
@@ -3212,14 +3686,15 @@ function paint(ads, gsc, ga, ac, social) {
 
 function repaint() {
   if (!state.raw) return;
-  const { ads, gsc, ga, ac, social } = state.raw;
+  const { ads, gsc, ga, ac, social, keywords } = state.raw;
   const range = state.timeRange;
   const scoped = {
-    ads:    scopeChannel(scopeByRange(ads,    range), state.brand),
-    gsc:    scopeChannel(scopeByRange(gsc,    range), state.brand),
-    ga:     scopeChannel(scopeByRange(ga,     range), state.brand),
-    ac:     scopeChannel(scopeByRange(ac,     range), state.brand),
-    social: scopeChannel(scopeByRange(social, range), state.brand),
+    ads:      scopeChannel(scopeByRange(ads,      range), state.brand),
+    gsc:      scopeChannel(scopeByRange(gsc,      range), state.brand),
+    ga:       scopeChannel(scopeByRange(ga,       range), state.brand),
+    ac:       scopeChannel(scopeByRange(ac,       range), state.brand),
+    social:   scopeChannel(scopeByRange(social,   range), state.brand),
+    keywords: scopeChannel(scopeByRange(keywords, range), state.brand),
   };
 
   /* If user picked a specific brand but a live channel has no brand column,
@@ -3229,7 +3704,7 @@ function repaint() {
   const pending = document.getElementById('brandPending');
   if (pending) {
     const needsBrand = state.brand !== 'all';
-    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social' };
+    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social', keywords: 'keywords' };
     const unsliceable = Object.entries(state.raw)
       .filter(([, c]) => c && c.source === 'live' && c.rows.length && !c.rows.some(r => r && r.brand))
       .map(([k]) => NAME[k] || k);
@@ -3239,38 +3714,41 @@ function repaint() {
     }
     pending.classList.toggle('hidden', !missingBrand);
   }
-  paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac, scoped.social);
+  paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac, scoped.social, scoped.keywords);
 }
 
 async function render() {
   try {
-    const [ads, gsc, ga, ac, social] = await Promise.all([
+    const [ads, gsc, ga, ac, social, keywords] = await Promise.all([
       loadChannel('ads', mockAds, REQUIRED_COLS.ads),
       loadChannel('gsc', mockGsc, REQUIRED_COLS.gsc),
       loadChannel('ga', mockGa, REQUIRED_COLS.ga),
       loadChannel('aircall', mockAircall, REQUIRED_COLS.aircall),
       loadChannel('social', mockSocial, REQUIRED_COLS.social),
+      loadChannel('keywords', mockKeywords, REQUIRED_COLS.keywords),
     ]);
 
     console.table([
-      { channel: 'ads',     source: ads.source,    rows: ads.rows.length,    reason: ads.reason || '',    cols: ads.cols.join(', ') },
-      { channel: 'gsc',     source: gsc.source,    rows: gsc.rows.length,    reason: gsc.reason || '',    cols: gsc.cols.join(', ') },
-      { channel: 'ga',      source: ga.source,     rows: ga.rows.length,     reason: ga.reason || '',     cols: ga.cols.join(', ') },
-      { channel: 'aircall', source: ac.source,     rows: ac.rows.length,     reason: ac.reason || '',     cols: ac.cols.join(', ') },
-      { channel: 'social',  source: social.source, rows: social.rows.length, reason: social.reason || '', cols: social.cols.join(', ') },
+      { channel: 'ads',      source: ads.source,      rows: ads.rows.length,      reason: ads.reason || '',      cols: ads.cols.join(', ') },
+      { channel: 'gsc',      source: gsc.source,      rows: gsc.rows.length,      reason: gsc.reason || '',      cols: gsc.cols.join(', ') },
+      { channel: 'ga',       source: ga.source,       rows: ga.rows.length,       reason: ga.reason || '',       cols: ga.cols.join(', ') },
+      { channel: 'aircall',  source: ac.source,       rows: ac.rows.length,       reason: ac.reason || '',       cols: ac.cols.join(', ') },
+      { channel: 'social',   source: social.source,   rows: social.rows.length,   reason: social.reason || '',   cols: social.cols.join(', ') },
+      { channel: 'keywords', source: keywords.source, rows: keywords.rows.length, reason: keywords.reason || '', cols: keywords.cols.join(', ') },
     ]);
 
-    state.raw = { ads, gsc, ga, ac, social };
+    state.raw = { ads, gsc, ga, ac, social, keywords };
     repaint();
   } catch (err) {
     console.error('CMO render failed, falling back to mock:', err);
     const reason = `render error: ${err && err.message || err}`;
     state.raw = {
-      ads:    mockChannel(mockAds,     reason),
-      gsc:    mockChannel(mockGsc,     reason),
-      ga:     mockChannel(mockGa,      reason),
-      ac:     mockChannel(mockAircall, reason),
-      social: mockChannel(mockSocial,  reason),
+      ads:      mockChannel(mockAds,      reason),
+      gsc:      mockChannel(mockGsc,      reason),
+      ga:       mockChannel(mockGa,       reason),
+      ac:       mockChannel(mockAircall,  reason),
+      social:   mockChannel(mockSocial,   reason),
+      keywords: mockChannel(mockKeywords, reason),
     };
     repaint();
   }
@@ -3654,6 +4132,337 @@ function renderSocial({ rows, source, reason }, insight) {
     : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No network data.</td></tr>`;
 }
 
+function renderKeywords({ rows, source, reason }, insight) {
+  const meta = document.getElementById('keywordsMeta');
+  if (meta) meta.innerHTML = `${SHEETS.keywords.label} · ${sourceTag(source, reason)}`;
+  renderInsight('keywordsInsight', insight);
+
+  const sum = summarizeKeywords(rows);
+  const totalSpend = sum.totalSpend;
+  const totalConv  = sum.totalConv;
+  const totalImpr  = rows.reduce((a, r) => a + (Number(r.Impressions) || 0), 0);
+  const totalClicks = rows.reduce((a, r) => a + (Number(r.Clicks) || 0), 0);
+  const ctr = totalImpr ? totalClicks / totalImpr * 100 : 0;
+  const cpa = totalConv ? totalSpend / totalConv : 0;
+  renderKpis('keywordsKpis', [
+    { label: `Spend (${rangeSuffix()})`, value: fmtCur(totalSpend) },
+    { label: 'Keywords', value: fmt(sum.kws.length) },
+    { label: 'Impressions', value: fmt(totalImpr) },
+    { label: 'CTR', value: fmtPct(ctr) },
+    { label: 'Conversions', value: fmt(totalConv) },
+    { label: 'CPA', value: totalConv ? fmtCur(cpa) : '—' },
+  ]);
+
+  const topSpend = [...sum.kws].sort((a, b) => b.Spend - a.Spend).slice(0, 8);
+  const topRows = document.getElementById('keywordsTopSpend');
+  if (topRows) {
+    topRows.innerHTML = topSpend.length
+      ? topSpend.map(k => `
+          <tr>
+            <td>${escapeHtml(k.name)}</td>
+            <td>${escapeHtml(k.matchType || '—')}</td>
+            <td class="num">${fmtCur(k.Spend)}</td>
+            <td class="num">${fmt(k.Clicks)}</td>
+            <td class="num">${fmt(k.Conversions)}</td>
+            <td class="num">${k.cpa != null ? fmtCur(k.cpa) : '<span style="color:var(--text3)">—</span>'}</td>
+          </tr>`).join('')
+      : `<tr><td colspan="6" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No keyword rows in range.</td></tr>`;
+  }
+
+  const wasters = sum.kws
+    .filter(k => k.Conversions === 0 && k.Spend > 0)
+    .sort((a, b) => b.Spend - a.Spend)
+    .slice(0, 8);
+  const wastersBody = document.getElementById('keywordsWasters');
+  if (wastersBody) {
+    wastersBody.innerHTML = wasters.length
+      ? wasters.map(k => `
+          <tr>
+            <td>${escapeHtml(k.name)}</td>
+            <td>${escapeHtml(k.matchType || '—')}</td>
+            <td class="num">${fmtCur(k.Spend)}</td>
+            <td class="num">${fmt(k.Impressions)}</td>
+            <td class="num">${fmtPct(k.ctr)}</td>
+          </tr>`).join('')
+      : `<tr><td colspan="5" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No zero-conversion spend in range.</td></tr>`;
+  }
+}
+
+/* ── Thresholds editor ──────────────────────────────────────────── */
+const THRESHOLD_META = {
+  ads: [
+    { key: 'KILL_SPEND',         label: 'KILL · spend ≥ $X with 0 conversions',     step: 50,    type: 'currency' },
+    { key: 'SCALE_CPA_MULT',     label: 'SCALE · CPA < median × X',                 step: 0.05,  type: 'number' },
+    { key: 'FIX_CREATIVE_CTR',   label: 'FIX_CREATIVE · CTR floor (%)',             step: 0.1,   type: 'percent' },
+    { key: 'FIX_CREATIVE_IMPR',  label: 'FIX_CREATIVE · min impressions',           step: 100,   type: 'integer' },
+  ],
+  keywords: [
+    { key: 'KILL_KW_SPEND',      label: 'KILL keyword · spend ≥ $X, 0 conv',        step: 25,    type: 'currency' },
+    { key: 'NEGATE_KW_IMPR',     label: 'NEGATE · min impressions',                 step: 100,   type: 'integer' },
+    { key: 'NEGATE_KW_CTR',      label: 'NEGATE · CTR floor (%)',                   step: 0.05,  type: 'percent' },
+    { key: 'SCALE_KW_CPA_MULT',  label: 'SCALE · CPA < median × X',                 step: 0.05,  type: 'number' },
+    { key: 'SCALE_KW_CONV_MIN',  label: 'SCALE · min conversions',                  step: 1,     type: 'integer' },
+  ],
+  gsc: [
+    { key: 'OPTIMIZE_PAGE_IMPR', label: 'OPTIMIZE · min impressions',               step: 1000,  type: 'integer' },
+    { key: 'OPTIMIZE_PAGE_POS_MIN', label: 'OPTIMIZE · position min',               step: 1,     type: 'number' },
+    { key: 'OPTIMIZE_PAGE_POS_MAX', label: 'OPTIMIZE · position max',               step: 1,     type: 'number' },
+    { key: 'FIX_TITLE_IMPR',     label: 'FIX_TITLE · min impressions',              step: 1000,  type: 'integer' },
+    { key: 'FIX_TITLE_CTR',      label: 'FIX_TITLE · CTR floor (%)',                step: 0.1,   type: 'percent' },
+    { key: 'INVESTIGATE_DROP_DELTA', label: 'INVESTIGATE · WoW change ≤ (negative)', step: 0.05, type: 'number' },
+    { key: 'INVESTIGATE_DROP_PRIOR', label: 'INVESTIGATE · min prior clicks',       step: 5,     type: 'integer' },
+  ],
+  ga: [
+    { key: 'AUDIT_LANDING_SHARE', label: 'AUDIT · sessions share > (0–1)',          step: 0.05,  type: 'number' },
+    { key: 'AUDIT_LANDING_ENG',   label: 'AUDIT · engagement rate < (%)',           step: 5,     type: 'percent' },
+  ],
+  social: [
+    { key: 'REPLICATE_REACH_MULT', label: 'REPLICATE · reach > overall × X',        step: 0.1,   type: 'number' },
+    { key: 'REPLICATE_POSTS_MIN',  label: 'REPLICATE · min posts',                  step: 1,     type: 'integer' },
+    { key: 'PAUSE_POSTS_MIN',      label: 'PAUSE · min posts (zero reach)',         step: 1,     type: 'integer' },
+  ],
+  aircall: [
+    { key: 'FIX_ROUTING_TOTAL_MIN', label: 'FIX_ROUTING · min total calls',         step: 5,     type: 'integer' },
+    { key: 'FIX_ROUTING_RATE_MIN',  label: 'FIX_ROUTING · miss rate > (0–1)',       step: 0.01,  type: 'number' },
+    { key: 'FIX_ROUTING_HIGH_RATE', label: 'FIX_ROUTING · HIGH if rate > (0–1)',    step: 0.01,  type: 'number' },
+    { key: 'STAFFING_DELTA',        label: 'STAFFING · WoW volume change > (0–1)',  step: 0.05,  type: 'number' },
+  ],
+  cross: [
+    { key: 'ATTR_GAP_CALLS_MIN', label: 'ATTRIBUTION_GAP · min calls',              step: 10,    type: 'integer' },
+    { key: 'ATTR_GAP_MULT',      label: 'ATTRIBUTION_GAP · calls > conv × X',       step: 0.5,   type: 'number' },
+  ],
+};
+const THRESHOLD_SECTIONS = ['ads', 'keywords', 'gsc', 'ga', 'social', 'aircall', 'cross'];
+
+function renderThresholds() {
+  const grid = document.getElementById('thresholdsGrid');
+  if (!grid) return;
+  const brand = state.thresholdBrand;
+  const tbl = state.thresholds[brand] || THRESHOLD_DEFAULTS;
+  grid.innerHTML = THRESHOLD_SECTIONS.map(src => {
+    const detail = SOURCE_DETAIL[src] || { label: src, hint: '' };
+    const items = THRESHOLD_META[src] || [];
+    const rowsHtml = items.map(item => {
+      const v = tbl[item.key] != null ? tbl[item.key] : THRESHOLD_DEFAULTS[item.key];
+      return `
+        <label class="threshold-row" data-key="${item.key}">
+          <span class="threshold-label">${escapeHtml(item.label)}</span>
+          <input class="threshold-input" type="number" step="${item.step}" value="${v}" data-tkey="${item.key}" data-ttype="${item.type}" />
+        </label>`;
+    }).join('');
+    return `
+      <section class="threshold-source" data-tsource="${src}">
+        <div class="threshold-source-head">
+          <h3 class="threshold-source-title">${escapeHtml(detail.label)}</h3>
+          <span class="threshold-source-hint">${escapeHtml(detail.hint)}</span>
+        </div>
+        <div class="threshold-rows">${rowsHtml}</div>
+      </section>`;
+  }).join('');
+  /* Highlight the toggle */
+  document.querySelectorAll('.threshold-brand button[data-tbrand]').forEach(b => {
+    b.setAttribute('aria-pressed', b.dataset.tbrand === brand ? 'true' : 'false');
+  });
+  /* Mark dirty when user changes a value vs. saved state */
+  grid.querySelectorAll('input.threshold-input').forEach(input => {
+    input.addEventListener('input', () => {
+      const saved = (state.thresholds[brand] || {})[input.dataset.tkey];
+      input.classList.toggle('dirty', Number(input.value) !== Number(saved));
+    });
+  });
+}
+
+function commitThresholdInputs() {
+  const brand = state.thresholdBrand;
+  const target = state.thresholds[brand] = { ...THRESHOLD_DEFAULTS, ...(state.thresholds[brand] || {}) };
+  document.querySelectorAll('#thresholdsGrid input.threshold-input').forEach(input => {
+    const v = Number(input.value);
+    if (!isNaN(v)) target[input.dataset.tkey] = v;
+  });
+  saveThresholds();
+  /* Clear dirty markers */
+  document.querySelectorAll('#thresholdsGrid input.threshold-input').forEach(i => i.classList.remove('dirty'));
+}
+
+/* ── Decisions from Claude ─────────────────────────────────────── */
+const CLAUDE_MODEL = 'claude-sonnet-4-5';
+const CLAUDE_KEY_STORAGE = 'cmoAnthropicKey_v1';
+const CLAUDE_RESULT_STORAGE = 'cmoClaudeResult_v1';
+
+function compactSummariesForClaude(summaries) {
+  /* Trim sums to the shape Claude needs — keep only what drives decisions.
+     Floor large arrays so the prompt stays small. */
+  const trim = (arr, n = 20) => arr.slice(0, n).map(o => {
+    const out = {};
+    Object.keys(o).forEach(k => {
+      const v = o[k];
+      if (v == null) return;
+      if (typeof v === 'number') out[k] = +Number(v).toFixed(2);
+      else if (typeof v === 'string' || typeof v === 'boolean') out[k] = v;
+    });
+    return out;
+  });
+  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum } = summaries;
+  return {
+    ads: { totalSpend: adsSum.totalSpend, totalConv: adsSum.totalConv, medianCpa: adsSum.medianCpa, top: trim(adsSum.camps.sort((a,b)=>b.Spend-a.Spend), 10) },
+    keywords: kwSum ? { totalSpend: kwSum.totalSpend, totalConv: kwSum.totalConv, medianCpa: kwSum.medianCpa, top: trim((kwSum.kws||[]).sort((a,b)=>b.Spend-a.Spend), 15) } : null,
+    gsc: { queries: trim(gscSum.queries, 15) },
+    ga: { totalSessions: gaSum.totalSessions, channels: trim(gaSum.channels, 10) },
+    calls: { totalCalls: callsSum.totalCalls, missRate: callsSum.missRate, lines: trim(callsSum.lines, 10), volumeDelta: callsSum.volumeDelta },
+    social: { totalPosts: socialSum.totalPosts, totalReach: socialSum.totalReach, platforms: trim(socialSum.platforms, 10) },
+  };
+}
+
+function claudeCacheKey(payload) {
+  /* Cheap stable hash so we don't re-bill the API for the exact same input. */
+  const s = JSON.stringify(payload) + '|' + state.brand + '|' + (state.timeRange && state.timeRange.key);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+  return 'cl_' + (h >>> 0).toString(36) + '_' + s.length;
+}
+
+function loadCachedClaude(key) {
+  try {
+    const raw = localStorage.getItem(CLAUDE_RESULT_STORAGE);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    return obj && obj.key === key ? obj : null;
+  } catch { return null; }
+}
+
+function saveCachedClaude(key, decisions, raw) {
+  try {
+    localStorage.setItem(CLAUDE_RESULT_STORAGE, JSON.stringify({ key, decisions, raw, at: new Date().toISOString() }));
+  } catch {}
+}
+
+async function callClaudeAPI(payload, apiKey) {
+  const prompt = `You are a CMO copilot reviewing the marketing data summarized below for the period the user selected. Pick the 5–8 highest-leverage decisions for the team. Skip boilerplate ("monitor performance"); only return decisions backed by a number in the data. Output strict JSON: {"decisions":[{"title":"…","source":"ads|keywords|gsc|ga|social|aircall|cross","brand":"all|via|liq","priority":"HIGH|MEDIUM|LOW","entity":"…","reason":"…","metric_trigger":"…"}]}\n\nDATA:\n${JSON.stringify(payload)}`;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { detail = JSON.stringify(await res.json()); } catch { detail = await res.text(); }
+    throw new Error(`Anthropic API ${res.status}: ${detail.slice(0, 280)}`);
+  }
+  const data = await res.json();
+  const text = (data.content || []).map(p => p.text || '').join('\n');
+  /* Extract JSON object from the response — handles fenced or unfenced. */
+  const m = text.match(/\{[\s\S]*"decisions"[\s\S]*\}/);
+  if (!m) throw new Error('Could not parse decisions JSON from Claude response');
+  const parsed = JSON.parse(m[0]);
+  return { decisions: parsed.decisions || [], raw: text };
+}
+
+function setClaudeStatus(text, kind = '') {
+  const el = document.getElementById('claudeStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove('busy', 'error', 'ok');
+  if (kind) el.classList.add(kind);
+}
+
+function renderClaudeDecisions(list) {
+  const el = document.getElementById('claudeRecs');
+  if (!el) return;
+  if (!list || !list.length) {
+    el.innerHTML = `<div class="action-empty">No decisions yet. Save your API key and click Generate.</div>`;
+    return;
+  }
+  /* Group by source like the Filters page */
+  const grouped = {};
+  list.forEach(d => { (grouped[d.source] || (grouped[d.source] = [])).push(d); });
+  const visible = SOURCE_ORDER.filter(s => grouped[s] && grouped[s].length);
+  el.innerHTML = visible.map(src => {
+    const detail = SOURCE_DETAIL[src] || { label: src, hint: '' };
+    const cards = grouped[src].map(d => {
+      const sev = (d.priority || 'MEDIUM').toLowerCase();
+      const brandLine = d.brand && d.brand !== 'all' ? ` · ${d.brand === 'via' ? 'Viatrading' : d.brand === 'liq' ? 'Liquidatenow' : d.brand}` : '';
+      return `
+        <div class="rec-card status-OPEN">
+          <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+            <span class="rec-sev rec-sev-${sev}">${(d.priority || 'MEDIUM').toUpperCase()}</span>
+            <span class="rec-status-tag rec-status-OPEN">CLAUDE</span>
+          </div>
+          <div class="rec-title">${escapeHtml(d.title || 'Decision')} — ${escapeHtml(d.entity || '—')}</div>
+          <div class="rec-rationale">${escapeHtml(d.reason || '')}</div>
+          ${d.metric_trigger ? `<div class="rec-trigger">${escapeHtml(d.metric_trigger)}</div>` : ''}
+          <div class="rec-meta-row"><span>${escapeHtml(detail.label)}${escapeHtml(brandLine)}</span></div>
+        </div>`;
+    }).join('');
+    return `
+      <section class="rec-source-group" data-source="${src}">
+        <header class="rec-source-head">
+          <h3 class="rec-source-title">${escapeHtml(detail.label)}</h3>
+          <span class="rec-source-count">${grouped[src].length}</span>
+          <span class="rec-source-hint">${escapeHtml(detail.hint)}</span>
+        </header>
+        <div class="rec-source-grid">${cards}</div>
+      </section>`;
+  }).join('');
+}
+
+async function generateClaudeDecisions() {
+  const key = (state.anthropicKey || '').trim();
+  if (!key) { setClaudeStatus('Enter and save an Anthropic API key first.', 'error'); return; }
+  if (!state.raw) { setClaudeStatus('Data still loading…', 'busy'); return; }
+  /* Re-derive the same summaries the rules see, but from the brand+range
+     scoped channels so the LLM and the rules disagree fairly on the same
+     window the user is viewing. */
+  const range = state.timeRange;
+  const scoped = {
+    ads:      scopeChannel(scopeByRange(state.raw.ads,      range), state.brand),
+    gsc:      scopeChannel(scopeByRange(state.raw.gsc,      range), state.brand),
+    ga:       scopeChannel(scopeByRange(state.raw.ga,       range), state.brand),
+    ac:       scopeChannel(scopeByRange(state.raw.ac,       range), state.brand),
+    social:   scopeChannel(scopeByRange(state.raw.social,   range), state.brand),
+    keywords: scopeChannel(scopeByRange(state.raw.keywords, range), state.brand),
+  };
+  const summaries = {
+    adsSum:    summarizeAds(scoped.ads.rows),
+    gscSum:    summarizeGsc(scoped.gsc.rows),
+    gaSum:     summarizeGa(scoped.ga.rows),
+    callsSum:  summarizeCalls(scoped.ac.rows),
+    socialSum: summarizeSocial(scoped.social.rows),
+    kwSum:     summarizeKeywords(scoped.keywords.rows),
+  };
+  const payload = compactSummariesForClaude(summaries);
+  const cacheKey = claudeCacheKey(payload);
+
+  const cached = loadCachedClaude(cacheKey);
+  if (cached) {
+    state.claude = { result: cached.decisions, status: 'ok', error: null, lastAt: cached.at, cached: true };
+    renderClaudeDecisions(cached.decisions);
+    setClaudeStatus(`Loaded ${cached.decisions.length} decisions from cache · ${new Date(cached.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, 'ok');
+    return;
+  }
+
+  setClaudeStatus(`Calling ${CLAUDE_MODEL}…`, 'busy');
+  state.claude.status = 'busy';
+  try {
+    const { decisions, raw } = await callClaudeAPI(payload, key);
+    saveCachedClaude(cacheKey, decisions, raw);
+    state.claude = { result: decisions, status: 'ok', error: null, lastAt: new Date().toISOString(), cached: false };
+    renderClaudeDecisions(decisions);
+    setClaudeStatus(`${decisions.length} decisions generated · ${new Date().toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, 'ok');
+  } catch (e) {
+    state.claude = { result: null, status: 'error', error: e.message || String(e), lastAt: null };
+    setClaudeStatus(e.message || String(e), 'error');
+  }
+}
+
 function renderPlaceholders() {
   renderKpis('emailGrid', [
     { label: 'Subscribers', value: '—', delta: 'Not connected', placeholder: true },
@@ -3736,13 +4545,21 @@ function scopeByRange(channel, range) {
 
 /* ══════════════════════ ROUTING ══════════════════════════════════════ */
 const NAV_LABEL = {
-  overview: 'Overview', ads: 'Ads', seo: 'SEO', web: 'Web (GA4)',
+  overview: 'Overview', ads: 'Ads', keywords: 'Keywords', seo: 'SEO', web: 'Web (GA4)',
   calls: 'Calls', social: 'Social', content: 'Content', email: 'Email',
-  decisions: 'Decisions', sources: 'Data Sources',
+  decisions_filters: 'Decisions from Filters',
+  decisions_claude: 'Decisions from Claude',
+  thresholds: 'Thresholds',
+  sources: 'Data Sources',
 };
+/* Back-compat: legacy `#/decisions` keeps working — we transparently route it
+   to the new "Decisions from Filters" page so old links + the Overview
+   "See all →" handler don't break. */
+const ROUTE_ALIASES = { decisions: 'decisions_filters' };
 function currentRoute() {
   const raw = (location.hash || '').replace(/^#\/?/, '').split('?')[0];
-  return NAV_LABEL[raw] ? raw : 'overview';
+  const aliased = ROUTE_ALIASES[raw] || raw;
+  return NAV_LABEL[aliased] ? aliased : 'overview';
 }
 function route() {
   const key = currentRoute();
@@ -3768,6 +4585,10 @@ const state = {
   filters: { brand: 'all', source: 'all', priority: 'all', status: 'active' },
   activeChannel: 'overview',
   lastRefreshAt: null,
+  thresholds: loadThresholds(),
+  thresholdBrand: 'via',  /* which brand the Thresholds editor is currently editing */
+  claude: { result: null, status: 'idle', error: null, lastAt: null },
+  anthropicKey: (typeof localStorage !== 'undefined' && localStorage.getItem('cmoAnthropicKey_v1')) || '',
   timeRange: resolveRange(
     (typeof localStorage !== 'undefined' && RANGE_KEYS.has(localStorage.getItem('cmoRange_v1')))
       ? localStorage.getItem('cmoRange_v1')
@@ -3829,10 +4650,87 @@ function initNav() {
   window.addEventListener('hashchange', route);
 }
 
+function initThresholds() {
+  /* Brand toggle */
+  document.querySelectorAll('.threshold-brand button[data-tbrand]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const next = btn.dataset.tbrand;
+      if (state.thresholdBrand === next) return;
+      /* Don't lose unsaved edits in the OTHER brand: commit first. */
+      commitThresholdInputs();
+      state.thresholdBrand = next;
+      renderThresholds();
+    });
+  });
+  const save = document.getElementById('thresholdsSave');
+  if (save) save.addEventListener('click', () => {
+    commitThresholdInputs();
+    const tag = document.getElementById('thresholdsSaved');
+    if (tag) {
+      tag.textContent = 'Saved';
+      tag.classList.remove('fading');
+      setTimeout(() => tag.classList.add('fading'), 1200);
+      setTimeout(() => { tag.textContent = ''; tag.classList.remove('fading'); }, 1900);
+    }
+    /* Re-run the rule engine so cards update immediately. */
+    if (state.raw) repaint();
+  });
+  const reset = document.getElementById('thresholdsReset');
+  if (reset) reset.addEventListener('click', () => {
+    if (!confirm('Reset thresholds to defaults for ' + (state.thresholdBrand === 'via' ? 'Viatrading' : 'Liquidatenow') + '?')) return;
+    state.thresholds[state.thresholdBrand] = { ...THRESHOLD_DEFAULTS };
+    saveThresholds();
+    renderThresholds();
+    if (state.raw) repaint();
+  });
+}
+
+function initClaude() {
+  const input = document.getElementById('claudeKey');
+  if (input) input.value = state.anthropicKey || '';
+  const save = document.getElementById('claudeKeySave');
+  if (save) save.addEventListener('click', () => {
+    const v = (input && input.value || '').trim();
+    state.anthropicKey = v;
+    try {
+      if (v) localStorage.setItem(CLAUDE_KEY_STORAGE, v);
+      else localStorage.removeItem(CLAUDE_KEY_STORAGE);
+    } catch {}
+    setClaudeStatus(v ? 'API key saved locally.' : 'API key cleared.', 'ok');
+  });
+  const clear = document.getElementById('claudeKeyClear');
+  if (clear) clear.addEventListener('click', () => {
+    state.anthropicKey = '';
+    try { localStorage.removeItem(CLAUDE_KEY_STORAGE); } catch {}
+    if (input) input.value = '';
+    setClaudeStatus('API key cleared.', '');
+  });
+  const gen = document.getElementById('claudeGenerate');
+  if (gen) gen.addEventListener('click', generateClaudeDecisions);
+  /* Restore last cached result so the page isn't empty after a refresh. */
+  try {
+    const raw = localStorage.getItem(CLAUDE_RESULT_STORAGE);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj && Array.isArray(obj.decisions)) {
+        renderClaudeDecisions(obj.decisions);
+        setClaudeStatus(`${obj.decisions.length} decisions cached · ${new Date(obj.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, '');
+      } else {
+        renderClaudeDecisions([]);
+      }
+    } else {
+      renderClaudeDecisions([]);
+    }
+  } catch { renderClaudeDecisions([]); }
+}
+
 initBrandToggle();
 initActionFilters();
 initRangePicker();
 initNav();
+initThresholds();
+initClaude();
+renderThresholds();
 route();
 render();
 </script>

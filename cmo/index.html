@@ -532,6 +532,47 @@
   }
   .src-reason.fail { color: var(--red); background: var(--red-dim); }
   .pill.warn { background: var(--amber-dim); color: var(--amber); }
+
+  /* "Last refreshed" strip on Overview */
+  .refresh-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin: 0 2.5rem 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+  .refresh-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .refresh-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .refresh-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+  }
+  .refresh-value.warn { color: var(--amber); }
+  .refresh-value.fail { color: var(--red); }
+  a.refresh-link {
+    text-decoration: none;
+    transition: border-color 0.2s;
+  }
+  a.refresh-link:hover { border-color: var(--border2); }
+  @media (max-width: 768px) {
+    .refresh-strip { margin: 0 1.5rem 1rem; }
+  }
   .rec-card {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -1133,6 +1174,13 @@
     </div>
     <div class="ai-brief-text" id="aiBriefText">Generating briefing…</div>
   </section>
+
+  <div class="refresh-strip" id="refreshStrip" role="status" aria-live="polite">
+    <div class="refresh-tile"><span class="refresh-label">Last refreshed</span><span class="refresh-value" id="refreshTime">—</span></div>
+    <div class="refresh-tile"><span class="refresh-label">Date range</span><span class="refresh-value" id="refreshRange">—</span></div>
+    <div class="refresh-tile"><span class="refresh-label">Brand</span><span class="refresh-value" id="refreshBrand">—</span></div>
+    <a class="refresh-tile refresh-link" href="#/sources"><span class="refresh-label">Sources</span><span class="refresh-value" id="refreshSources">—</span></a>
+  </div>
 
 <section class="section" id="overviewSection">
   <div class="section-head">
@@ -2974,7 +3022,9 @@ const SOURCE_DETAIL_REPORT = [
 function dateRangeFromRows(rows) {
   let min = null, max = null;
   for (const r of rows) {
-    const v = r && r.date;
+    /* Canonical column is `Date` after applyAliases/normalize. Fall back to
+       `date` only for safety on raw mock objects. */
+    const v = r && (r.Date || r.date);
     if (!v) continue;
     const t = typeof v === 'string' ? Date.parse(v) : (v instanceof Date ? v.getTime() : NaN);
     if (isNaN(t)) continue;
@@ -2984,6 +3034,19 @@ function dateRangeFromRows(rows) {
   if (min == null) return null;
   const f = ms => new Date(ms).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
   return { min: f(min), max: f(max) };
+}
+
+function summarizeSourceHealth(raw) {
+  const counts = { live: 0, demo: 0, fail: 0 };
+  if (!raw) return counts;
+  SOURCE_DETAIL_REPORT.forEach(s => {
+    const ch = raw[s.prop];
+    if (!ch) { counts.fail++; return; }
+    if (ch.source === 'live') counts.live++;
+    else if (ch.source === 'demo' && (ch.rows || []).length) counts.demo++;
+    else counts.fail++;
+  });
+  return counts;
 }
 
 function brandSplit(rows) {
@@ -3089,9 +3152,43 @@ function renderDataSources(raw) {
   }).join('');
 }
 
+const BRAND_DISPLAY = { all: 'All brands', via: 'Viatrading', liq: 'Liquidatenow' };
+
+/* Short suffix shown on KPI labels so the user can confirm at a glance which
+   window the value covers. Mirrors the dropdown but compresses copy. */
+const RANGE_SUFFIX = {
+  today: 'today', yesterday: 'yest.', '7d': '7d', '30d': '30d',
+  mtd: 'MTD', lastMonth: 'last mo.', qtd: 'QTD', '90d': '90d',
+};
+function rangeSuffix() {
+  const k = state.timeRange && state.timeRange.key;
+  return RANGE_SUFFIX[k] || '30d';
+}
+
+function renderRefreshStrip() {
+  const ts = state.lastRefreshAt instanceof Date ? state.lastRefreshAt : new Date();
+  const tEl = document.getElementById('refreshTime');
+  const rEl = document.getElementById('refreshRange');
+  const bEl = document.getElementById('refreshBrand');
+  const sEl = document.getElementById('refreshSources');
+  if (tEl) tEl.textContent = ts.toLocaleString('en-US', { month:'short', day:'numeric', hour: 'numeric', minute: '2-digit' });
+  if (rEl) rEl.textContent = (state.timeRange && state.timeRange.label) || 'Last 30 days';
+  if (bEl) bEl.textContent = BRAND_DISPLAY[state.brand] || state.brand;
+  if (sEl) {
+    const h = summarizeSourceHealth(state.raw);
+    sEl.textContent = `${h.live} live · ${h.demo} demo · ${h.fail} failed`;
+    sEl.classList.remove('warn', 'fail');
+    if (h.fail > 0) sEl.classList.add('fail');
+    else if (h.demo > 0) sEl.classList.add('warn');
+  }
+  /* Mirror the timestamp in the topbar. */
+  const top = document.getElementById('lastUpdated');
+  if (top) top.textContent = `Updated ${ts.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`;
+}
+
 function paint(ads, gsc, ga, ac, social) {
-  document.getElementById('lastUpdated').textContent =
-    new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  state.lastRefreshAt = new Date();
+  renderRefreshStrip();
   const insights = generateInsights({ ads, gsc, ga, ac, social }, state.brand);
   /* Hydrate generated actions with persisted status overrides, then
      store for filter/status interactions to mutate + re-render. */
@@ -3126,15 +3223,20 @@ function repaint() {
   };
 
   /* If user picked a specific brand but a live channel has no brand column,
-     surface the "filter pending" hint so the user knows that channel isn't
-     actually being sliced. Mock data always has brand tags, so on DEMO
-     sources the toggle is always fully active. */
+     surface the "filter pending" hint with the channel names so the user
+     knows exactly which datasets aren't being sliced. Mock data always has
+     brand tags via forBrands(), so demo sources are always fully active. */
   const pending = document.getElementById('brandPending');
   if (pending) {
     const needsBrand = state.brand !== 'all';
-    const missingBrand = needsBrand && Object.values(state.raw).some(
-      c => c.source === 'live' && !c.rows.some(r => r && r.brand)
-    );
+    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social' };
+    const unsliceable = Object.entries(state.raw)
+      .filter(([, c]) => c && c.source === 'live' && c.rows.length && !c.rows.some(r => r && r.brand))
+      .map(([k]) => NAME[k] || k);
+    const missingBrand = needsBrand && unsliceable.length > 0;
+    if (missingBrand) {
+      pending.textContent = `${unsliceable.join(' + ')} not brand-tagged — shown across both brands`;
+    }
     pending.classList.toggle('hidden', !missingBrand);
   }
   paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac, scoped.social);
@@ -3183,7 +3285,7 @@ function renderOverview(ads, gsc, ga, ac) {
   const conv = sum(ads.rows, 'Conversions');
   const cpl = conv > 0 ? spend / conv : null;
   renderKpis('overviewGrid', [
-    { label: 'Ad Spend (30d)', value: fmtCur(spend) },
+    { label: `Ad Spend (${rangeSuffix()})`, value: fmtCur(spend) },
     { label: 'Impressions', value: fmt(impr) },
     { label: 'Clicks', value: fmt(clicks) },
     { label: 'Web Sessions', value: fmt(sessions) },
@@ -3204,7 +3306,7 @@ function renderAds({ rows, source, reason }, insight) {
   const cpc = clicks > 0 ? (spend/clicks) : 0;
   const cpa = conv > 0 ? (spend/conv) : 0;
   renderKpis('adsKpis', [
-    { label: 'Spend (30d)', value: fmtCur(spend) },
+    { label: `Spend (${rangeSuffix()})`, value: fmtCur(spend) },
     { label: 'Clicks', value: fmt(clicks) },
     { label: 'CTR', value: fmtPct(ctr) },
     { label: 'CPC', value: fmtCur(cpc) },
@@ -3263,7 +3365,7 @@ function renderSeo({ rows, source, reason }, insight) {
   const ctr = impr > 0 ? clicks/impr*100 : 0;
   const pos = avg(rows, 'Avg Position');
   renderKpis('seoKpis', [
-    { label: 'Clicks (30d)', value: fmt(clicks) },
+    { label: `Clicks (${rangeSuffix()})`, value: fmt(clicks) },
     { label: 'Impressions', value: fmt(impr) },
     { label: 'CTR', value: fmtPct(ctr) },
     { label: 'Avg Position', value: pos ? pos.toFixed(1) : '—' },
@@ -3330,7 +3432,7 @@ function renderGa({ rows, source, reason }, insight) {
   const users = sum(rows, 'Users');
   const eng = avg(rows, 'Engagement Rate');
   renderKpis('gaKpis', [
-    { label: 'Sessions (30d)', value: fmt(sessions) },
+    { label: `Sessions (${rangeSuffix()})`, value: fmt(sessions) },
     { label: 'Users', value: fmt(users) },
     { label: 'Engagement', value: fmtPct(eng) },
     { label: 'Pages / Session', value: '—' },
@@ -3411,7 +3513,7 @@ function renderCalls({ rows, source, reason }, insight) {
   const inMissPct  = b.inTotal  ? b.inMissed  / b.inTotal  * 100 : null;
   const outMissPct = b.outTotal ? b.outMissed / b.outTotal * 100 : null;
   const kpis = [
-    { label: 'Total Calls (30d)', value: fmt(total) },
+    { label: `Total Calls (${rangeSuffix()})`, value: fmt(total) },
     { label: 'Answered', value: fmt(answered) },
     { label: 'Missed', value: fmt(missed) },
     { label: 'Answer Rate', value: fmtPct(ansPct) },
@@ -3515,7 +3617,7 @@ function renderSocial({ rows, source, reason }, insight) {
   const bestNet = netArr[0];
 
   renderKpis('socialKpis', [
-    { label: 'Posts (30d)', value: fmt(totalPosts) },
+    { label: `Posts (${rangeSuffix()})`, value: fmt(totalPosts) },
     { label: 'Total Reach', value: fmt(totalReach) },
     { label: 'Avg Reach / Post', value: fmt(Math.round(avgReach)) },
     { label: 'Best Network', value: bestNet ? bestNet.name : '—', delta: bestNet ? `${fmt(Math.round(bestNet.reachPer))} avg` : '' },
@@ -3665,6 +3767,7 @@ const state = {
   actionLog: loadActionLog(),
   filters: { brand: 'all', source: 'all', priority: 'all', status: 'active' },
   activeChannel: 'overview',
+  lastRefreshAt: null,
   timeRange: resolveRange(
     (typeof localStorage !== 'undefined' && RANGE_KEYS.has(localStorage.getItem('cmoRange_v1')))
       ? localStorage.getItem('cmoRange_v1')

@@ -1791,7 +1791,7 @@
       <div class="ai-avatar">AI</div>
       <div>
         <div class="ai-brief-title">CMO Copilot<span id="aiBriefScope" class="brand-scope" hidden></span></div>
-        <div class="ai-brief-sub" id="aiBriefSub">Analyzing last 30 days across 5 channels…</div>
+        <div class="ai-brief-sub" id="aiBriefSub">Analyzing the latest period across every data source…</div>
       </div>
     </div>
     <div class="ai-brief-text" id="aiBriefText">Brewing the briefing…</div>
@@ -3173,8 +3173,20 @@ function renderBriefing({ narrative, brand }) {
     }
   }
   const rangeLabel = (state.timeRange && state.timeRange.label) || 'Last 30 days';
+  /* Reflect the actual connector count rather than a hardcoded "5 channels"
+     — every Data Sources tab is its own source. Show "X of Y data sources"
+     when some are failing so the discrepancy with the headline narrative
+     is visible at a glance. */
+  const total = SOURCE_DETAIL_REPORT.length;
+  let liveCount = total;
+  if (state.raw) {
+    liveCount = SOURCE_DETAIL_REPORT.reduce((n, s) => n + ((state.raw[s.prop] || {}).source === 'live' ? 1 : 0), 0);
+  }
+  const sourcesLabel = liveCount === total
+    ? `${total} data sources`
+    : `${liveCount} of ${total} data sources`;
   document.getElementById('aiBriefSub').textContent =
-    `Generated ${new Date().toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})} · ${rangeLabel} · 5 channels`;
+    `Generated ${new Date().toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})} · ${rangeLabel} · ${sourcesLabel}`;
   document.getElementById('aiBriefText').textContent = narrative;
 }
 
@@ -6308,6 +6320,15 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'CMO Copilot sub-line shows real data-source count, not "5 channels"',
+    tags: ['Polish'],
+    bullets: [
+      'The Copilot briefing used to read "Generated … · 5 channels", which was hardcoded and wrong (the dashboard now pulls 9 connectors, not 5). It now reflects the actual count — "9 data sources" when everything is healthy, or "8 of 9 data sources" when something is failing — so the sub-line stays in sync with the Data Sources page.',
+      'Updated the placeholder copy ("Analyzing last 30 days across 5 channels…" → "Analyzing the latest period across every data source…") so the briefing reads consistent before and after the LLM call resolves.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Metricool struct dates parsed — Social page reads real numbers',

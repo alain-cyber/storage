@@ -808,6 +808,9 @@
     color: var(--text2);
     border-top: 1px dashed var(--border);
     padding-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
   }
   .social-network-empty {
     color: var(--text3);
@@ -3164,6 +3167,10 @@ const GLOSSARY = {
   'Followers':  { what: 'Total followers across all connected networks, latest snapshot in the active range.',               why: 'The cumulative audience you can reach without paying. Slow-and-steady growth is healthier than a spike followed by a plateau.' },
   'Followers Growth': { what: 'Net followers gained (or lost) between the earliest and latest snapshot in the active range.',why: 'The absolute number tells you whether the audience is actually growing — engagement rates are noise without it.' },
   'Growth Rate': { what: 'Followers gained divided by followers at the start of the period, expressed as a percent.',         why: 'Normalizes growth across networks of different sizes. 1% / week is a healthy social baseline.' },
+  'Reach Efficiency': { what: 'Avg reach per post divided by followers — what percent of your audience the algorithm is showing each post to.', why: 'The headline organic-social metric. Above 30% is excellent, 10–20% is normal, under 5% means the algorithm has deprioritized you.' },
+  'Posts / Week': { what: 'How many posts the network published per 7-day window during this period.',                       why: 'Cadence drives reach. Most networks reward 3–5 posts/week; falling below 1/week trains the algorithm to deprioritize you.' },
+  'Best format': { what: 'The post type (reel / post / story / carousel) with the highest avg reach this period — minimum 2 posts to qualify.', why: 'Tells you which format the algorithm is currently favoring on this network, so you can shift production effort.' },
+  'Best day':   { what: 'The day-of-week with the highest avg reach for this network this period — minimum 2 posts to qualify.', why: 'Posting on the day your audience is actually active typically lifts reach 30–50% with no extra effort.' },
   /* Calls */
   'Aircall':    { what: 'Cloud phone system the team uses for inbound and outbound sales calls.',                            why: 'Source of all call data here — line, agent, status, duration, miss reason.' },
   'Miss Rate':  { what: 'Missed inbound calls divided by total inbound calls.',                                              why: 'Above 10% in business hours = staffing or routing problem. After-hours misses usually need voicemail / SMS catch.' },
@@ -3922,6 +3929,9 @@ function summarizeSocialAnalytics(rows) {
 function summarizeSocial(rows) {
   const num = v => { const n = Number(v); return isNaN(n) ? 0 : n; };
   const map = {};
+  /* Day-of-week tally per network so we can call out the best day to post.
+     0 = Sun, 6 = Sat to match Date.getDay(). */
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   rows.forEach(r => {
     const n = r.network || '—';
     const e = map[n] || (map[n] = {
@@ -3929,6 +3939,8 @@ function summarizeSocial(rows) {
       posts: 0, reach: 0, impressions: 0,
       likes: 0, comments: 0, shares: 0,
       byType: {},
+      byDow: dayNames.map(d => ({ name: d, posts: 0, reach: 0 })),
+      dates: [],
     });
     if (!e.brand && r.brand) e.brand = r.brand;
     e.posts += 1;
@@ -3944,6 +3956,17 @@ function summarizeSocial(rows) {
     const t = e.byType[type] || (e.byType[type] = { posts: 0, reach: 0 });
     t.posts += 1;
     t.reach += num(r.reach);
+    /* Day of week from r.Date (already YYYY-MM-DD post-normalize). */
+    const d = typeof r.Date === 'string' ? r.Date : '';
+    if (d) {
+      const dt = new Date(d + 'T00:00:00');
+      if (!isNaN(dt.getTime())) {
+        const dow = dt.getDay();
+        e.byDow[dow].posts += 1;
+        e.byDow[dow].reach += num(r.reach);
+        e.dates.push(d);
+      }
+    }
   });
   const platforms = Object.values(map).map(p => {
     const engagement = p.likes + p.comments + p.shares;
@@ -3954,9 +3977,25 @@ function summarizeSocial(rows) {
     const types = Object.entries(p.byType).map(([name, v]) => ({
       name, posts: v.posts, reach: v.reach, reachPer: v.posts ? v.reach / v.posts : 0,
     }));
-    const eligible = types.filter(t => t.posts >= 2);
-    const ranked = (eligible.length ? eligible : types).sort((a, b) => b.reachPer - a.reachPer);
-    const bestType = ranked[0] || null;
+    const eligibleT = types.filter(t => t.posts >= 2);
+    const rankedT = (eligibleT.length ? eligibleT : types).sort((a, b) => b.reachPer - a.reachPer);
+    const bestType = rankedT[0] || null;
+    /* Best day: same logic — at least 2 posts on that weekday so we don't
+       crown "Sunday" off a single lucky reel. */
+    const dayBuckets = p.byDow.map(d => ({ ...d, reachPer: d.posts ? d.reach / d.posts : 0 }));
+    const eligibleD = dayBuckets.filter(d => d.posts >= 2);
+    const rankedD = (eligibleD.length ? eligibleD : dayBuckets).sort((a, b) => b.reachPer - a.reachPer);
+    const bestDay = rankedD[0] && rankedD[0].posts ? rankedD[0] : null;
+    /* Posts per week from the span of dates we saw. Falls back to 0 if
+       there's only a single posting day in the active range. */
+    let postsPerWeek = 0;
+    if (p.dates.length) {
+      const sorted = [...p.dates].sort();
+      const first = new Date(sorted[0] + 'T00:00:00');
+      const last  = new Date(sorted[sorted.length - 1] + 'T00:00:00');
+      const days = Math.max(1, Math.round((last - first) / 86400000) + 1);
+      postsPerWeek = (p.posts / days) * 7;
+    }
     return {
       ...p,
       reachPer: p.posts ? p.reach / p.posts : 0,
@@ -3964,6 +4003,8 @@ function summarizeSocial(rows) {
       engagementRate,
       types,
       bestType,
+      bestDay,
+      postsPerWeek,
     };
   });
   const totalPosts = platforms.reduce((a, p) => a + p.posts, 0);
@@ -5313,6 +5354,7 @@ function renderSocial({ rows, source, reason }, insight) {
     { label: `Posts (${rangeSuffix()})`, value: fmt(totalPosts) },
     { label: 'Total Reach', value: fmt(totalReach) },
     { label: 'Avg Reach / Post', value: fmt(Math.round(avgReach)) },
+    { label: 'Reach Efficiency', value: f.total ? fmtPct((avgReach / f.total) * 100) : '—', delta: f.total ? 'of followers / post' : '' },
     { label: 'Followers', value: f.total ? fmt(f.total) : '—', delta: followersDeltaText },
     { label: 'Followers Growth', value: f.total ? `${growthSign}${fmt(Math.abs(f.growth))}` : '—', delta: f.earliestDate && f.latestDate ? `since ${f.earliestDate.slice(5)}` : '', deltaClass: growthDeltaCls },
     { label: 'Growth Rate', value: growthPctVal, delta: '', deltaClass: growthDeltaCls },
@@ -5356,6 +5398,12 @@ function renderSocial({ rows, source, reason }, insight) {
             : '—';
           const engRate = n.engagementRate;
           const best = n.bestType;
+          /* Reach Efficiency = avg reach / followers (per network). The
+             headline social KPI — tells you what % of your audience the
+             algorithm is actually showing each post to. Only render when
+             we have a follower count to divide by. */
+          const reachEff = fn && fn.latest ? (n.reachPer / fn.latest) * 100 : null;
+          const bestDay = n.bestDay;
           return `
             <div class="social-network-card">
               <div class="social-network-head">
@@ -5365,13 +5413,17 @@ function renderSocial({ rows, source, reason }, insight) {
               </div>
               <div class="social-network-stats">
                 <div><div class="social-stat-label">Posts</div><div class="social-stat-value">${fmt(n.posts)}</div></div>
-                <div><div class="social-stat-label">Reach</div><div class="social-stat-value">${fmt(n.reach)}</div></div>
+                <div><div class="social-stat-label">Posts / Week</div><div class="social-stat-value">${n.postsPerWeek ? fmt(Number(n.postsPerWeek.toFixed(1))) : '—'}</div></div>
                 <div><div class="social-stat-label">Reach / Post</div><div class="social-stat-value">${fmt(Math.round(n.reachPer))}</div></div>
-                <div><div class="social-stat-label">Impressions</div><div class="social-stat-value">${n.impressions ? fmt(n.impressions) : '—'}</div></div>
+                <div><div class="social-stat-label">Reach Efficiency</div><div class="social-stat-value">${reachEff != null ? fmtPct(reachEff) : '—'}</div></div>
                 <div><div class="social-stat-label">Engagement</div><div class="social-stat-value">${fmt(n.engagement)}</div></div>
                 <div><div class="social-stat-label">Eng. Rate</div><div class="social-stat-value">${fmtPct(engRate * 100)}</div></div>
               </div>
-              ${best ? `<div class="social-network-best"><strong>Best format:</strong> ${escapeHtml(best.name)} · ${fmt(Math.round(best.reachPer))} reach/post (${fmt(best.posts)} posts)</div>` : ''}
+              <div class="social-network-best">
+                ${best ? `<div><strong>Best format:</strong> ${escapeHtml(best.name)} · ${fmt(Math.round(best.reachPer))} reach/post (${fmt(best.posts)} posts)</div>` : ''}
+                ${bestDay ? `<div><strong>Best day:</strong> ${escapeHtml(bestDay.name)} · ${fmt(Math.round(bestDay.reachPer))} reach/post (${fmt(bestDay.posts)} posts)</div>` : ''}
+                ${n.impressions ? `<div><strong>Impressions:</strong> ${fmt(n.impressions)}</div>` : ''}
+              </div>
             </div>`;
         }).join('')
       : `<div class="social-network-empty">No network data.</div>`;
@@ -6584,6 +6636,17 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Social — Reach Efficiency, Posting Cadence, Best Day',
+    tags: ['Feature'],
+    bullets: [
+      'Added Reach Efficiency to the top-line KPI strip — avg reach per post divided by followers, expressed as a percent. This is the headline organic-social metric: it tells you what fraction of your audience the algorithm is showing each post to. Above 30% excellent, 10–20% normal, under 5% means the algorithm has deprioritized you.',
+      'Each per-network card now shows Posts / Week (cadence) and Reach Efficiency (% of followers reached per post) alongside the existing reach + engagement stats.',
+      'Each card also surfaces Best Day — the day of the week with the highest avg reach for that network in this period (minimum 2 posts to qualify, same logic as Best Format). Pair this with Best Format to know what to post and when.',
+      'Glossary covers all four new terms — tap any of them on the KPI strip or per-network card for a plain-English definition.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Per-network detail on the Social page',

@@ -753,6 +753,72 @@
     .semrush-movers { grid-template-columns: 1fr; }
   }
 
+  /* Social per-network card grid */
+  .social-network-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+  .social-network-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.85rem 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .social-network-head { display: flex; flex-direction: column; gap: 0.15rem; }
+  .social-network-name {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: capitalize;
+    letter-spacing: -0.005em;
+  }
+  .social-network-foll {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    color: var(--text2);
+  }
+  .social-network-foll.dim { color: var(--text3); font-style: italic; }
+  .social-network-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem 0.75rem;
+  }
+  .social-stat-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.68rem;
+    color: var(--text3);
+    letter-spacing: 0.01em;
+  }
+  .social-stat-value {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    font-feature-settings: "tnum" 1;
+  }
+  .social-network-best {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    color: var(--text2);
+    border-top: 1px dashed var(--border);
+    padding-top: 0.5rem;
+  }
+  .social-network-empty {
+    color: var(--text3);
+    font-style: italic;
+    padding: 0.75rem 0;
+    font-size: 0.78rem;
+  }
+  @media (max-width: 480px) {
+    .social-network-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
   /* Chat page */
   .chat-model-toggle { display: inline-flex; gap: 0; border: 1px solid var(--border2); border-radius: 6px; overflow: hidden; }
   .chat-model-toggle button {
@@ -2120,15 +2186,12 @@
   <div class="chart-card" style="margin-top:1rem">
     <div class="chart-header">
       <div>
-        <div class="chart-title">Networks by performance</div>
-        <div class="chart-value">Reach per post</div>
+        <div class="chart-title">Per-network performance</div>
+        <div class="chart-value">Followers · reach · engagement · best format</div>
       </div>
-      <span class="chart-badge badge-blue">Efficiency</span>
+      <span class="chart-badge badge-blue">Detail</span>
     </div>
-    <table class="data-table">
-      <thead><tr><th>Network</th><th class="num">Posts</th><th class="num">Total Reach</th><th class="num">Reach / Post</th></tr></thead>
-      <tbody id="socialNetworks"></tbody>
-    </table>
+    <div class="social-network-grid" id="socialNetworks"></div>
   </div>
 </section>
 </section>
@@ -3857,18 +3920,52 @@ function summarizeSocialAnalytics(rows) {
 }
 
 function summarizeSocial(rows) {
+  const num = v => { const n = Number(v); return isNaN(n) ? 0 : n; };
   const map = {};
   rows.forEach(r => {
     const n = r.network || '—';
-    const e = map[n] || (map[n] = { name: n, brand: r.brand || null, posts: 0, reach: 0 });
+    const e = map[n] || (map[n] = {
+      name: n, brand: r.brand || null,
+      posts: 0, reach: 0, impressions: 0,
+      likes: 0, comments: 0, shares: 0,
+      byType: {},
+    });
     if (!e.brand && r.brand) e.brand = r.brand;
     e.posts += 1;
-    e.reach += Number(r.reach) || 0;
+    e.reach += num(r.reach);
+    e.impressions += num(r.impressions);
+    e.likes += num(r.likes);
+    e.comments += num(r.comments);
+    e.shares += num(r.shares);
+    /* Tally by post type so we can surface the best-performing format
+       (highest avg reach) per network. Keep counts so we can require a
+       minimum sample before crowning a winner. */
+    const type = String(r.post_type || '').toLowerCase().trim() || 'post';
+    const t = e.byType[type] || (e.byType[type] = { posts: 0, reach: 0 });
+    t.posts += 1;
+    t.reach += num(r.reach);
   });
-  const platforms = Object.values(map).map(p => ({
-    ...p,
-    reachPer: p.posts ? p.reach / p.posts : 0,
-  }));
+  const platforms = Object.values(map).map(p => {
+    const engagement = p.likes + p.comments + p.shares;
+    const engagementRate = p.reach ? engagement / p.reach : 0;
+    /* Best post type: highest avg reach with at least 2 posts so a single
+       outlier reel doesn't wrongly anoint itself. Fall back to highest
+       avg reach overall if no type has 2+ posts. */
+    const types = Object.entries(p.byType).map(([name, v]) => ({
+      name, posts: v.posts, reach: v.reach, reachPer: v.posts ? v.reach / v.posts : 0,
+    }));
+    const eligible = types.filter(t => t.posts >= 2);
+    const ranked = (eligible.length ? eligible : types).sort((a, b) => b.reachPer - a.reachPer);
+    const bestType = ranked[0] || null;
+    return {
+      ...p,
+      reachPer: p.posts ? p.reach / p.posts : 0,
+      engagement,
+      engagementRate,
+      types,
+      bestType,
+    };
+  });
   const totalPosts = platforms.reduce((a, p) => a + p.posts, 0);
   const totalReach = platforms.reduce((a, p) => a + p.reach, 0);
   const avgReachPerPost = totalPosts ? totalReach / totalPosts : 0;
@@ -5191,20 +5288,13 @@ function renderCalls({ rows, source, reason }, insight) {
 function renderSocial({ rows, source, reason }, insight) {
   document.getElementById('socialMeta').innerHTML = `${SHEETS.social.label} · ${sourceTag(source, reason)}`;
   renderInsight('socialInsight', insight);
-  const totalPosts = rows.length;
-  const totalReach = sum(rows, 'reach');
-  const avgReach = totalPosts ? totalReach / totalPosts : 0;
-  const networks = {};
-  rows.forEach(r => {
-    const n = r.network || '—';
-    const e = networks[n] || (networks[n] = { posts: 0, reach: 0 });
-    e.posts += 1;
-    e.reach += Number(r.reach) || 0;
-  });
-  const netArr = Object.entries(networks).map(([name, v]) => ({
-    name, ...v, reachPer: v.posts ? v.reach / v.posts : 0,
-  })).sort((a, b) => b.reachPer - a.reachPer);
-  const bestNet = netArr[0];
+  /* Use the shared summarizer so per-network engagement, best post type,
+     impressions, etc. all come from one source of truth. */
+  const sSum = summarizeSocial(rows);
+  const totalPosts = sSum.totalPosts;
+  const totalReach = sSum.totalReach;
+  const avgReach   = sSum.avgReachPerPost;
+  const netArr = [...sSum.platforms].sort((a, b) => b.reachPer - a.reachPer);
 
   /* Pull the Analytics-tab follower snapshots, scoped to the same range
      the Posts data uses. byNetwork is sorted desc by latest follower count. */
@@ -5247,15 +5337,45 @@ function renderSocial({ rows, source, reason }, insight) {
         </tr>`).join('')
     : `<tr><td colspan="3" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No posts found.</td></tr>`;
 
-  document.getElementById('socialNetworks').innerHTML = netArr.length
-    ? netArr.map(n => `
-        <tr>
-          <td>${n.name}</td>
-          <td class="num">${fmt(n.posts)}</td>
-          <td class="num">${fmt(n.reach)}</td>
-          <td class="num">${fmt(Math.round(n.reachPer))}</td>
-        </tr>`).join('')
-    : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No network data.</td></tr>`;
+  /* Per-network card grid. Each card joins Posts-tab tallies (posts,
+     reach, engagement, best post type) with Analytics-tab follower
+     snapshots (latest, growth, growth %) keyed on the network name. */
+  const followerByNet = {};
+  f.byNetwork.forEach(n => { followerByNet[String(n.name).toLowerCase()] = n; });
+  const grid = document.getElementById('socialNetworks');
+  if (grid) {
+    grid.innerHTML = netArr.length
+      ? netArr.map(n => {
+          const fn = followerByNet[String(n.name).toLowerCase()];
+          const fGrowth = fn ? fn.growth : null;
+          const fGrowthPct = fn ? fn.growthPct : null;
+          const fGrowthSign = fGrowth > 0 ? '+' : fGrowth < 0 ? '−' : '';
+          const fGrowthCls  = fGrowth > 0 ? 'delta-up' : fGrowth < 0 ? 'delta-down' : 'delta-neutral';
+          const fGrowthPctTxt = fGrowthPct != null
+            ? `${fGrowthPct > 0 ? '+' : fGrowthPct < 0 ? '−' : ''}${Math.abs(fGrowthPct * 100).toFixed(2)}%`
+            : '—';
+          const engRate = n.engagementRate;
+          const best = n.bestType;
+          return `
+            <div class="social-network-card">
+              <div class="social-network-head">
+                <div class="social-network-name">${escapeHtml(n.name)}</div>
+                ${fn ? `<div class="social-network-foll">${fmt(fn.latest)} followers <span class="${fGrowthCls}" style="margin-left:0.4rem">${fGrowthSign}${fmt(Math.abs(fGrowth))} · ${fGrowthPctTxt}</span></div>`
+                     : '<div class="social-network-foll dim">No follower data</div>'}
+              </div>
+              <div class="social-network-stats">
+                <div><div class="social-stat-label">Posts</div><div class="social-stat-value">${fmt(n.posts)}</div></div>
+                <div><div class="social-stat-label">Reach</div><div class="social-stat-value">${fmt(n.reach)}</div></div>
+                <div><div class="social-stat-label">Reach / Post</div><div class="social-stat-value">${fmt(Math.round(n.reachPer))}</div></div>
+                <div><div class="social-stat-label">Impressions</div><div class="social-stat-value">${n.impressions ? fmt(n.impressions) : '—'}</div></div>
+                <div><div class="social-stat-label">Engagement</div><div class="social-stat-value">${fmt(n.engagement)}</div></div>
+                <div><div class="social-stat-label">Eng. Rate</div><div class="social-stat-value">${fmtPct(engRate * 100)}</div></div>
+              </div>
+              ${best ? `<div class="social-network-best"><strong>Best format:</strong> ${escapeHtml(best.name)} · ${fmt(Math.round(best.reachPer))} reach/post (${fmt(best.posts)} posts)</div>` : ''}
+            </div>`;
+        }).join('')
+      : `<div class="social-network-empty">No network data.</div>`;
+  }
 }
 
 function renderKeywords({ rows, source, reason }, insight) {
@@ -6464,6 +6584,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Per-network detail on the Social page',
+    tags: ['Feature'],
+    bullets: [
+      'Replaced the thin 4-column "Networks by performance" table with a richer per-network card grid. Each card now joins the Posts-tab tallies (posts, reach, impressions, likes + comments + shares engagement, engagement rate) with the Analytics-tab follower data (latest count, growth, growth %).',
+      'Each card surfaces the network\'s "Best format" — the post type (reel / post / story / carousel) with the highest average reach in this period, with at least 2 posts to avoid one-hit wonders skewing the call.',
+      'Engagement rate is computed as (likes + comments + shares) ÷ reach so it stays consistent across networks regardless of how Metricool reports its own engagement column.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Data-source counts now reflect tabs, not channels',

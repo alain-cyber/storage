@@ -1734,6 +1734,21 @@
     background: var(--border);
     margin: 0 0.4rem;
   }
+  .refresh-btn {
+    width: 30px; height: 30px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .refresh-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+  .refresh-btn[disabled] { color: var(--text3); cursor: default; }
+  .refresh-btn.is-spinning svg { animation: refresh-spin 0.9s linear infinite; }
+  @keyframes refresh-spin { to { transform: rotate(360deg); } }
   .topbar-spacer { flex: 1; }
   @media (max-width: 768px) {
     .vicki-mark-compact .vicki-text { display: none; }
@@ -2023,6 +2038,9 @@
     </select>
   </div>
   <span class="last-updated is-hype" id="lastUpdated">Negotiating with the spreadsheet…</span>
+  <button type="button" class="refresh-btn" id="refreshDataBtn" aria-label="Refresh data" title="Pull fresh data from all sources">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+  </button>
 </header>
 
 <main class="main" id="main">
@@ -5024,7 +5042,10 @@ function renderRefreshStrip() {
 }
 
 function paint(ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl) {
-  state.lastRefreshAt = new Date();
+  /* Note: state.lastRefreshAt is set by render() — either to the cache
+     timestamp (on hydrate) or "now" (after a fresh fetch). paint() must
+     not overwrite it, otherwise reusing the cache would always read
+     "Updated just now" and hide that the data is from earlier. */
   /* Cache the scoped channel rows for the drill-down modal + Top 5 + Low
      Hanging Fruit so they don't have to recompute scoping. */
   state._lastScoped = { ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl,
@@ -5127,7 +5148,64 @@ function stopLoadingHype() {
   if (el) el.classList.remove('is-hype');
 }
 
-async function render() {
+/* ── Data cache (IndexedDB) ──────────────────────────────────────────
+   The full dataset (Aircall alone is 18k rows) is several megabytes
+   stringified — too big for localStorage's ~5MB limit, so we use IDB.
+   On boot, render() hydrates from cache and paints immediately; only
+   a manual Refresh click (or first-ever load) hits gviz again. */
+const DATA_CACHE_DB    = 'vicki_cmo';
+const DATA_CACHE_STORE = 'cache';
+const DATA_CACHE_KEY   = 'cmoData_v1';
+function _idbOpen() {
+  return new Promise((resolve, reject) => {
+    try {
+      const req = indexedDB.open(DATA_CACHE_DB, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(DATA_CACHE_STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = () => reject(req.error);
+    } catch (e) { reject(e); }
+  });
+}
+async function idbCacheGet() {
+  try {
+    const db = await _idbOpen();
+    return await new Promise((resolve) => {
+      const tx = db.transaction(DATA_CACHE_STORE, 'readonly');
+      const r  = tx.objectStore(DATA_CACHE_STORE).get(DATA_CACHE_KEY);
+      r.onsuccess = () => resolve(r.result || null);
+      r.onerror   = () => resolve(null);
+    });
+  } catch { return null; }
+}
+async function idbCacheSet(payload) {
+  try {
+    const db = await _idbOpen();
+    return await new Promise((resolve) => {
+      const tx = db.transaction(DATA_CACHE_STORE, 'readwrite');
+      const r  = tx.objectStore(DATA_CACHE_STORE).put(payload, DATA_CACHE_KEY);
+      r.onsuccess = () => resolve(true);
+      r.onerror   = () => resolve(false);
+    });
+  } catch { return false; }
+}
+
+async function render(opts = {}) {
+  const force = !!opts.force;
+  /* Try the cache first unless the caller explicitly forced a refresh. */
+  if (!force) {
+    const cached = await idbCacheGet();
+    if (cached && cached.data && cached.at) {
+      try {
+        state.raw = cached.data;
+        state.lastRefreshAt = new Date(cached.at);
+        repaint();
+        console.log('CMO: hydrated from cache', new Date(cached.at).toLocaleString());
+        return;
+      } catch (e) {
+        console.warn('CMO: cache hydrate failed, refetching', e);
+      }
+    }
+  }
   try {
     const [ads, gsc, ga, ac, social, social_analytics, keywords, pagespeed, semrush_kw, semrush_bl] = await Promise.all([
       loadChannel('ads', REQUIRED_COLS.ads),
@@ -5156,7 +5234,12 @@ async function render() {
     ]);
 
     state.raw = { ads, gsc, ga, ac, social, social_analytics, keywords, pagespeed, semrush_kw, semrush_bl };
+    state.lastRefreshAt = new Date();
     repaint();
+    /* Persist asynchronously — failure is non-fatal (e.g. private mode
+       can disable IDB, dataset can exceed origin quota). */
+    idbCacheSet({ data: state.raw, at: state.lastRefreshAt.getTime() })
+      .then(ok => { if (!ok) console.warn('CMO: cache write failed'); });
   } catch (err) {
     console.error('CMO render failed:', err);
     /* Each loadChannel already catches its own errors and returns a `fail`
@@ -5169,6 +5252,7 @@ async function render() {
       ads: failCh(), gsc: failCh(), ga: failCh(), ac: failCh(), social: failCh(), social_analytics: failCh(),
       keywords: failCh(), pagespeed: failCh(), semrush_kw: failCh(), semrush_bl: failCh(),
     };
+    state.lastRefreshAt = new Date();
     repaint();
   }
 }
@@ -6874,6 +6958,17 @@ function renderLowHanging(scoped) {
 const APP_HISTORY = [
   {
     date: 'Apr 26, 2026',
+    title: 'Data cached locally — only refetches on demand',
+    tags: ['Feature', 'Polish'],
+    bullets: [
+      'The dashboard no longer re-pulls every Google Sheet on every page load. After the first successful fetch, the full dataset is cached in your browser\'s IndexedDB (which can hold tens of MB, unlike localStorage\'s 5MB cap that the Aircall sheet alone blows past). Reloading or coming back later shows the cached numbers immediately.',
+      'New circular-arrow Refresh button in the topbar (next to "Updated …") pulls fresh data from gviz on demand. Spins while fetching; the timestamp updates when complete.',
+      'The "Updated Apr 26 at X:XX AM" line now reflects when the data was actually fetched — so if you\'re looking at the cache from 3 hours ago, it says so. Click the refresh icon to bring it current.',
+      'Cache survives reloads, app close/reopen, and device sleep. It does NOT survive a private/incognito session or a clear-site-data action — those just trigger a fresh fetch.',
+    ],
+  },
+  {
+    date: 'Apr 26, 2026',
     title: 'Metricool date sanity, all-network Social cards, "LiquidateNow" casing',
     tags: ['Fix', 'Polish'],
     bullets: [
@@ -7918,6 +8013,23 @@ renderHistory();
 renderThresholds();
 route();
 startLoadingHype();
+/* Manual Refresh button — only re-pulls gviz on click. First load and
+   every subsequent load otherwise hydrate from the IDB cache. */
+(() => {
+  const btn = document.getElementById('refreshDataBtn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.classList.add('is-spinning');
+    startLoadingHype();
+    try { await render({ force: true }); }
+    finally {
+      btn.disabled = false;
+      btn.classList.remove('is-spinning');
+    }
+  });
+})();
 render();
 </script>
 </body>

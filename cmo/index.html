@@ -2601,6 +2601,18 @@ function normalizeAircallRows(rows, cols) {
   return out;
 }
 
+/* Coefficient inserts a row-1 banner ("<Source> Import · Last updated X ago ·
+   Powered by Coefficient") on most of its sheets. We pass `headers: 2` so
+   gviz knows row 2 is the real header — but gviz still concatenates both
+   header rows with a space, so column A arrives as
+   "Google Ads Import Last updated 17 hours ago Date" instead of "Date".
+   Slice off everything up to and including "ago" to recover the real label. */
+function stripCoefficientBanner(name) {
+  if (typeof name !== 'string') return name;
+  const m = name.match(/Last updated\s.+?\bago\b\s+(.+)$/i);
+  return m ? m[1].trim() : name;
+}
+
 async function fetchSheet(id, opts = {}) {
   const params = ['tqx=out:json'];
   if (opts.gid != null) params.push(`gid=${encodeURIComponent(opts.gid)}`);
@@ -2639,7 +2651,7 @@ async function fetchSheet(id, opts = {}) {
     }
   }
   const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
-  const cols = json.table.cols.map(c => c.label || c.id);
+  const cols = json.table.cols.map(c => stripCoefficientBanner(c.label || c.id));
   const rows = json.table.rows.map(r => {
     const o = {};
     r.c.forEach((cell,i) => { o[cols[i]] = cell ? coerceCell(cell.v) : null; });

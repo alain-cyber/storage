@@ -6108,6 +6108,24 @@ const APP_HISTORY = [
   },
   {
     date: 'Apr 26, 2026',
+    title: 'No more silent demo data — failed sources show FAIL + reason',
+    tags: ['Fix', 'Foundation'],
+    bullets: [
+      'Removed the silent DEMO fallback. Previously, when a sheet fetch failed the dashboard substituted mock numbers and tagged the source as DEMO — which hid real outages and made the page feel like it was working when it wasn\'t. Now any failed connector returns no rows and the UI renders a clear FAIL badge with the underlying reason (timeout / missing column / sharing error / etc.) so you can fix the actual problem.',
+      'Deleted ~390 lines of unused mock-data plumbing (FORCE_DEMO, mockChannel, demo summary counters, .is-demo styling).',
+      'While the first fetch is in flight, the topbar "Loading…" is replaced by a louder, gently pulsing rotating hype line cycling through 10 phrases every 2.2s — so a slow gviz cold start no longer looks like a frozen page.',
+    ],
+  },
+  {
+    date: 'Apr 26, 2026',
+    title: 'Data Sources now shows real date ranges for Google Ads',
+    tags: ['Fix'],
+    bullets: [
+      'Fixed the Data Sources page reading "no date column" for Google Ads and Google Ads · Keywords. The Coefficient sheets put a "Last updated X ago" banner on row 1, and gviz with headers:2 was concatenating that banner with the real header — so column A arrived as "Google Ads Import Last updated 17 hours ago Date" instead of "Date". The fetcher now strips the banner at ingest, so the alias matcher, the date-range readout, and the column chips all see clean names.',
+    ],
+  },
+  {
+    date: 'Apr 26, 2026',
     title: 'Drill-downs, sidebar icons, Low Hanging Fruit, Top 5 cards',
     tags: ['Feature', 'Polish'],
     bullets: [

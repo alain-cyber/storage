@@ -1801,7 +1801,7 @@
     <div class="refresh-tile"><span class="refresh-label">Last refreshed</span><span class="refresh-value" id="refreshTime">—</span></div>
     <div class="refresh-tile"><span class="refresh-label">Date range</span><span class="refresh-value" id="refreshRange">—</span></div>
     <div class="refresh-tile"><span class="refresh-label">Brand</span><span class="refresh-value" id="refreshBrand">—</span></div>
-    <a class="refresh-tile refresh-link" href="#/sources"><span class="refresh-label">Sources</span><span class="refresh-value" id="refreshSources">—</span></a>
+    <a class="refresh-tile refresh-link" href="#/sources"><span class="refresh-label">Data sources</span><span class="refresh-value" id="refreshSources">—</span></a>
   </div>
 
 <section class="section" id="overviewSection">
@@ -6298,6 +6298,14 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Refresh strip "Sources" tile renamed to "Data sources"',
+    tags: ['Polish'],
+    bullets: [
+      'The Overview refresh strip used to read just "Sources" with a count, which read ambiguously next to "Last refreshed", "Date range", and "Brand". Renamed to "Data sources" so the tile reads as "X / Y data sources connected" and matches the sidebar label.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Tap any abbreviation for a plain-English definition + why it matters',

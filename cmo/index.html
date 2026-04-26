@@ -913,6 +913,45 @@
     padding: 3rem 1rem; text-align: center;
   }
 
+  /* App History timeline */
+  .history-list { display: flex; flex-direction: column; gap: 1rem; }
+  .history-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 1rem 1.15rem;
+    display: flex; flex-direction: column; gap: 0.6rem;
+  }
+  .history-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+  .history-date {
+    font-size: 0.7rem; color: var(--text3); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 0.15rem 0.55rem; border-radius: 999px;
+  }
+  .history-tag {
+    font-size: 0.62rem; color: var(--accent); background: var(--accent-dim);
+    padding: 0.12rem 0.5rem; border-radius: 999px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .history-tag.is-fix { color: var(--amber); background: var(--amber-dim); }
+  .history-tag.is-foundation { color: var(--text2); background: var(--surface2); }
+  .history-title {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600; font-size: 0.95rem; color: var(--text);
+    line-height: 1.35;
+  }
+  .history-bullets {
+    margin: 0; padding-left: 1.15rem;
+    color: var(--text2); font-size: 0.85rem; line-height: 1.55;
+  }
+  .history-bullets li { margin-bottom: 0.25rem; }
+  .history-bullets li:last-child { margin-bottom: 0; }
+  .history-empty {
+    color: var(--text3); font-style: italic; text-align: center; padding: 2rem;
+  }
+
   /* Shared empty state */
   .cmo-empty {
     text-align: center;
@@ -1628,6 +1667,7 @@
     <a class="side-link" data-route="decisions_gpt"     href="#/decisions_gpt"><span class="side-link-text">Decisions from GPT</span></a>
     <a class="side-link" data-route="thresholds" href="#/thresholds"><span class="side-link-text">Thresholds</span></a>
     <a class="side-link" data-route="sources"   href="#/sources"><span class="side-link-text">Data Sources</span> <span class="pill" id="sideSourcesPill"></span></a>
+    <a class="side-link" data-route="history"   href="#/history"><span class="side-link-text">App History</span></a>
   </nav>
   <div class="side-foot">
     <span class="side-foot-powered">Powered by</span>
@@ -2237,6 +2277,16 @@
       </div>
     </div>
     <div class="threshold-grid" id="thresholdsGrid"></div>
+  </section>
+</section>
+
+<section class="page" data-page="history" hidden>
+  <section class="section" id="historySection">
+    <div class="section-head">
+      <div class="section-title">App History</div>
+      <div class="section-meta">A plain-English log of every update to this dashboard, newest first.</div>
+    </div>
+    <div class="history-list" id="historyList"></div>
   </section>
 </section>
 
@@ -5751,6 +5801,7 @@ const CMO_ICONS = {
   bookmark:    '<path d="M6 3h12v18l-6-4-6 4z"/>',
   sliders:     '<path d="M4 6h10"/><path d="M18 6h2"/><path d="M4 12h2"/><path d="M10 12h10"/><path d="M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
   database:    '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+  history:     '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/>',
 };
 const SIDEBAR_ICONS = {
   overview: 'home', ads: 'megaphone', keywords: 'key', seo: 'search',
@@ -5758,7 +5809,7 @@ const SIDEBAR_ICONS = {
   social: 'share', content: 'file', email: 'mail', chat: 'chat',
   pinned: 'bookmark', lowhanging: 'zap',
   decisions_filters: 'filter', decisions_claude: 'sparkles', decisions_gpt: 'sparkles',
-  thresholds: 'sliders', sources: 'database',
+  thresholds: 'sliders', sources: 'database', history: 'history',
 };
 function cmoIcon(name, className) {
   const path = CMO_ICONS[name] || CMO_ICONS.home;
@@ -6316,6 +6367,169 @@ function renderLowHanging(scoped) {
   }).join('');
 }
 
+/* ────────────────────────────────────────────────────────────────────
+   App History — plain-English changelog of every dashboard update.
+   Newest first. Tag legend:
+     'Feature'    – something new you can use
+     'Polish'     – visual / UX improvement
+     'Fix'        – a bug we squashed
+     'Foundation' – under-the-hood plumbing that unlocks later features
+   ──────────────────────────────────────────────────────────────────── */
+const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Drill-downs, sidebar icons, Low Hanging Fruit, Top 5 cards',
+    tags: ['Feature', 'Polish'],
+    bullets: [
+      'Click any decision card to open a pop-up showing the numbers behind it (spend, clicks, conversions, position, LCP — whatever fits the source) plus a 5-row sample of the raw data.',
+      'New "Low Hanging Fruit" page lists the 12 easiest wins right now — dead ad spend to pause, keywords to negate, page-1 SEO opportunities, striking-distance SemRush keywords, fixable Page Speed pages, and Aircall lines with high miss rates.',
+      'New "Top 5" strip on the Overview shows top ad campaigns by spend, top search queries by clicks, top web channels by sessions, and the worst pages by LCP. Click any row to drill into it.',
+      'Every sidebar entry now has an icon so you can scan the menu visually instead of reading every label.',
+    ],
+  },
+  {
+    date: 'Apr 26, 2026',
+    title: 'Pin chat answers + show more decisions',
+    tags: ['Feature'],
+    bullets: [
+      'Every Claude / GPT chat reply now has a 📌 button — click it to save the answer to a new "Pinned" page in the sidebar (with a count badge).',
+      'Pinned answers survive clearing chat history; they live in their own slot in your browser storage.',
+      'The Decisions from Claude / GPT pages now ask the model for 12–20 decisions instead of 5–8, and show the top 5 per source by default with a "Show all" toggle.',
+      'New "App History" page (this one!) — a plain-English log of every update.',
+    ],
+  },
+  {
+    date: 'Apr 26, 2026',
+    title: 'SemRush channels, Decisions from GPT, Chat tab',
+    tags: ['Feature'],
+    bullets: [
+      'Connected SemRush keyword rankings + backlink profile as live data sources, with their own SemRush page.',
+      'New "Decisions from GPT" page (alongside Decisions from Claude) lets you compare what each model recommends.',
+      'New "Chat" page — ask Claude or GPT free-form questions about the current scope (brand + range) and get answers grounded in the live data.',
+      'Save-key buttons now flash a checkmark when the key is stored, and Generate buttons show a spinner while in flight.',
+    ],
+  },
+  {
+    date: 'Apr 26, 2026',
+    title: 'Page Speed channel, light theme, full branding',
+    tags: ['Feature', 'Polish'],
+    bullets: [
+      'Connected the Page Speed sheet (Lighthouse / Core Web Vitals per URL + device) as a live channel with its own page.',
+      'Aircall daily call counts are now pinned to Pacific Time so the buckets line up with US business hours.',
+      'Switched the whole dashboard to a light, Semrush-style theme — white cards on a soft-grey page, blue accent, Inter typeface, sentence-case labels.',
+      'Added Viatrading + Liquidatenow logos to the sidebar header. Footer now reads "Powered by Vicki Intelligence."',
+    ],
+  },
+  {
+    date: 'Apr 25, 2026',
+    title: 'Keywords + Thresholds + first AI Decisions',
+    tags: ['Feature'],
+    bullets: [
+      'Connected the Google Ads keyword sheet — added a new Keywords page with totals + a CPA table.',
+      'New "Thresholds" page lets you tune what triggers each rule (e.g. "spend > $X with no conversions") per brand. Saved locally so your tuning survives reloads.',
+      'First version of "Decisions from Claude" — paste an Anthropic API key, click Generate, get LLM-generated recommendations grouped by source.',
+    ],
+  },
+  {
+    date: 'Apr 25, 2026',
+    title: 'Data Sources page + range-aware Overview',
+    tags: ['Feature', 'Polish'],
+    bullets: [
+      'New "Data Sources" page shows live / demo / failed status for every connector at a glance, with a sidebar pill summarising the count.',
+      'Decisions page now segments by source (Ads, SEO, GA, Calls, Cross) so each channel has its own bucket.',
+      'Added a refresh strip at the top of the Overview — when last refreshed, active date range, active brand, and a sources tile.',
+      'Overview KPI numbers now respect the selected date range (last 7 / 30 / 90 days) instead of always being all-time.',
+    ],
+  },
+  {
+    date: 'Apr 24, 2026',
+    title: 'Per-brand tabs + sidebar nav + time-range picker',
+    tags: ['Feature'],
+    bullets: [
+      'Ads / SEO / GA4 channels now read brand-specific tabs in their Google Sheets, so the brand toggle actually slices live data (not just demo).',
+      'Replaced the single-page scroll with a sidebar navigation — every channel gets its own page (Overview, Ads, SEO, Web, Page Speed, Calls, Social, Decisions).',
+      'Added a time-range picker (Last 7 / 30 / 90 / All days). Your choice is remembered between sessions.',
+    ],
+  },
+  {
+    date: 'Apr 24, 2026',
+    title: 'Action-first decision engine',
+    tags: ['Foundation'],
+    bullets: [
+      'Re-built the rules engine so each fired rule produces a structured action (priority + entity + reason + metric trigger) instead of a free-text recommendation.',
+      'You can mark actions as Complete / In Progress / Dismiss and the status persists across reloads.',
+      'This is the foundation that the new drill-down modal, Top 5 cards, and Low Hanging Fruit page all build on.',
+    ],
+  },
+  {
+    date: 'Apr 24, 2026',
+    title: 'Aircall hardening',
+    tags: ['Fix'],
+    bullets: [
+      'Fixed the "100% answered" bug caused by the Coefficient banner shifting headers down by one row.',
+      'When no miss signal can be detected, the dashboard now shows the actual sheet column names inline so you can see what came back.',
+      'Loosened miss-call detection to layer multiple signal columns and surface a debug line when something is off.',
+    ],
+  },
+  {
+    date: 'Apr 23, 2026',
+    title: 'Metricool social channel + 13 decision rules',
+    tags: ['Feature'],
+    bullets: [
+      'Connected Metricool — added a Social page with per-network reach + post counts.',
+      'Expanded the rule engine from 8 to 13 signals across ads, SEO, GA, calls, and social.',
+      'Made the brand toggle actually filter the underlying data (it was just a label before).',
+    ],
+  },
+  {
+    date: 'Apr 23, 2026',
+    title: 'Aircall: brand-by-assignee + working-hours split',
+    tags: ['Feature', 'Polish'],
+    bullets: [
+      'Aircall calls are now assigned to a brand based on the agent who took them, so the brand toggle works on calls too.',
+      'Missed-call rate is now split between in-hours and after-hours so you can see staffing gaps separately from the ones that just need a voicemail.',
+      'Bumped text contrast across the dark theme.',
+    ],
+  },
+  {
+    date: 'Apr 23, 2026',
+    title: 'Dual-brand framing + AI Copilot v1',
+    tags: ['Foundation'],
+    bullets: [
+      'Re-framed the dashboard as Viatrading + Liquidatenow with a brand toggle in the top bar.',
+      'Decoupled the data feed from the original Storage / Cheyenne project so /cmo is its own thing.',
+      'First version of the AI Copilot briefing at the top of the page — narrative summary + top recommendations + cross-channel insights.',
+    ],
+  },
+];
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!list) return;
+  if (!APP_HISTORY.length) {
+    list.innerHTML = `<div class="history-empty">No history entries yet.</div>`;
+    return;
+  }
+  list.innerHTML = APP_HISTORY.map(e => {
+    const tags = (e.tags || []).map(t => {
+      const cls = t === 'Fix' ? 'history-tag is-fix'
+        : t === 'Foundation' ? 'history-tag is-foundation'
+        : 'history-tag';
+      return `<span class="${cls}">${escapeHtml(t)}</span>`;
+    }).join('');
+    const bullets = (e.bullets || []).map(b => `<li>${escapeHtml(b)}</li>`).join('');
+    return `
+      <article class="history-entry">
+        <div class="history-head">
+          <span class="history-date">${escapeHtml(e.date)}</span>
+          ${tags}
+        </div>
+        <div class="history-title">${escapeHtml(e.title)}</div>
+        <ul class="history-bullets">${bullets}</ul>
+      </article>`;
+  }).join('');
+}
+
 /* Back-compat: anything still calling renderClaudeDecisions keeps working. */
 function renderClaudeDecisions(list) { renderLLMDecisions(list, 'claudeRecs', 'CLAUDE'); }
 
@@ -6680,6 +6894,7 @@ const NAV_LABEL = {
   decisions_gpt: 'Decisions from GPT',
   thresholds: 'Thresholds',
   sources: 'Data Sources',
+  history: 'App History',
 };
 /* Back-compat: legacy `#/decisions` keeps working — we transparently route it
    to the new "Decisions from Filters" page so old links + the Overview
@@ -6950,6 +7165,7 @@ initClaude();
 initGpt();
 initChat();
 initDecisionModal();
+renderHistory();
 renderThresholds();
 route();
 render();

@@ -4626,6 +4626,9 @@ function renderRefreshStrip() {
 
 function paint(ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl) {
   state.lastRefreshAt = new Date();
+  /* Cache the scoped channel rows for the drill-down modal + Top 5 + Low
+     Hanging Fruit so they don't have to recompute scoping. */
+  state._lastScoped = { ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl };
   renderRefreshStrip();
   const insights = generateInsights({ ads, gsc, ga, ac, social, keywords, pagespeed }, state.brand);
   /* Hydrate generated actions with persisted status overrides, then
@@ -4638,6 +4641,8 @@ function paint(ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrus
   renderSideDecisionsCount(state.actions, state.filters);
   renderTodoList(state.actions, state.filters);
   renderOverview(ads, gsc, ga, ac);
+  renderOverviewTop5(state._lastScoped);
+  renderLowHanging(state._lastScoped);
   renderAds(ads, insights.perSection.ads);
   renderKeywords(keywords, insights.perSection.keywords);
   renderSeo(gsc, insights.perSection.seo);
@@ -5723,6 +5728,594 @@ function renderLLMDecisions(list, mountId, badgeLabel) {
   });
 }
 
+/* ────────────────────────────────────────────────────────────────────
+   Sidebar icons. Each route gets a 16×16 stroke SVG (Lucide-style).
+   Strokes use currentColor so .side-link.is-active recolors to accent.
+   ──────────────────────────────────────────────────────────────────── */
+const CMO_ICONS = {
+  home:        '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+  megaphone:   '<path d="M3 11v3l11 5V6L3 11z"/><path d="M14 8a4 4 0 0 1 0 8"/><path d="M5 14v4a2 2 0 0 0 4 0v-3"/>',
+  key:         '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9"/><path d="M16 7l3 3"/>',
+  search:      '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/>',
+  trendup:     '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+  bar:         '<path d="M3 21V10"/><path d="M9 21V4"/><path d="M15 21v-9"/><path d="M21 21V7"/>',
+  gauge:       '<circle cx="12" cy="13" r="9"/><path d="M12 13l5-5"/><path d="M12 22V20"/>',
+  phone:       '<path d="M5 4h3l2 5-2 1a11 11 0 0 0 6 6l1-2 5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  share:       '<circle cx="6" cy="12" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 11l8-4"/><path d="M8 13l8 4"/>',
+  file:        '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/>',
+  mail:        '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  chat:        '<path d="M21 12a8 8 0 1 1-3-6.2L21 4l-1.2 3.2A8 8 0 0 1 21 12z"/>',
+  filter:      '<path d="M3 5h18"/><path d="M6 11h12"/><path d="M10 17h4"/>',
+  sparkles:    '<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M19 15l.7 1.8L21 17.5l-1.3.7L19 20l-.7-1.8L17 17.5l1.3-.7z"/>',
+  zap:         '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  bookmark:    '<path d="M6 3h12v18l-6-4-6 4z"/>',
+  sliders:     '<path d="M4 6h10"/><path d="M18 6h2"/><path d="M4 12h2"/><path d="M10 12h10"/><path d="M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  database:    '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+};
+const SIDEBAR_ICONS = {
+  overview: 'home', ads: 'megaphone', keywords: 'key', seo: 'search',
+  semrush: 'trendup', web: 'bar', pagespeed: 'gauge', calls: 'phone',
+  social: 'share', content: 'file', email: 'mail', chat: 'chat',
+  pinned: 'bookmark', lowhanging: 'zap',
+  decisions_filters: 'filter', decisions_claude: 'sparkles', decisions_gpt: 'sparkles',
+  thresholds: 'sliders', sources: 'database',
+};
+function cmoIcon(name, className) {
+  const path = CMO_ICONS[name] || CMO_ICONS.home;
+  const cls = className || 'side-link-icon';
+  return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+}
+function installSidebarIcons() {
+  document.querySelectorAll('.side-link[data-route]').forEach(a => {
+    if (a.querySelector('.side-link-icon')) return;
+    const iconName = SIDEBAR_ICONS[a.dataset.route] || 'home';
+    a.insertAdjacentHTML('afterbegin', cmoIcon(iconName));
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Decision drill-down modal. Click any .rec-card[data-decision] (rule
+   or LLM) to see the underlying numbers behind the decision.
+   ──────────────────────────────────────────────────────────────────── */
+function _norm(s) { return String(s || '').toLowerCase().trim(); }
+function _entityMatch(name, target) {
+  const a = _norm(name), b = _norm(target);
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+/* Look up the numeric breakdown + raw rows for a given (source, entity).
+   Reads from state._lastScoped which paint() caches each render. */
+function getDrilldownData(source, entity) {
+  const sc = state._lastScoped;
+  if (!sc) return null;
+  const out = { kpis: [], rows: [], rowCols: [], emptyReason: '' };
+  const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; } };
+  const fmtN = v => (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 });
+  const fmt$ = v => (v == null || isNaN(v)) ? '—' : '$' + Math.round(v).toLocaleString();
+  const fmtP = v => (v == null || isNaN(v)) ? '—' : Number(v).toFixed(1) + '%';
+
+  if (source === 'ads') {
+    const sum = safe(() => summarizeAds(sc.ads.rows), { camps: [] });
+    const c = sum.camps.find(c => _entityMatch(c.name, entity));
+    if (c) {
+      out.kpis = [
+        { label: 'Spend',       value: fmt$(c.Spend) },
+        { label: 'Clicks',      value: fmtN(c.Clicks) },
+        { label: 'Impressions', value: fmtN(c.Impressions) },
+        { label: 'CTR',         value: fmtP(c.ctr) },
+        { label: 'Conversions', value: fmtN(c.Conversions) },
+        { label: 'CPA',         value: c.cpa ? fmt$(c.cpa) : '—' },
+      ];
+      out.rows = sc.ads.rows.filter(r => _entityMatch(r.Campaign, entity)).slice(0, 5);
+      out.rowCols = ['Date', 'Campaign', 'Spend', 'Clicks', 'Impressions', 'Conversions', 'brand'];
+    }
+  } else if (source === 'keywords') {
+    const sum = safe(() => summarizeKeywords(sc.keywords.rows), { kws: [] });
+    const k = sum.kws.find(k => _entityMatch(k.name, entity));
+    if (k) {
+      out.kpis = [
+        { label: 'Spend',       value: fmt$(k.Spend) },
+        { label: 'Clicks',      value: fmtN(k.Clicks) },
+        { label: 'Impressions', value: fmtN(k.Impressions) },
+        { label: 'CTR',         value: fmtP(k.ctr) },
+        { label: 'Conversions', value: fmtN(k.Conversions) },
+        { label: 'CPA',         value: k.cpa ? fmt$(k.cpa) : '—' },
+      ];
+      out.rows = sc.keywords.rows.filter(r => _entityMatch(r.Keyword, entity)).slice(0, 5);
+      out.rowCols = ['Date', 'Keyword', 'Match Type', 'Campaign', 'Clicks', 'Impressions', 'Conversions'];
+    }
+  } else if (source === 'gsc') {
+    const sum = safe(() => summarizeGsc(sc.gsc.rows), { queries: [] });
+    const q = sum.queries.find(q => _entityMatch(q.name, entity));
+    if (q) {
+      out.kpis = [
+        { label: 'Clicks',       value: fmtN(q.Clicks) },
+        { label: 'Impressions',  value: fmtN(q.Impressions) },
+        { label: 'CTR',          value: fmtP(q.ctr) },
+        { label: 'Avg Position', value: q.avgPos != null ? Number(q.avgPos).toFixed(1) : '—' },
+      ];
+      out.rows = sc.gsc.rows.filter(r => _entityMatch(r.Query, entity)).slice(0, 5);
+      out.rowCols = ['Date', 'Query', 'Clicks', 'Impressions', 'Avg Position', 'brand'];
+    }
+  } else if (source === 'ga') {
+    const sum = safe(() => summarizeGa(sc.ga.rows), { channels: [] });
+    const ch = sum.channels.find(c => _entityMatch(c.name, entity));
+    if (ch) {
+      out.kpis = [
+        { label: 'Sessions',   value: fmtN(ch.Sessions) },
+        { label: 'Share',      value: fmtP(ch.share * 100) },
+        { label: 'Engagement', value: fmtP(ch.engagement) },
+      ];
+      out.rows = sc.ga.rows.filter(r => _entityMatch(r.Channel, entity)).slice(0, 5);
+      out.rowCols = ['Date', 'Channel', 'Sessions', 'Users', 'Engagement Rate', 'brand'];
+    }
+  } else if (source === 'pagespeed') {
+    const sum = safe(() => summarizePagespeed(sc.pagespeed.rows), { pages: [] });
+    const p = sum.pages.find(p => _entityMatch(p.url, entity) || _entityMatch(p.name, entity));
+    if (p) {
+      out.kpis = [
+        { label: 'Perf Score', value: p.perf != null ? Number(p.perf).toFixed(0) : '—' },
+        { label: 'LCP',        value: p.lcp != null ? Number(p.lcp).toFixed(2) + 's' : '—' },
+        { label: 'CLS',        value: p.cls != null ? Number(p.cls).toFixed(3) : '—' },
+        { label: 'INP',        value: p.inp != null ? Number(p.inp).toFixed(0) + 'ms' : '—' },
+        { label: 'Device',     value: p.device || '—' },
+      ];
+      out.rows = sc.pagespeed.rows.filter(r => _entityMatch(r.URL, p.url)).slice(0, 5);
+      out.rowCols = ['Date', 'URL', 'Device', 'Perf Score', 'LCP', 'CLS', 'INP'];
+    }
+  } else if (source === 'semrush_kw') {
+    const sum = safe(() => summarizeSemrushKw(sc.semrush_kw.rows), { all: [] });
+    const k = (sum.all || []).find(k => _entityMatch(k.keyword, entity));
+    if (k) {
+      out.kpis = [
+        { label: 'Position',   value: k.position != null ? String(k.position) : '—' },
+        { label: 'Volume',     value: fmtN(k.volume) },
+        { label: 'Difficulty', value: k.difficulty != null ? String(k.difficulty) : '—' },
+        { label: 'Δ Position', value: k.delta ? (k.delta > 0 ? '+' : '') + k.delta : '0' },
+      ];
+      out.rows = sc.semrush_kw.rows.filter(r => _entityMatch(r.Keyword, entity)).slice(0, 5);
+      out.rowCols = ['Date', 'Keyword', 'Position', 'Search Volume', 'Difficulty', 'URL', 'brand'];
+    }
+  } else if (source === 'aircall') {
+    const sum = safe(() => summarizeCalls(sc.ac.rows), { lines: [] });
+    const line = sum.lines.find(l => _entityMatch(l.name, entity));
+    if (line) {
+      out.kpis = [
+        { label: 'Total Calls', value: fmtN(line.total) },
+        { label: 'Missed',      value: fmtN(line.missed) },
+        { label: 'Miss Rate',   value: fmtP(line.rate * 100) },
+      ];
+      out.rows = sc.ac.rows.filter(r => _entityMatch(r['Number Name'], entity)).slice(0, 5);
+      out.rowCols = ['Date', 'Time', 'User', 'Number Name', 'Status'];
+    }
+  } else if (source === 'social') {
+    const sum = safe(() => summarizeSocial(sc.social.rows), { platforms: [] });
+    const p = sum.platforms.find(p => _entityMatch(p.name, entity));
+    if (p) {
+      out.kpis = [
+        { label: 'Posts',          value: fmtN(p.posts) },
+        { label: 'Total Reach',    value: fmtN(p.reach) },
+        { label: 'Reach per Post', value: fmtN(p.reachPer) },
+      ];
+      out.rows = sc.social.rows.filter(r => _entityMatch(r.network, entity)).slice(0, 5);
+      out.rowCols = ['Date', 'network', 'post_type', 'reach', 'brand'];
+    }
+  }
+
+  if (!out.kpis.length) {
+    out.emptyReason = entity
+      ? `No exact join for "${entity}" in ${source} — showing rationale only.`
+      : `No entity supplied — showing rationale only.`;
+  }
+  return out;
+}
+
+function _renderKVGrid(kpis) {
+  if (!kpis || !kpis.length) return '';
+  return `<div class="cmo-kv-grid">${kpis.map(k =>
+    `<div class="cmo-kv"><div class="cmo-kv-label">${escapeHtml(k.label)}</div><div class="cmo-kv-value">${escapeHtml(k.value)}</div></div>`
+  ).join('')}</div>`;
+}
+function _renderRowsTable(rows, cols) {
+  if (!rows || !rows.length || !cols || !cols.length) return '';
+  const head = cols.map(c => `<th>${escapeHtml(c)}</th>`).join('');
+  const body = rows.map(r => `<tr>${cols.map(c => {
+    const v = r[c];
+    const s = v == null ? '' : (typeof v === 'number' ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(v));
+    return `<td>${escapeHtml(s)}</td>`;
+  }).join('')}</tr>`).join('');
+  return `<table class="data-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function openDecisionModal(payload) {
+  const modal = document.getElementById('decisionModal');
+  if (!modal || !payload) return;
+  const titleEl = document.getElementById('decisionModalTitle');
+  const subEl   = document.getElementById('decisionModalSub');
+  const bodyEl  = document.getElementById('decisionModalBody');
+
+  const sev = (payload.priority || 'MEDIUM').toUpperCase();
+  const sevLower = sev.toLowerCase();
+  const detail = SOURCE_DETAIL[payload.source] || { label: payload.source || 'Decision' };
+  const brandLabel = payload.brand && payload.brand !== 'all'
+    ? (payload.brand === 'via' ? 'Viatrading' : payload.brand === 'liq' ? 'Liquidatenow' : payload.brand)
+    : 'All brands';
+  const providerLabel = payload.provider || (payload.kind === 'rule' ? 'RULES' : '');
+  const heading = payload.kind === 'rule'
+    ? `${payload.label || 'Action'} — ${payload.entity_name || '—'}`
+    : `${payload.title || 'Decision'} — ${payload.entity || '—'}`;
+
+  titleEl.textContent = heading;
+  subEl.innerHTML = [
+    `<span class="rec-sev rec-sev-${sevLower}">${escapeHtml(sev)}</span>`,
+    `<span>${escapeHtml(detail.label)}</span>`,
+    providerLabel ? `<span>${escapeHtml(providerLabel)}</span>` : '',
+    `<span>${escapeHtml(brandLabel)}</span>`,
+    `<span>${escapeHtml(rangeSuffix())}</span>`,
+  ].filter(Boolean).join('');
+
+  const reason = payload.reason || '(no rationale supplied)';
+  const trigger = payload.metric_trigger ? `<div class="trigger">${escapeHtml(payload.metric_trigger)}</div>` : '';
+  const entity = payload.entity_name || payload.entity || '';
+  const drill = getDrilldownData(payload.source, entity);
+
+  let numbersHtml = '';
+  if (drill && drill.kpis.length) {
+    numbersHtml = `<div><div class="cmo-modal-section-title">The numbers</div>${_renderKVGrid(drill.kpis)}</div>`;
+  } else if (drill && drill.emptyReason) {
+    numbersHtml = `<div><div class="cmo-modal-section-title">The numbers</div><div class="cmo-modal-empty">${escapeHtml(drill.emptyReason)}</div></div>`;
+  }
+  let rowsHtml = '';
+  if (drill && drill.rows && drill.rows.length) {
+    rowsHtml = `<div><div class="cmo-modal-section-title">Source rows (sample)</div>${_renderRowsTable(drill.rows, drill.rowCols)}</div>`;
+  }
+
+  bodyEl.innerHTML = `
+    <div>
+      <div class="cmo-modal-section-title">Why</div>
+      <div class="cmo-modal-why">${escapeHtml(reason)}${trigger}</div>
+    </div>
+    ${numbersHtml}
+    ${rowsHtml}
+  `;
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeDecisionModal() {
+  const modal = document.getElementById('decisionModal');
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.style.overflow = '';
+}
+function initDecisionModal() {
+  /* Delegated click on any .rec-card[data-decision]. Skip clicks inside
+     the card's action buttons so Complete / Dismiss / In-Progress still work. */
+  document.addEventListener('click', (ev) => {
+    const inAction = ev.target.closest('button, a');
+    if (inAction) return;
+    const card = ev.target.closest('.rec-card[data-decision]');
+    if (!card) return;
+    try {
+      const payload = JSON.parse(decodeURIComponent(card.dataset.decision));
+      openDecisionModal(payload);
+    } catch (e) { console.error('decision payload parse failed', e); }
+  });
+  /* Overlay click closes; clicks inside the box do not. */
+  const modal = document.getElementById('decisionModal');
+  if (modal) {
+    modal.addEventListener('click', (ev) => {
+      if (ev.target === modal) closeDecisionModal();
+    });
+  }
+  const closeBtn = document.getElementById('decisionModalClose');
+  if (closeBtn) closeBtn.addEventListener('click', closeDecisionModal);
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') closeDecisionModal();
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Top 5 cards on Overview. Each row click opens the drill-down modal
+   for that entity, synthesizing a payload that getDrilldownData can use.
+   ──────────────────────────────────────────────────────────────────── */
+function renderOverviewTop5(scoped) {
+  const el = document.getElementById('overviewTop5');
+  if (!el || !scoped) return;
+  const fmtN = v => (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 });
+  const fmt$ = v => (v == null || isNaN(v)) ? '—' : '$' + Math.round(v).toLocaleString();
+  const fmtP = v => (v == null || isNaN(v)) ? '—' : Number(v).toFixed(1) + '%';
+
+  const cards = [];
+
+  /* Card 1 — Top 5 ad campaigns by spend */
+  try {
+    const sum = summarizeAds(scoped.ads.rows);
+    const list = [...sum.camps].sort((a, b) => b.Spend - a.Spend).slice(0, 5);
+    cards.push({
+      icon: 'megaphone',
+      title: 'Top 5 ad campaigns by spend',
+      link: '#/ads',
+      empty: 'No ad spend in range.',
+      rows: list.map(c => ({
+        source: 'ads',
+        entity: c.name,
+        name: c.name,
+        meta: `<strong>${fmt$(c.Spend)}</strong> · ${fmtN(c.Conversions)} conv · ${c.cpa ? fmt$(c.cpa) + ' CPA' : 'no CPA'}`,
+      })),
+    });
+  } catch (e) { console.warn('top5 ads', e); }
+
+  /* Card 2 — Top 5 search queries by clicks */
+  try {
+    const sum = summarizeGsc(scoped.gsc.rows);
+    const list = [...sum.queries].sort((a, b) => b.Clicks - a.Clicks).slice(0, 5);
+    cards.push({
+      icon: 'search',
+      title: 'Top 5 search queries (GSC) by clicks',
+      link: '#/seo',
+      empty: 'No GSC clicks in range.',
+      rows: list.map(q => ({
+        source: 'gsc',
+        entity: q.name,
+        name: q.name,
+        meta: `<strong>${fmtN(q.Clicks)}</strong> · ${fmtN(q.Impressions)} impr · pos ${q.avgPos != null ? Number(q.avgPos).toFixed(1) : '—'}`,
+      })),
+    });
+  } catch (e) { console.warn('top5 gsc', e); }
+
+  /* Card 3 — Top 5 traffic channels (GA4) by sessions */
+  try {
+    const sum = summarizeGa(scoped.ga.rows);
+    const list = [...sum.channels].sort((a, b) => b.Sessions - a.Sessions).slice(0, 5);
+    cards.push({
+      icon: 'bar',
+      title: 'Top 5 web channels (GA4) by sessions',
+      link: '#/web',
+      empty: 'No GA4 sessions in range.',
+      rows: list.map(c => ({
+        source: 'ga',
+        entity: c.name,
+        name: c.name,
+        meta: `<strong>${fmtN(c.Sessions)}</strong> · ${fmtP(c.share * 100)} share · ${fmtP(c.engagement)} eng`,
+      })),
+    });
+  } catch (e) { console.warn('top5 ga', e); }
+
+  /* Card 4 — 5 worst pages by LCP */
+  try {
+    const sum = summarizePagespeed(scoped.pagespeed.rows);
+    const list = (sum.pages || []).filter(p => p.lcp != null).sort((a, b) => b.lcp - a.lcp).slice(0, 5);
+    cards.push({
+      icon: 'gauge',
+      title: '5 worst pages by LCP',
+      link: '#/pagespeed',
+      empty: 'No Page Speed data in range.',
+      rows: list.map(p => ({
+        source: 'pagespeed',
+        entity: p.url,
+        name: (p.url || '').replace(/^https?:\/\//, '') + (p.device ? ' · ' + p.device : ''),
+        meta: `<strong>${Number(p.lcp).toFixed(2)}s</strong> · perf ${p.perf != null ? Number(p.perf).toFixed(0) : '—'}`,
+      })),
+    });
+  } catch (e) { console.warn('top5 pagespeed', e); }
+
+  el.innerHTML = cards.map(card => {
+    const head = `<div class="top5-card-head">${cmoIcon(card.icon, 'top5-card-icon')}<div class="top5-card-title">${escapeHtml(card.title)}</div><a class="top5-card-link" href="${card.link}">See all →</a></div>`;
+    const body = card.rows.length
+      ? card.rows.map((r, i) => {
+          const payload = encodeURIComponent(JSON.stringify({
+            kind: 'top5', source: r.source,
+            title: card.title, entity: r.entity, brand: state.brand,
+            priority: 'MEDIUM', reason: `Top of "${card.title}" for the current scope (${rangeSuffix()}).`,
+            metric_trigger: r.name,
+          }));
+          return `<div class="top5-row" data-decision="${payload}"><span class="top5-rank">${i + 1}</span><span class="top5-name" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</span><span class="top5-meta">${r.meta}</span></div>`;
+        }).join('')
+      : `<div class="top5-empty">${escapeHtml(card.empty)}</div>`;
+    return `<section class="top5-card">${head}${body}</section>`;
+  }).join('');
+
+  /* Wire row clicks → drill-down modal. */
+  el.querySelectorAll('.top5-row[data-decision]').forEach(row => {
+    row.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      try {
+        const payload = JSON.parse(decodeURIComponent(row.dataset.decision));
+        openDecisionModal(payload);
+      } catch (e) { console.warn('top5 click', e); }
+    });
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Low Hanging Fruit. Six rule families, all numeric, ranked by
+   impact / effort. Each card opens the drill-down modal on click.
+   ──────────────────────────────────────────────────────────────────── */
+function computeEasyWins(scoped) {
+  if (!scoped) return [];
+  const wins = [];
+  const fmt$ = v => '$' + Math.round(v).toLocaleString();
+  const fmtN = v => Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 });
+  const safe = (fn, fb) => { try { return fn(); } catch { return fb; } };
+
+  /* 1. Ads — pause dead spend (≥$200, 0 conversions) */
+  const adsSum = safe(() => summarizeAds(scoped.ads.rows), { camps: [] });
+  adsSum.camps.forEach(c => {
+    if (c.Spend >= 200 && c.Conversions === 0) {
+      wins.push({
+        title: `Pause "${c.name}" — dead spend`,
+        source: 'ads', entity: c.name, brand: c.brand || 'all',
+        priority: c.Spend >= 600 ? 'HIGH' : 'MEDIUM',
+        effort: 'LOW',
+        impact_score: c.Spend,
+        why: `${fmt$(c.Spend)} spent on this campaign with 0 conversions in the current range. Pausing or reallocating recovers the budget immediately.`,
+        metric_trigger: `Spend ${fmt$(c.Spend)} · Conversions 0`,
+        numbers: [
+          { label: 'Spend',  value: fmt$(c.Spend) },
+          { label: 'Clicks', value: fmtN(c.Clicks) },
+          { label: 'Conv',   value: '0' },
+        ],
+      });
+    }
+  });
+
+  /* 2. Keywords — negate cheap losers (≥1000 impr, <0.5% CTR, 0 conv) */
+  const kwSum = safe(() => summarizeKeywords(scoped.keywords.rows), { kws: [] });
+  kwSum.kws.forEach(k => {
+    if (k.Impressions >= 1000 && k.ctr < 0.5 && k.Conversions === 0) {
+      const cpc = k.Clicks ? k.Spend / k.Clicks : 0;
+      const wasted = cpc * (k.Impressions * 0.005);
+      wins.push({
+        title: `Negate "${k.name}"`,
+        source: 'keywords', entity: k.name, brand: k.brand || 'all',
+        priority: 'MEDIUM',
+        effort: 'LOW',
+        impact_score: Math.max(50, wasted),
+        why: `${fmtN(k.Impressions)} impressions, ${k.ctr.toFixed(2)}% CTR, 0 conversions — adding this as a negative keyword stops the spend leak.`,
+        metric_trigger: `Impr ${fmtN(k.Impressions)} · CTR ${k.ctr.toFixed(2)}% · Conv 0`,
+        numbers: [
+          { label: 'Impr',   value: fmtN(k.Impressions) },
+          { label: 'CTR',    value: k.ctr.toFixed(2) + '%' },
+          { label: 'Spend',  value: fmt$(k.Spend) },
+        ],
+      });
+    }
+  });
+
+  /* 3. GSC — page-1 opportunity (avg pos 5–15, ≥1000 impr) */
+  const gscSum = safe(() => summarizeGsc(scoped.gsc.rows), { queries: [] });
+  gscSum.queries.forEach(q => {
+    if (q.avgPos != null && q.avgPos >= 5 && q.avgPos <= 15 && q.Impressions >= 1000) {
+      const ctrUplift = q.avgPos <= 10 ? 0.04 : 0.02;
+      const projGain = Math.round(q.Impressions * ctrUplift);
+      wins.push({
+        title: `Page-1 push for "${q.name}"`,
+        source: 'gsc', entity: q.name, brand: q.brand || 'all',
+        priority: q.Impressions >= 5000 ? 'HIGH' : 'MEDIUM',
+        effort: 'LOW',
+        impact_score: q.Impressions,
+        why: `${fmtN(q.Impressions)} impressions at avg position ${q.avgPos.toFixed(1)} — moving this query up a few spots could add ~${fmtN(projGain)} clicks/period. Tweak title/H1 + internal links.`,
+        metric_trigger: `Pos ${q.avgPos.toFixed(1)} · Impr ${fmtN(q.Impressions)}`,
+        numbers: [
+          { label: 'Position', value: q.avgPos.toFixed(1) },
+          { label: 'Impr',     value: fmtN(q.Impressions) },
+          { label: 'Clicks',   value: fmtN(q.Clicks) },
+        ],
+      });
+    }
+  });
+
+  /* 4. SemRush — striking distance (pos 4–15, vol ≥200, diff ≤50) */
+  const semSum = safe(() => summarizeSemrushKw(scoped.semrush_kw.rows), { all: [] });
+  (semSum.all || []).forEach(k => {
+    if (k.position != null && k.position >= 4 && k.position <= 15
+        && (k.volume || 0) >= 200 && (k.difficulty == null || k.difficulty <= 50)) {
+      wins.push({
+        title: `Striking distance — "${k.keyword}"`,
+        source: 'semrush_kw', entity: k.keyword, brand: k.brand || 'all',
+        priority: k.volume >= 1000 ? 'HIGH' : 'MEDIUM',
+        effort: 'LOW',
+        impact_score: k.volume,
+        why: `Currently #${k.position} for a ${fmtN(k.volume)}-volume keyword (difficulty ${k.difficulty != null ? k.difficulty : '?'}). Reaching top-3 captures most of the click share.`,
+        metric_trigger: `Pos ${k.position} · Vol ${fmtN(k.volume)} · Diff ${k.difficulty != null ? k.difficulty : '—'}`,
+        numbers: [
+          { label: 'Position',   value: String(k.position) },
+          { label: 'Volume',     value: fmtN(k.volume) },
+          { label: 'Difficulty', value: k.difficulty != null ? String(k.difficulty) : '—' },
+        ],
+      });
+    }
+  });
+
+  /* 5. Page Speed — quick CWV win (LCP 2.6–4s, perf 35–60) */
+  const psSum = safe(() => summarizePagespeed(scoped.pagespeed.rows), { pages: [] });
+  (psSum.pages || []).forEach(p => {
+    if (p.lcp != null && p.lcp >= 2.6 && p.lcp <= 4
+        && p.perf != null && p.perf >= 35 && p.perf <= 60) {
+      wins.push({
+        title: `Quick CWV win — ${(p.url || '').replace(/^https?:\/\//, '')}`,
+        source: 'pagespeed', entity: p.url, brand: p.brand || 'all',
+        priority: 'MEDIUM',
+        effort: 'MEDIUM',
+        impact_score: 100 - p.perf,
+        why: `LCP ${p.lcp.toFixed(2)}s, perf score ${Math.round(p.perf)} — fixable image / font / preload tier (not catastrophic). Each step toward "good" CWV nudges rankings + UX.`,
+        metric_trigger: `LCP ${p.lcp.toFixed(2)}s · Perf ${Math.round(p.perf)} · ${p.device || 'all'}`,
+        numbers: [
+          { label: 'LCP',  value: p.lcp.toFixed(2) + 's' },
+          { label: 'Perf', value: Math.round(p.perf) },
+          { label: 'CLS',  value: p.cls != null ? p.cls.toFixed(3) : '—' },
+        ],
+      });
+    }
+  });
+
+  /* 6. Aircall — staffing tweak (miss rate >25%, total ≥20) */
+  const acSum = safe(() => summarizeCalls(scoped.ac.rows), { lines: [] });
+  acSum.lines.forEach(l => {
+    if (l.total >= 20 && l.rate > 0.25) {
+      wins.push({
+        title: `Re-route "${l.name}" — high miss rate`,
+        source: 'aircall', entity: l.name, brand: l.brand || 'all',
+        priority: l.rate > 0.4 ? 'HIGH' : 'MEDIUM',
+        effort: 'LOW',
+        impact_score: l.missed * 10,
+        why: `${fmtN(l.missed)} of ${fmtN(l.total)} calls missed (${(l.rate * 100).toFixed(1)}%). Re-route to a backup line or extend coverage hours to recapture the leads.`,
+        metric_trigger: `Miss ${(l.rate * 100).toFixed(1)}% · ${fmtN(l.missed)}/${fmtN(l.total)}`,
+        numbers: [
+          { label: 'Total',  value: fmtN(l.total) },
+          { label: 'Missed', value: fmtN(l.missed) },
+          { label: 'Rate',   value: (l.rate * 100).toFixed(1) + '%' },
+        ],
+      });
+    }
+  });
+
+  /* Sort by impact_score desc, slice top 12. */
+  return wins.sort((a, b) => (b.impact_score || 0) - (a.impact_score || 0)).slice(0, 12);
+}
+
+function renderLowHanging(scoped) {
+  const list = document.getElementById('lowHangingList');
+  const pill = document.getElementById('sideLowHangingCount');
+  if (!list) return;
+  const wins = computeEasyWins(scoped);
+  if (pill) pill.textContent = wins.length ? String(wins.length) : '';
+
+  if (!wins.length) {
+    list.innerHTML = `<div class="lhf-empty">${cmoIcon('zap', 'cmo-empty-icon')}<div>No easy wins right now — the data looks clean for this brand + range. Switch the brand or widen the range to see more opportunities.</div></div>`;
+    return;
+  }
+
+  list.innerHTML = wins.map(w => {
+    const sev = (w.priority || 'MEDIUM').toLowerCase();
+    const effortCls = w.effort === 'MEDIUM' ? 'lhf-effort is-medium' : 'lhf-effort';
+    const detail = SOURCE_DETAIL[w.source] || { label: w.source };
+    const brandLine = w.brand && w.brand !== 'all'
+      ? (w.brand === 'via' ? 'Viatrading' : w.brand === 'liq' ? 'Liquidatenow' : w.brand)
+      : '';
+    const payload = encodeURIComponent(JSON.stringify({
+      kind: 'lhf', source: w.source, title: w.title, entity: w.entity,
+      brand: w.brand, priority: w.priority, reason: w.why,
+      metric_trigger: w.metric_trigger,
+    }));
+    const numbers = (w.numbers || []).map(n =>
+      `<div class="lhf-num-chip"><strong>${escapeHtml(n.label)}</strong>${escapeHtml(String(n.value))}</div>`
+    ).join('');
+    return `
+      <article class="lhf-card rec-card" data-decision="${payload}">
+        <div class="lhf-card-head">
+          <span class="rec-sev rec-sev-${sev}">${escapeHtml(w.priority || 'MEDIUM')}</span>
+          <span class="${effortCls}">${escapeHtml(w.effort || 'LOW')} effort</span>
+          <span class="lhf-impact">${escapeHtml(detail.label)}${brandLine ? ' · ' + escapeHtml(brandLine) : ''}</span>
+        </div>
+        <div class="lhf-title">${escapeHtml(w.title)}</div>
+        <div class="lhf-why">${escapeHtml(w.why)}</div>
+        <div class="lhf-numbers">${numbers}</div>
+      </article>`;
+  }).join('');
+}
+
 /* Back-compat: anything still calling renderClaudeDecisions keeps working. */
 function renderClaudeDecisions(list) { renderLLMDecisions(list, 'claudeRecs', 'CLAUDE'); }
 
@@ -6193,6 +6786,7 @@ function initNav() {
   if (toggle && side) {
     toggle.addEventListener('click', () => side.classList.toggle('is-open'));
   }
+  installSidebarIcons();
   window.addEventListener('hashchange', route);
 }
 
@@ -6355,6 +6949,7 @@ initThresholds();
 initClaude();
 initGpt();
 initChat();
+initDecisionModal();
 renderThresholds();
 route();
 render();

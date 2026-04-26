@@ -1665,35 +1665,107 @@
     color: var(--text);
     letter-spacing: -0.005em;
   }
-  .topbar-brand {
+  /* ── Vicki Intelligence brand mark ─────────────────────────────────
+     Sparkle SVG (purple→magenta→pink gradient) + "Vicki" gradient
+     wordmark + "Intelligence" in regular text. Same component drives
+     both the sidebar header and the topbar — different size variants
+     via the .vicki-mark-compact modifier. */
+  .vicki-mark {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    font-family: 'Inter', system-ui, sans-serif;
-    font-size: 0.74rem;
-    color: var(--text3);
-    letter-spacing: 0.005em;
-    padding: 0.25rem 0.65rem 0.25rem 0.55rem;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--surface);
+    gap: 0.55rem;
+    text-decoration: none;
+    color: var(--text);
+    transition: transform 0.15s;
   }
-  .topbar-brand strong {
-    color: var(--accent);
-    font-weight: 600;
-    margin-left: 2px;
-  }
-  .topbar-brand-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 2px var(--accent-dim);
+  .vicki-mark:hover { transform: translateY(-1px); }
+  .vicki-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    line-height: 0;
+  }
+  .vicki-icon svg { width: 28px; height: 28px; display: block; }
+  .vicki-text {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    gap: 0.25rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .vicki-name {
+    background: linear-gradient(115deg, #6d28d9 0%, #a855f7 45%, #ec4899 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    font-weight: 700;
+  }
+  .vicki-rest { color: var(--text); font-weight: 500; }
+  .vicki-mark-compact .vicki-icon svg { width: 22px; height: 22px; }
+  .vicki-mark-compact .vicki-text { font-size: 0.92rem; }
+  .topbar-divider {
+    width: 1px; height: 22px;
+    background: var(--border);
+    margin: 0 0.4rem;
   }
   .topbar-spacer { flex: 1; }
   @media (max-width: 768px) {
-    .topbar-brand { display: none; }
+    .vicki-mark-compact .vicki-text { display: none; }
+    .topbar-divider { display: none; }
+  }
+
+  /* ── Sidebar collapsible state ──────────────────────────────────────
+     Triggered by data-side-collapsed="1" on body. Sidebar narrows to
+     icon-only width; titles, sub-text, footer copy, and per-link text
+     hide. Tooltips on hover via the [title] attribute on .side-link. */
+  .side-brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+  }
+  .side-collapse-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text3);
+    border-radius: 6px;
+    width: 26px; height: 26px;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s, border-color 0.15s, transform 0.2s;
+  }
+  .side-collapse-toggle:hover { color: var(--text); border-color: var(--border2); }
+  body[data-side-collapsed="1"] .side-collapse-toggle svg { transform: rotate(180deg); }
+  body[data-side-collapsed="1"] {
+    grid-template-columns: 64px 1fr;
+  }
+  body[data-side-collapsed="1"] .side-brand { padding: 0.85rem 0.5rem 0.7rem; }
+  body[data-side-collapsed="1"] .side-brand-row { flex-direction: column; gap: 0.5rem; margin-bottom: 0; }
+  body[data-side-collapsed="1"] .vicki-text,
+  body[data-side-collapsed="1"] .side-brand-logos,
+  body[data-side-collapsed="1"] .side-brand-sub,
+  body[data-side-collapsed="1"] .side-link-text,
+  body[data-side-collapsed="1"] .side-link .pill,
+  body[data-side-collapsed="1"] .side-foot { display: none; }
+  body[data-side-collapsed="1"] .side-link {
+    justify-content: center;
+    padding: 0.55rem 0.5rem;
+  }
+  body[data-side-collapsed="1"] .side-link-icon { margin-right: 0; }
+  body[data-side-collapsed="1"] .side-sep { margin: 0.5rem 0.5rem; }
+  @media (max-width: 768px) {
+    body[data-side-collapsed="1"] {
+      grid-template-columns: 1fr; /* mobile sidebar is overlay; ignore collapse */
+    }
+    .side-collapse-toggle { display: none; }
   }
   .nav-toggle {
     display: none;
@@ -1831,6 +1903,27 @@
 
 <aside class="side" id="sideNav" aria-label="Channel navigation">
   <div class="side-brand">
+    <div class="side-brand-row">
+      <a class="vicki-mark" href="#/overview" aria-label="Vicki Intelligence — go to overview">
+        <span class="vicki-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="vickiGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#6d28d9"/>
+                <stop offset="50%" stop-color="#a855f7"/>
+                <stop offset="100%" stop-color="#ec4899"/>
+              </linearGradient>
+            </defs>
+            <path d="M16 2.5 L18.6 13.4 L29.5 16 L18.6 18.6 L16 29.5 L13.4 18.6 L2.5 16 L13.4 13.4 Z" fill="url(#vickiGrad)"/>
+            <circle cx="24.5" cy="6" r="1.7" fill="#c4b5fd"/>
+          </svg>
+        </span>
+        <span class="vicki-text"><span class="vicki-name">Vicki</span><span class="vicki-rest">Intelligence</span></span>
+      </a>
+      <button type="button" class="side-collapse-toggle" id="sideCollapseToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
+      </button>
+    </div>
     <div class="side-brand-logos">
       <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="Viatrading" />
       <img class="side-brand-logo" data-brand-logo="liq" src="https://www.liquidatenow.com/wp-content/uploads/2015/07/liquidate-now-logo.png" alt="Liquidatenow" />
@@ -1868,11 +1961,24 @@
 
 <header class="topbar">
   <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
+  <a class="vicki-mark vicki-mark-compact" href="#/overview" aria-label="Vicki Intelligence">
+    <span class="vicki-icon" aria-hidden="true">
+      <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="vickiGradTop" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#6d28d9"/>
+            <stop offset="50%" stop-color="#a855f7"/>
+            <stop offset="100%" stop-color="#ec4899"/>
+          </linearGradient>
+        </defs>
+        <path d="M16 2.5 L18.6 13.4 L29.5 16 L18.6 18.6 L16 29.5 L13.4 18.6 L2.5 16 L13.4 13.4 Z" fill="url(#vickiGradTop)"/>
+        <circle cx="24.5" cy="6" r="1.7" fill="#c4b5fd"/>
+      </svg>
+    </span>
+    <span class="vicki-text"><span class="vicki-name">Vicki</span><span class="vicki-rest">Intelligence</span></span>
+  </a>
+  <span class="topbar-divider" aria-hidden="true"></span>
   <div class="topbar-title" id="pageTitle">Overview</div>
-  <span class="topbar-brand" aria-label="Powered by Vicki Intelligence">
-    <span class="topbar-brand-dot" aria-hidden="true"></span>
-    Powered by <strong>Vicki Intelligence</strong>
-  </span>
   <div class="topbar-spacer"></div>
   <div class="brand-toggle">
     <span class="label">Brand</span>
@@ -6710,6 +6816,16 @@ function renderLowHanging(scoped) {
 const APP_HISTORY = [
   {
     date: 'Apr 26, 2026',
+    title: 'Vicki Intelligence brand mark + collapsible sidebar',
+    tags: ['Polish'],
+    bullets: [
+      'New Vicki Intelligence brand mark (sparkle SVG with purple→magenta→pink gradient + "Vicki" gradient wordmark) lives in the sidebar header above the Viatrading + Liquidatenow logos and as a compact version next to the page title in the topbar.',
+      'Sidebar is now collapsible — click the chevron in the sidebar header to slim the sidebar to 64px (icons only). Hover any link to see its name as a tooltip. Collapsed state persists across reloads via localStorage.',
+      'Mobile sidebar overlay behavior is unchanged; the collapse only applies on desktop where the sidebar is a fixed column.',
+    ],
+  },
+  {
+    date: 'Apr 26, 2026',
     title: 'API key save now validates prefix + shows masked preview',
     tags: ['Fix', 'Polish'],
     bullets: [
@@ -7515,8 +7631,40 @@ function initNav() {
   if (toggle && side) {
     toggle.addEventListener('click', () => side.classList.toggle('is-open'));
   }
+  /* Sidebar collapse — desktop only. Persisted in localStorage so the
+     state survives reloads. Mobile (≤768px) ignores collapse because
+     the sidebar is already an overlay there. */
+  const collapseKey = 'cmoSideCollapsed_v1';
+  const initiallyCollapsed = (() => {
+    try { return localStorage.getItem(collapseKey) === '1'; } catch { return false; }
+  })();
+  if (initiallyCollapsed) document.body.dataset.sideCollapsed = '1';
+  const collapseBtn = document.getElementById('sideCollapseToggle');
+  if (collapseBtn) {
+    const sync = () => {
+      const collapsed = document.body.dataset.sideCollapsed === '1';
+      collapseBtn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+      collapseBtn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+      /* Resize Chart.js charts so the canvases re-fit the new main width. */
+      try { window.dispatchEvent(new Event('resize')); } catch {}
+    };
+    sync();
+    collapseBtn.addEventListener('click', () => {
+      const next = document.body.dataset.sideCollapsed === '1' ? '' : '1';
+      if (next) document.body.dataset.sideCollapsed = next;
+      else delete document.body.dataset.sideCollapsed;
+      try { localStorage.setItem(collapseKey, next || ''); } catch {}
+      sync();
+    });
+  }
   installSidebarIcons();
   installGlossaryHandlers();
+  /* Tooltips on side links so they're discoverable when the sidebar is
+     collapsed and only icons are visible. */
+  document.querySelectorAll('.side-link[data-route]').forEach(a => {
+    const text = a.querySelector('.side-link-text');
+    if (text && !a.hasAttribute('title')) a.setAttribute('title', text.textContent.trim());
+  });
   window.addEventListener('hashchange', route);
 }
 

@@ -4,45 +4,67 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Viatrading + Liquidatenow — CMO Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   :root {
-    --bg: #0d0f0e;
-    --surface: #141714;
-    --surface2: #1a1d1a;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.12);
-    --text: #eef1ec;
-    --text2: #d4d9d1;
-    --text3: #b0b6ad;
-    --green: #4caf7d;
-    --green-dim: rgba(76,175,125,0.12);
-    --red: #e05a4e;
-    --red-dim: rgba(224,90,78,0.12);
-    --amber: #d4a843;
-    --amber-dim: rgba(212,168,67,0.12);
-    --blue: #5b9cf6;
-    --blue-dim: rgba(91,156,246,0.12);
-    --purple: #b57dd6;
-    --purple-dim: rgba(181,125,214,0.12);
+    /* Surfaces */
+    --bg:        #f5f6f8;
+    --surface:   #ffffff;
+    --surface2:  #f8fafc;
+
+    /* Lines */
+    --border:    #e6e8eb;
+    --border2:   #d6d9de;
+
+    /* Text */
+    --text:      #0f1419;
+    --text2:     #3c4452;
+    --text3:     #6b7280;
+
+    /* Accent — Semrush blue */
+    --accent:    #1f77ff;
+    --accent-dim:rgba(31,119,255,0.10);
+
+    /* Status hues — re-tuned for legibility on white */
+    --green:     #138a4a;
+    --green-dim: rgba(19,138,74,0.10);
+    --red:       #d4351c;
+    --red-dim:   rgba(212,53,28,0.10);
+    --amber:     #b45f06;
+    --amber-dim: rgba(180,95,6,0.12);
+    --blue:      #1f77ff;
+    --blue-dim:  rgba(31,119,255,0.10);
+    --purple:    #1f77ff;
+    --purple-dim:rgba(31,119,255,0.10);
+
+    /* Always-white chip for text/icons sitting on a colored fill */
+    --on-accent: #ffffff;
+
+    /* Subtle elevation for cards on the off-white page bg */
+    --shadow-card:       0 1px 2px rgba(15,20,25,0.04);
+    --shadow-card-hover: 0 2px 6px rgba(15,20,25,0.06);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
+    color: var(--text2);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
     overflow-x: hidden;
   }
 
-  .noise {
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-    opacity: 0.4;
-  }
+  /* Subtle SVG-grain belongs only on a dark theme */
+  .noise { display: none; }
 
   .header {
     padding: 2rem 2.5rem 1.5rem;
@@ -57,7 +79,7 @@
   }
 
   .header-left h1 {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 2rem;
     font-weight: 400;
     letter-spacing: -0.02em;
@@ -67,20 +89,18 @@
   .header-left p {
     font-size: 0.75rem;
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     margin-top: 0.4rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
   }
 
   .header-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 
   .nav { display: flex; gap: 0.75rem; }
   .nav a {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--text3);
     text-decoration: none;
     padding: 0.35rem 0.7rem;
@@ -93,41 +113,42 @@
 
   .brand-toggle { display: flex; align-items: center; gap: 0.5rem; }
   .brand-toggle .label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
   }
   .brand-toggle .group {
     display: inline-flex;
+    background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
+    border-radius: 7px;
+    padding: 2px;
+    gap: 2px;
   }
   .brand-toggle button {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
     color: var(--text3);
     background: transparent;
     border: 0;
-    padding: 0.35rem 0.7rem;
+    border-radius: 5px;
+    padding: 0.32rem 0.7rem;
     cursor: pointer;
-    transition: color 0.2s, background 0.2s;
+    transition: color 0.15s, background 0.15s, box-shadow 0.15s;
   }
-  .brand-toggle button + button { border-left: 1px solid var(--border); }
-  .brand-toggle button:hover { color: var(--text); }
+  .brand-toggle button:hover { color: var(--text2); }
   .brand-toggle button[aria-pressed="true"] {
     color: var(--text);
     background: var(--surface);
+    box-shadow: 0 1px 2px rgba(15,20,25,0.06);
   }
   .brand-pending {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--amber);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
   }
   .brand-pending.hidden { display: none; }
 
@@ -140,10 +161,10 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
   .last-updated {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
     color: var(--text3);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
   }
 
   .dashboard { padding: 2rem 2.5rem; position: relative; z-index: 1; }
@@ -156,15 +177,16 @@
     border-bottom: 1px solid var(--border);
   }
   .section-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.25rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
   }
   .section-meta {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--text3);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
     font-weight: 500;
   }
 
@@ -177,36 +199,39 @@
   .metric-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem 1.5rem;
-    transition: border-color 0.2s;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    box-shadow: var(--shadow-card);
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .metric-card:hover { border-color: var(--border2); }
+  .metric-card:hover { border-color: var(--border2); box-shadow: var(--shadow-card-hover); }
   .metric-card.placeholder {
     background: repeating-linear-gradient(135deg, var(--surface) 0 12px, var(--surface2) 12px 24px);
-    opacity: 0.65;
+    opacity: 0.7;
   }
 
   .metric-label {
-    font-size: 0.65rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-size: 0.78rem;
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-weight: 500;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.45rem;
   }
 
   .metric-value {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.9rem;
-    line-height: 1;
-    margin-bottom: 0.4rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.015em;
+    font-feature-settings: "tnum" 1;
   }
 
   .metric-delta {
     font-size: 0.7rem;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
   }
   .delta-up { color: var(--green); }
   .delta-down { color: var(--red); }
@@ -221,8 +246,9 @@
   .chart-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.5rem;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-card);
   }
 
   .chart-header {
@@ -233,44 +259,46 @@
   }
 
   .chart-title {
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text3);
-    font-family: 'DM Mono', monospace;
-    font-weight: 500;
+    font-size: 0.82rem;
+    color: var(--text2);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.005em;
   }
 
   .chart-value {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.4rem;
-    line-height: 1;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
     margin-top: 0.25rem;
+    letter-spacing: -0.01em;
+    font-feature-settings: "tnum" 1;
   }
 
   .chart-badge {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     padding: 3px 8px;
     border-radius: 20px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
   }
   .badge-green { background: var(--green-dim); color: var(--green); }
   .badge-red { background: var(--red-dim); color: var(--red); }
   .badge-amber { background: var(--amber-dim); color: var(--amber); }
   .badge-blue { background: var(--blue-dim); color: var(--blue); }
-  .badge-purple { background: var(--purple-dim); color: var(--purple); }
-  .badge-ghost { background: rgba(255,255,255,0.05); color: var(--text3); border: 1px dashed var(--border2); }
-  .demo-reason { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--text3); margin-left: 6px; opacity: 0.85; }
+  .badge-purple { background: var(--accent-dim); color: var(--accent); }
+  .badge-ghost { background: var(--surface2); color: var(--text3); border: 1px dashed var(--border2); }
+  .demo-reason { font-family: 'Inter', system-ui, sans-serif; font-size: 0.74rem; color: var(--text3); margin-left: 6px; opacity: 0.85; }
 
   .chart-wrap { position: relative; }
 
   .data-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
   .data-table th {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
     padding: 0 0 0.75rem;
     text-align: left;
@@ -282,10 +310,10 @@
     color: var(--text2);
   }
   .data-table td:first-child { color: var(--text); font-weight: 600; }
-  .data-table td.num { font-family: 'DM Mono', monospace; text-align: right; }
+  .data-table td.num { font-family: 'Inter', system-ui, sans-serif; text-align: right; }
 
   .placeholder-hint {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
     color: var(--text3);
     margin-top: 0.75rem;
@@ -293,26 +321,33 @@
   }
 
   .footer {
-    text-align: center;
-    padding: 2rem;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 1.5rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
     color: var(--text3);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     border-top: 1px solid var(--border);
     position: relative;
     z-index: 1;
+  }
+  .footer-vicki {
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: -0.01em;
   }
 
   /* AI Briefing hero */
   .ai-briefing {
     margin: 1.5rem 2.5rem 0;
     padding: 1.5rem 1.75rem;
-    background: linear-gradient(180deg, rgba(181,125,214,0.06), transparent 60%), var(--surface);
-    border: 1px solid var(--border2);
-    border-left: 3px solid var(--purple);
-    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    box-shadow: var(--shadow-card);
     position: relative;
     z-index: 1;
   }
@@ -320,12 +355,12 @@
   .ai-avatar {
     width: 38px; height: 38px;
     border-radius: 10px;
-    background: var(--purple-dim);
-    color: var(--purple);
+    background: var(--accent-dim);
+    color: var(--accent);
     display: flex; align-items: center; justify-content: center;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.01em;
     position: relative;
   }
   .ai-avatar::after {
@@ -334,21 +369,20 @@
     right: -2px; top: -2px;
     width: 8px; height: 8px;
     border-radius: 50%;
-    background: var(--purple);
-    box-shadow: 0 0 8px var(--purple);
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
     animation: pulse 2s ease-in-out infinite;
   }
   .ai-brief-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1.15rem;
     line-height: 1.1;
   }
   .ai-brief-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
     color: var(--text2);
-    text-transform: uppercase;
     margin-top: 0.2rem;
     font-weight: 500;
   }
@@ -373,14 +407,14 @@
     border-bottom: 1px dashed var(--border);
   }
   .rec-source-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1rem;
     font-weight: 400;
   }
   .rec-source-count {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
     background: var(--surface);
     padding: 0.15rem 0.5rem;
@@ -389,11 +423,10 @@
   }
   .rec-source-count.empty { opacity: 0.55; }
   .rec-source-hint {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
     color: var(--text3);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     margin-left: auto;
   }
   .rec-source-grid {
@@ -404,7 +437,7 @@
   .rec-source-empty {
     grid-column: 1 / -1;
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
     font-style: italic;
     padding: 0.25rem 0 0.5rem;
@@ -424,14 +457,13 @@
     padding: 0.7rem 0.9rem;
   }
   .src-counter-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
   }
   .src-counter-value {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1.4rem;
     margin-top: 0.2rem;
   }
@@ -459,23 +491,22 @@
     display: flex; align-items: baseline; gap: 0.55rem; flex-wrap: wrap;
   }
   .src-card-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1.05rem;
   }
   .src-card-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--text3);
-    letter-spacing: 0.06em;
+    letter-spacing: 0.01em;
   }
   .src-status {
     display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     padding: 2px 8px;
     border-radius: 4px;
-    text-transform: uppercase;
     margin-left: auto;
   }
   .src-status.live { background: var(--green-dim); color: var(--green); }
@@ -485,20 +516,19 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.4rem 0.75rem;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.72rem;
   }
   .src-stat-label {
-    font-size: 0.58rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
   }
   .src-stat-value { color: var(--text); }
   .src-stat-value.dim { color: var(--text3); font-style: italic; }
   .src-meta {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--text3);
     line-height: 1.5;
     word-break: break-word;
@@ -511,8 +541,8 @@
   .src-meta a:hover { color: var(--text); }
   .src-cols {
     display: flex; flex-wrap: wrap; gap: 0.3rem;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
   }
   .src-col-chip {
     background: var(--surface2);
@@ -522,8 +552,8 @@
     border-radius: 4px;
   }
   .src-reason {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--amber);
     background: var(--amber-dim);
     padding: 0.45rem 0.6rem;
@@ -552,14 +582,13 @@
     gap: 0.2rem;
   }
   .refresh-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
   }
   .refresh-value {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.78rem;
     color: var(--text);
   }
@@ -589,13 +618,13 @@
     border: 1px solid var(--border2);
     border-radius: 6px;
     color: var(--text);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.78rem;
     padding: 0.5rem 0.75rem;
   }
-  .claude-key-input:focus { outline: none; border-color: var(--purple); }
+  .claude-key-input:focus { outline: none; border-color: var(--accent); }
   .claude-status {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
     color: var(--text3);
     margin-bottom: 1rem;
@@ -616,38 +645,40 @@
   }
   .threshold-brand { display: flex; align-items: center; gap: 0.5rem; }
   .threshold-brand .label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
   }
   .threshold-brand .group {
     display: inline-flex;
+    background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
+    border-radius: 7px;
+    padding: 2px;
+    gap: 2px;
   }
   .threshold-brand button {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
     color: var(--text3);
     background: transparent;
     border: 0;
-    padding: 0.4rem 0.85rem;
+    border-radius: 5px;
+    padding: 0.32rem 0.85rem;
     cursor: pointer;
+    transition: color 0.15s, background 0.15s, box-shadow 0.15s;
   }
-  .threshold-brand button + button { border-left: 1px solid var(--border); }
   .threshold-brand button[aria-pressed="true"] {
     color: var(--text);
+    box-shadow: 0 1px 2px rgba(15,20,25,0.06);
     background: var(--surface);
   }
   .threshold-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
   .threshold-saved {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--green);
     transition: opacity 0.4s;
   }
@@ -664,15 +695,14 @@
     padding-bottom: 0.4rem;
   }
   .threshold-source-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1rem;
   }
   .threshold-source-hint {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
     color: var(--text3);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
   }
   .threshold-rows {
     display: grid;
@@ -693,7 +723,7 @@
     padding: 0.55rem 0.75rem;
   }
   .threshold-label {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.72rem;
     color: var(--text2);
     line-height: 1.3;
@@ -703,12 +733,12 @@
     border: 1px solid var(--border2);
     border-radius: 5px;
     color: var(--text);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.78rem;
     padding: 0.35rem 0.5rem;
     text-align: right;
   }
-  .threshold-input:focus { outline: none; border-color: var(--purple); }
+  .threshold-input:focus { outline: none; border-color: var(--accent); }
   .threshold-input.dirty { border-color: var(--amber); }
 
   .rec-card {
@@ -724,19 +754,18 @@
   .rec-card:hover { border-color: var(--border2); }
   .rec-sev {
     display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     padding: 2px 7px;
     border-radius: 4px;
-    text-transform: uppercase;
     align-self: flex-start;
   }
   .rec-sev-high { background: var(--red-dim); color: var(--red); }
   .rec-sev-medium { background: var(--amber-dim); color: var(--amber); }
   .rec-sev-low { background: var(--blue-dim); color: var(--blue); }
   .rec-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1rem;
     line-height: 1.25;
   }
@@ -747,10 +776,9 @@
   }
   .rec-actions { display: flex; gap: 0.4rem; margin-top: 0.25rem; }
   .rec-btn {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     padding: 0.35rem 0.7rem;
     border-radius: 5px;
     border: 1px solid var(--border2);
@@ -761,14 +789,14 @@
   }
   .rec-btn:hover { color: var(--text); border-color: var(--border2); }
   .rec-btn-primary {
-    background: var(--purple-dim);
-    color: var(--purple);
+    background: var(--accent-dim);
+    color: var(--accent);
     border-color: transparent;
   }
-  .rec-btn-primary:hover { color: var(--text); background: var(--purple); }
+  .rec-btn-primary:hover { color: var(--text); background: var(--accent); }
   .rec-empty {
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.75rem;
     font-style: italic;
   }
@@ -790,15 +818,14 @@
     margin-bottom: 0.9rem;
   }
   .todo-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1.05rem;
   }
   .todo-meta {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
   .todo-list { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; }
   .todo-item {
@@ -825,14 +852,14 @@
     margin-top: 2px;
     transition: background 0.15s, border-color 0.15s;
   }
-  .todo-check:hover { border-color: var(--purple); }
-  .todo-check:checked { background: var(--purple); border-color: var(--purple); }
+  .todo-check:hover { border-color: var(--accent); }
+  .todo-check:checked { background: var(--accent); border-color: var(--accent); }
   .todo-check:checked::after {
     content: '';
     position: absolute;
     left: 4px; top: 1px;
     width: 5px; height: 9px;
-    border: solid var(--bg);
+    border: solid var(--on-accent);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
@@ -843,18 +870,17 @@
     color: var(--text);
   }
   .todo-why {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.72rem;
     color: var(--text2);
     letter-spacing: 0.02em;
   }
   .todo-sev {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.55rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     padding: 2px 6px;
     border-radius: 3px;
-    text-transform: uppercase;
     align-self: flex-start;
     margin-top: 2px;
   }
@@ -863,7 +889,7 @@
   .todo-sev-low { background: var(--blue-dim); color: var(--blue); }
   .todo-empty {
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.75rem;
     font-style: italic;
     padding: 0.5rem 0;
@@ -893,7 +919,7 @@
     min-width: 66px;
   }
   .action-counter-value {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1.15rem;
     line-height: 1;
     color: var(--text);
@@ -902,11 +928,10 @@
   .action-counter-value.completed { color: var(--green); }
   .action-counter-value.dismissed { color: var(--text3); }
   .action-counter-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
   .action-filters {
     display: flex;
@@ -920,25 +945,27 @@
     gap: 0.4rem;
   }
   .action-filter label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
   .action-filter select {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    padding: 0.3rem 0.5rem;
-    border-radius: 5px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.8rem;
+    padding: 0.32rem 0.55rem;
+    border-radius: 6px;
     background: var(--surface);
     color: var(--text);
-    border: 1px solid var(--border2);
+    border: 1px solid var(--border);
     cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
+  .action-filter select:hover { border-color: var(--border2); }
+  .action-filter select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
   .action-empty {
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.75rem;
     font-style: italic;
     padding: 0.5rem 0;
@@ -947,16 +974,15 @@
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.06em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
-  .rec-meta-row span { background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px; }
+  .rec-meta-row span { background: var(--surface2); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
   .rec-trigger {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--text2);
     letter-spacing: 0.02em;
   }
@@ -964,45 +990,43 @@
   .rec-card.status-COMPLETED { opacity: 0.55; border-left: 3px solid var(--green); }
   .rec-card.status-DISMISSED { opacity: 0.35; border-left: 3px solid var(--text3); }
   .rec-btn-complete { background: var(--green-dim); color: var(--green); border-color: transparent; }
-  .rec-btn-complete:hover { background: var(--green); color: var(--bg); }
+  .rec-btn-complete:hover { background: var(--green); color: var(--on-accent); }
   .rec-btn-progress { background: var(--amber-dim); color: var(--amber); border-color: transparent; }
-  .rec-btn-progress:hover { background: var(--amber); color: var(--bg); }
+  .rec-btn-progress:hover { background: var(--amber); color: var(--on-accent); }
   .rec-btn-dismiss { background: transparent; color: var(--text3); }
   .rec-btn-dismiss:hover { color: var(--red); border-color: var(--red); }
   .rec-status-tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     padding: 2px 6px;
     border-radius: 4px;
     align-self: flex-start;
   }
-  .rec-status-OPEN { background: rgba(255,255,255,0.05); color: var(--text2); }
+  .rec-status-OPEN { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
   .rec-status-IN_PROGRESS { background: var(--amber-dim); color: var(--amber); }
   .rec-status-COMPLETED { background: var(--green-dim); color: var(--green); }
-  .rec-status-DISMISSED { background: rgba(255,255,255,0.04); color: var(--text3); }
+  .rec-status-DISMISSED { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
 
   /* Brand-scope hint on the briefing */
   .brand-scope {
     display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     padding: 2px 7px;
     border-radius: 4px;
-    text-transform: uppercase;
     margin-left: 0.5rem;
-    background: var(--purple-dim);
-    color: var(--purple);
+    background: var(--accent-dim);
+    color: var(--accent);
   }
 
   /* Per-section insight strip */
   .insight-strip {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.75rem;
-    color: var(--purple);
-    background: var(--purple-dim);
+    color: var(--accent);
+    background: var(--accent-dim);
     padding: 0.6rem 0.85rem;
     border-radius: 6px;
     margin-bottom: 1rem;
@@ -1011,11 +1035,10 @@
   }
   .insight-strip:empty { display: none; }
   .insight-strip strong {
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    font-size: 0.65rem;
+    letter-spacing: 0.01em;
+    font-size: 0.78rem;
     margin-right: 0.5rem;
-    color: var(--purple);
+    color: var(--accent);
     opacity: 0.85;
   }
 
@@ -1053,47 +1076,65 @@
     z-index: 5;
   }
   .side-brand {
-    padding: 1.1rem 1.15rem 0.9rem;
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.25rem;
-    line-height: 1;
-    letter-spacing: 0.01em;
+    padding: 1rem 1.15rem 0.85rem;
     border-bottom: 1px solid var(--border);
   }
+  .side-brand-logos {
+    display: flex; flex-direction: column; gap: 0.5rem;
+    margin-bottom: 0.65rem;
+  }
+  .side-brand-logo {
+    height: 22px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: left center;
+    transition: opacity 0.2s, filter 0.2s;
+  }
+  body[data-brand="via"] .side-brand-logo[data-brand-logo="liq"],
+  body[data-brand="liq"] .side-brand-logo[data-brand-logo="via"] {
+    opacity: 0.3;
+    filter: grayscale(0.6);
+  }
   .side-brand-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.14em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
     color: var(--text3);
-    text-transform: uppercase;
-    margin-top: 0.25rem;
+    font-weight: 500;
   }
   .side-nav { display: flex; flex-direction: column; padding: 0.5rem 0; gap: 1px; }
   .side-link {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0.55rem 1.15rem;
+    padding: 0.5rem 1.15rem;
     color: var(--text2);
-    font-size: 0.85rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     text-decoration: none;
     border-left: 3px solid transparent;
     transition: color 0.15s, background 0.15s, border-color 0.15s;
   }
-  .side-link:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .side-link:hover { color: var(--text); background: var(--surface); }
   .side-link.is-active {
-    color: var(--text);
-    background: var(--purple-dim);
-    border-left-color: var(--purple);
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-left-color: var(--accent);
   }
   .side-sep { height: 1px; background: var(--border); margin: 0.5rem 1.15rem; }
   .side-foot {
     margin-top: auto;
-    padding: 0.9rem 1.15rem 1rem;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
+    padding: 0.85rem 1.15rem 1rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--text3);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .side-foot-vicki {
+    color: var(--text);
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
   .pill {
     display: inline-flex; align-items: center; justify-content: center;
@@ -1102,9 +1143,9 @@
     border-radius: 10px;
     background: var(--red-dim);
     color: var(--red);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.05em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
   }
   .pill:empty { display: none; }
 
@@ -1112,15 +1153,18 @@
     grid-area: top;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 0 rgba(15,20,25,0.02);
     display: flex; align-items: center; gap: 0.9rem;
     padding: 0 1.25rem;
     position: sticky; top: 0;
     z-index: 4;
   }
   .topbar-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.1rem;
-    letter-spacing: 0.01em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.005em;
   }
   .topbar-spacer { flex: 1; }
   .nav-toggle {
@@ -1138,42 +1182,42 @@
     display: flex; align-items: center; gap: 0.4rem;
   }
   .range-picker label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
   .range-picker select {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    padding: 0.35rem 0.5rem;
-    border-radius: 5px;
-    background: var(--surface2);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.8rem;
+    padding: 0.36rem 0.55rem;
+    border-radius: 6px;
+    background: var(--surface);
     color: var(--text);
-    border: 1px solid var(--border2);
+    border: 1px solid var(--border);
     cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
+  .range-picker select:hover { border-color: var(--border2); }
+  .range-picker select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
   .topbar .brand-toggle {
     gap: 0.5rem;
   }
   .topbar .brand-toggle .label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
   .topbar .brand-toggle .group button {
     padding: 0.28rem 0.55rem;
-    font-size: 0.68rem;
+    font-size: 0.78rem;
   }
   .topbar .last-updated {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
 
   .main {
@@ -1188,12 +1232,11 @@
   .page > .todo-panel { margin-left: 0; margin-right: 0; }
 
   .section-link {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
-    color: var(--purple);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
+    color: var(--accent);
     text-decoration: none;
-    text-transform: uppercase;
   }
   .section-link:hover { color: var(--text); }
 
@@ -1212,7 +1255,7 @@
     border-radius: 8px;
   }
   .overview-action-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.92rem;
     line-height: 1.25;
   }
@@ -1253,13 +1296,20 @@
 <div class="noise"></div>
 
 <aside class="side" id="sideNav" aria-label="Channel navigation">
-  <div class="side-brand">CMO<div class="side-brand-sub">Copilot</div></div>
+  <div class="side-brand">
+    <div class="side-brand-logos">
+      <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="Viatrading" />
+      <img class="side-brand-logo" data-brand-logo="liq" src="https://www.liquidatenow.com/wp-content/uploads/2015/07/liquidate-now-logo.png" alt="Liquidatenow" />
+    </div>
+    <div class="side-brand-sub">CMO dashboard</div>
+  </div>
   <nav class="side-nav">
     <a class="side-link is-active" data-route="overview" href="#/overview">Overview</a>
     <a class="side-link" data-route="ads"      href="#/ads">Ads</a>
     <a class="side-link" data-route="keywords" href="#/keywords">Keywords</a>
     <a class="side-link" data-route="seo"      href="#/seo">SEO</a>
     <a class="side-link" data-route="web"      href="#/web">Web</a>
+    <a class="side-link" data-route="pagespeed" href="#/pagespeed">Page Speed</a>
     <a class="side-link" data-route="calls"    href="#/calls">Calls</a>
     <a class="side-link" data-route="social"   href="#/social">Social</a>
     <a class="side-link" data-route="content"  href="#/content">Content</a>
@@ -1270,7 +1320,10 @@
     <a class="side-link" data-route="thresholds" href="#/thresholds">Thresholds</a>
     <a class="side-link" data-route="sources"   href="#/sources">Data Sources <span class="pill" id="sideSourcesPill"></span></a>
   </nav>
-  <div class="side-foot">Viatrading &amp; Liquidatenow</div>
+  <div class="side-foot">
+    <span class="side-foot-powered">Powered by</span>
+    <span class="side-foot-vicki">Vicki Intelligence</span>
+  </div>
 </aside>
 
 <header class="topbar">
@@ -1488,6 +1541,58 @@
     </table>
   </div>
 </section>
+</section>
+
+<section class="page" data-page="pagespeed" hidden>
+  <section class="section" id="pagespeedSection">
+    <div class="section-head">
+      <div class="section-title">Page Speed — Lighthouse / Core Web Vitals</div>
+      <div class="section-meta" id="pagespeedMeta">Page Speed</div>
+    </div>
+    <div class="insight-strip" id="pagespeedInsight"></div>
+    <div class="metrics-grid" id="pagespeedKpis"></div>
+    <div class="charts-grid-2" style="margin-top:1rem">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Worst LCP pages</div>
+            <div class="chart-value">Largest Contentful Paint (s)</div>
+          </div>
+          <span class="chart-badge badge-red">CWV</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>URL</th><th>Device</th><th class="num">LCP (s)</th><th class="num">Perf</th></tr></thead>
+          <tbody id="pagespeedWorstLcp"></tbody>
+        </table>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Worst CLS pages</div>
+            <div class="chart-value">Cumulative Layout Shift</div>
+          </div>
+          <span class="chart-badge badge-amber">Stability</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>URL</th><th>Device</th><th class="num">CLS</th><th class="num">Perf</th></tr></thead>
+          <tbody id="pagespeedWorstCls"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-top:1rem">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Slowest INP pages</div>
+          <div class="chart-value">Interaction to Next Paint (ms)</div>
+        </div>
+        <span class="chart-badge badge-purple">Responsiveness</span>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>URL</th><th>Device</th><th class="num">INP (ms)</th><th class="num">TBT (ms)</th><th class="num">Perf</th></tr></thead>
+        <tbody id="pagespeedWorstInp"></tbody>
+      </table>
+    </div>
+  </section>
 </section>
 
 <section class="page" data-page="calls" hidden>
@@ -1752,7 +1857,8 @@
 </main>
 
 <footer class="footer">
-  CMO POC · Data may be partial · Connect missing sources to replace placeholders
+  <span class="footer-powered">Powered by</span>
+  <span class="footer-vicki">Vicki Intelligence</span>
 </footer>
 
 <script id="appScript">
@@ -1760,8 +1866,9 @@
    fetches both tabs in parallel, tags each row with `brand: 'via' | 'liq'`,
    and concatenates so the existing brand toggle can slice locally.
    Aircall + Social are single-source (Aircall infers brand from line/team,
-   Social is shared across brands). All Coefficient-imported sheets have a
-   banner on row 1, so headers: 2 is required for gviz to label correctly. */
+   Social is shared across brands). Coefficient-imported sheets put a banner
+   on row 1, so they need headers: 2 to label correctly via gviz. The Page
+   Speed sheet is hand-managed with no banner, so it uses headers: 1. */
 const SHEETS = {
   ads: {
     id: '1oR4yEYbOYkzQcOyyMliKe__4KErtKFZyCnGDnjKI_JE',
@@ -1787,18 +1894,26 @@ const SHEETS = {
     label: 'Google Ads · Keywords', headers: 2,
     brandTabs: { via: 'raw_ads_via_kw', liq: 'raw_ads_lnow_kw' },
   },
+  /* PageSpeed Insights / Lighthouse export — one row per (URL, day, device).
+     Hand-managed, so headers live in row 1 (no banner). */
+  pagespeed: {
+    id: '1f9J-XrnwKDHGRNrrBsApebDp8bBAp5Zh7DjNr5tTd4M',
+    label: 'Page Speed', headers: 1,
+    brandTabs: { via: 'perf_via', liq: 'perf_lnow' },
+  },
 };
 
-const GREEN = '#4caf7d';
-const RED = '#e05a4e';
-const AMBER = '#d4a843';
-const BLUE = '#5b9cf6';
-const PURPLE = '#b57dd6';
-const TEXT2 = '#d4d9d1';
+const GREEN  = '#138a4a';
+const RED    = '#d4351c';
+const AMBER  = '#b45f06';
+const BLUE   = '#1f77ff';
+const PURPLE = '#1f77ff';
+const TEXT2  = '#3c4452';
+const GRID   = 'rgba(15,20,25,0.06)';
 
 Chart.defaults.color = TEXT2;
-Chart.defaults.font.family = "'DM Mono', monospace";
-Chart.defaults.font.size = 11;
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
 
 const fmt = (n, p='', s='') => (n==null||isNaN(n)) ? '—' : p + Number(n).toLocaleString(undefined,{maximumFractionDigits:1}) + s;
 const fmtCur = n => (n==null||isNaN(n)) ? '—' : '$' + Math.round(n).toLocaleString();
@@ -1918,12 +2033,14 @@ function isCallInHours(row) {
   return h >= WORK_HOURS.start && h < WORK_HOURS.end;
 }
 
-function localDateString(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
+/* Aircall reports timestamps in UTC; the team operates in PT. Pin the daily
+   bucket (the only thing byDay() and the date-range filter look at) to a
+   PT business day so a 5pm-PT call doesn't roll over into the next day. */
+const PT_DAY_FMT = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Los_Angeles',
+  year: 'numeric', month: '2-digit', day: '2-digit',
+});
+function ymdPT(d) { return PT_DAY_FMT.format(d); }
 
 function normalizeAircallRows(rows, cols) {
   if (!rows || !rows.length) return rows;
@@ -1989,10 +2106,16 @@ function normalizeAircallRows(rows, cols) {
       if (missed) debug.missedDetected += 1;
     }
 
-    /* Ensure row.Date exists so byDay() works. Derive from Started At if missing. */
-    if (!row.Date || typeof row.Date !== 'string' || row.Date.length < 10) {
-      const parsed = parseCallDate(row);
-      if (parsed) row.Date = localDateString(parsed);
+    /* Set row.Date to a PT day string. Source of truth is the timestamp
+       (Started At), not whatever string the sheet happened to put in the
+       Date column — that's normally a UTC-derived ISO date which is off
+       by up to 8 hours for evening calls. Falls back to the existing Date
+       column only if no timestamp is parseable. */
+    const parsed = parseCallDate(row);
+    if (parsed) {
+      row.Date = ymdPT(parsed);
+    } else if (typeof row.Date === 'string' && row.Date.length >= 10) {
+      row.Date = row.Date.slice(0, 10);
     }
 
     if (!row.brand) row.brand = inferCallBrand(row);
@@ -2057,6 +2180,21 @@ const COLUMN_ALIASES = {
     Date:             ['Day'],
     Channel:          ['Default channel group', 'Channel grouping', 'Session default channel group'],
   },
+  /* Lighthouse / PageSpeed Insights export. Multiple exporters use slightly
+     different headers — alias them all to canonical keys so the rule engine
+     and renderers don't care which tool produced the sheet. */
+  pagespeed: {
+    URL:          ['Page', 'Page URL', 'Final URL', 'Url', 'url'],
+    Device:       ['Strategy', 'Form Factor', 'form_factor'],
+    'Perf Score': ['Performance', 'Performance Score', 'performance_score', 'Score', 'Lighthouse Performance'],
+    LCP:          ['Largest Contentful Paint', 'Largest Contentful Paint (s)', 'lcp', 'LCP (s)', 'LCP (ms)'],
+    CLS:          ['Cumulative Layout Shift', 'cls'],
+    INP:          ['Interaction to Next Paint', 'inp', 'INP (ms)', 'FID', 'First Input Delay'],
+    TBT:          ['Total Blocking Time', 'tbt', 'TBT (ms)'],
+    FCP:          ['First Contentful Paint', 'fcp', 'FCP (s)'],
+    'Speed Index':['speed_index', 'SI', 'speedIndex'],
+    Date:         ['Day', 'Audit Date', 'Run Date', 'Timestamp'],
+  },
   /* Keyword-grain Ads export from Coefficient. "Cost Micros" is already
      dollars (Coefficient's quirk — see ads block above). */
   keywords: {
@@ -2112,7 +2250,35 @@ function applyAliases(key, rows, cols) {
 function normalizeByKey(key, rows, cols) {
   if (key === 'aircall') return normalizeAircallRows(rows, cols);
   if (key === 'social') return normalizeSocialRows(rows, cols);
+  if (key === 'pagespeed') return normalizePagespeedRows(rows, cols);
   return rows;
+}
+
+/* Lighthouse / PageSpeed metrics arrive in inconsistent units depending on
+   the exporter — sometimes seconds, sometimes ms; sometimes 0–1 score,
+   sometimes 0–100. Normalize to a single convention so thresholds are
+   meaningful across sources:
+   - LCP, FCP   → seconds (auto-detect: > 50 means it was reported in ms)
+   - INP, TBT   → milliseconds (auto-detect: < 50 means it was reported in s)
+   - Perf Score → 0–100 (auto-detect: ≤ 1 means it was 0–1)
+   - CLS stays as-is (unitless 0–1ish) */
+function normalizePagespeedRows(rows, _cols) {
+  if (!rows || !rows.length) return rows;
+  const num = v => { const n = Number(v); return isNaN(n) ? null : n; };
+  return rows.map(r => {
+    const out = { ...r };
+    const lcp = num(r.LCP); if (lcp != null) out.LCP = lcp > 50 ? lcp / 1000 : lcp;
+    const fcp = num(r.FCP); if (fcp != null) out.FCP = fcp > 50 ? fcp / 1000 : fcp;
+    const inp = num(r.INP); if (inp != null) out.INP = inp < 50 ? inp * 1000 : inp;
+    const tbt = num(r.TBT); if (tbt != null) out.TBT = tbt < 50 ? tbt * 1000 : tbt;
+    const cls = num(r.CLS); if (cls != null) out.CLS = cls;
+    const si  = num(r['Speed Index']); if (si != null) out['Speed Index'] = si;
+    const perf = num(r['Perf Score']);
+    if (perf != null) out['Perf Score'] = perf <= 1 ? perf * 100 : perf;
+    if (typeof out.Device === 'string') out.Device = out.Device.toLowerCase();
+    if (typeof out.Date === 'string') out.Date = out.Date.slice(0, 10);
+    return out;
+  });
 }
 
 async function loadChannel(key, mockFn, requiredCols = []) {
@@ -2192,7 +2358,7 @@ function makeChart(id, type, labels, datasets, opts={}) {
       plugins: { legend: opts.legend || { display: false } },
       scales: type === 'doughnut' ? {} : {
         x: { grid: { display: false }, ticks: { maxRotation: 45, ...opts.xTicks } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ...opts.yScale },
+        y: { grid: { color: GRID }, ...opts.yScale },
       },
       ...opts.extra,
     },
@@ -2257,15 +2423,16 @@ const SOURCE_LABELS = { ads: 'Ads', gsc: 'SEO', ga: 'GA4', aircall: 'Calls', soc
 /* Display order + descriptive copy for the grouped Decisions view. Cards are
    bucketed under these headers so it's obvious which source generated what,
    and which sources had nothing to flag in the current filter window. */
-const SOURCE_ORDER = ['ads', 'keywords', 'gsc', 'ga', 'social', 'aircall', 'cross'];
+const SOURCE_ORDER = ['ads', 'keywords', 'gsc', 'ga', 'pagespeed', 'social', 'aircall', 'cross'];
 const SOURCE_DETAIL = {
-  ads:      { label: 'Ads',           hint: 'Google Ads campaigns' },
-  keywords: { label: 'Keywords',      hint: 'Google Ads keywords' },
-  gsc:      { label: 'SEO / Search',  hint: 'Search Console queries' },
-  ga:       { label: 'Web Analytics', hint: 'GA4 channels & landings' },
-  social:   { label: 'Social',        hint: 'Metricool posts' },
-  aircall:  { label: 'Calls',         hint: 'Aircall lines & volume' },
-  cross:    { label: 'Cross-Channel', hint: 'Multi-source signals' },
+  ads:       { label: 'Ads',           hint: 'Google Ads campaigns' },
+  keywords:  { label: 'Keywords',      hint: 'Google Ads keywords' },
+  gsc:       { label: 'SEO / Search',  hint: 'Search Console queries' },
+  ga:        { label: 'Web Analytics', hint: 'GA4 channels & landings' },
+  pagespeed: { label: 'Page Speed',    hint: 'Lighthouse / Core Web Vitals per URL' },
+  social:    { label: 'Social',        hint: 'Metricool posts' },
+  aircall:   { label: 'Calls',         hint: 'Aircall lines & volume' },
+  cross:     { label: 'Cross-Channel', hint: 'Multi-source signals' },
 };
 
 const ACTION_LOG_KEY = 'cmoActionLog_v1';
@@ -2669,6 +2836,45 @@ function mockKeywords() {
   });
   return out;
 }
+/* Page Speed mock: a handful of URLs per brand with one bad-LCP and one
+   bad-CLS page so the corresponding rules fire in demo mode. */
+const MOCK_PS_URLS = {
+  via: ['/', '/wholesale-pallets', '/truckload', '/contact', '/category/electronics'],
+  liq: ['/', '/sellers', '/buyers', '/auction', '/help'],
+};
+function mockPagespeed() {
+  const out = [];
+  const dayList = days(MOCK_WINDOW_DAYS);
+  const devices = ['mobile', 'desktop'];
+  dayList.forEach(d => {
+    ['via', 'liq'].forEach(brand => {
+      MOCK_PS_URLS[brand].forEach((url, idx) => {
+        devices.forEach(dev => {
+          const isSlow = idx === 1;
+          const isShifty = idx === 2;
+          const baseLcp = (dev === 'mobile' ? 2.4 : 1.6) + (isSlow ? 1.4 : 0) + Math.random() * 0.4;
+          const baseCls = (isShifty ? 0.18 : 0.05) + Math.random() * 0.04;
+          const baseInp = (dev === 'mobile' ? 180 : 120) + (isSlow ? 80 : 0) + Math.random() * 40;
+          const basePerf = 90 - (isSlow ? 30 : 0) - (isShifty ? 15 : 0) - (dev === 'mobile' ? 8 : 0) + Math.random() * 6;
+          out.push({
+            Date: d,
+            URL: url,
+            Device: dev,
+            'Perf Score': +basePerf.toFixed(0),
+            LCP: +baseLcp.toFixed(2),
+            CLS: +baseCls.toFixed(3),
+            INP: +baseInp.toFixed(0),
+            TBT: +(baseInp * 1.5).toFixed(0),
+            FCP: +(baseLcp * 0.55).toFixed(2),
+            'Speed Index': +(baseLcp * 1.4).toFixed(2),
+            brand,
+          });
+        });
+      });
+    });
+  });
+  return out;
+}
 function mockGsc() {
   return forBrands(days(MOCK_WINDOW_DAYS), (d, brand, p) => ({
     Date: d,
@@ -2946,6 +3152,49 @@ function summarizeKeywords(rows) {
   return { kws, medianCpa, withConv, totalSpend, totalConv };
 }
 
+/* Page Speed: aggregate per (URL, device) over the period. Median per group
+   smooths daily noise without burying outliers (the rule fires on the
+   median exceeding a CWV threshold). */
+function summarizePagespeed(rows) {
+  const map = {};
+  (rows || []).forEach(r => {
+    const url = r.URL || r.Page || '—';
+    const dev = (r.Device || '').toLowerCase() || 'all';
+    const k = `${url}::${dev}`;
+    const e = map[k] || (map[k] = { url, device: dev, brand: r.brand || null, perf: [], lcp: [], cls: [], inp: [], tbt: [], fcp: [] });
+    if (!e.brand && r.brand) e.brand = r.brand;
+    const push = (arr, v) => { const n = Number(v); if (!isNaN(n)) arr.push(n); };
+    push(e.perf, r['Perf Score']);
+    push(e.lcp, r.LCP);
+    push(e.cls, r.CLS);
+    push(e.inp, r.INP);
+    push(e.tbt, r.TBT);
+    push(e.fcp, r.FCP);
+  });
+  const median = arr => {
+    if (!arr.length) return null;
+    const s = [...arr].sort((a, b) => a - b);
+    const m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  };
+  const pages = Object.values(map).map(e => ({
+    url: e.url,
+    device: e.device,
+    brand: e.brand,
+    name: e.device === 'all' ? e.url : `${e.url} · ${e.device}`,
+    perf: median(e.perf),
+    lcp: median(e.lcp),
+    cls: median(e.cls),
+    inp: median(e.inp),
+    tbt: median(e.tbt),
+    fcp: median(e.fcp),
+    samples: e.perf.length,
+  }));
+  const valid = pages.filter(p => p.perf != null);
+  const medPerf = median(valid.map(p => p.perf));
+  return { pages, medPerf, totalPages: pages.length };
+}
+
 function summarizeGsc(rows) {
   const map = {};
   rows.forEach(r => {
@@ -3101,6 +3350,11 @@ const THRESHOLD_DEFAULTS = {
   FIX_ROUTING_RATE_MIN: 0.05,
   FIX_ROUTING_HIGH_RATE: 0.15,
   STAFFING_DELTA: 0.25,
+  /* Page Speed (Core Web Vitals — Google's "good" thresholds as defaults) */
+  LCP_MAX_S: 2.5,
+  CLS_MAX: 0.1,
+  INP_MAX_MS: 200,
+  PERF_MIN: 50,
   /* Cross */
   ATTR_GAP_CALLS_MIN: 50,
   ATTR_GAP_MULT: 2,
@@ -3132,7 +3386,7 @@ function t(brand, key) {
 }
 
 function generateActionsFromSummaries(summaries, brand) {
-  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum } = summaries;
+  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum, psSum } = summaries;
 
   /* ── 1. campaign_actions (Google Ads) ──────────────────────────── */
   const campaign_actions = [];
@@ -3218,6 +3472,58 @@ function generateActionsFromSummaries(summaries, brand) {
           reason: `CPA ${fmtCur(k.cpa)} vs median ${fmtCur(kwSum.medianCpa)} on ${fmt(k.Conversions)} conversions — push more budget here.`,
           metric_trigger: `CPA < median × ${SCALE_KW} AND Conversions ≥ ${SCALE_MIN}`,
           current_value: k.cpa, benchmark_value: kwSum.medianCpa,
+        }));
+      }
+    });
+  }
+
+  /* ── 1c. pagespeed_actions (Lighthouse / CWV per URL) ──────────── */
+  const pagespeed_actions = [];
+  if (psSum && psSum.pages) {
+    psSum.pages.forEach(p => {
+      const pBrand = p.brand || (brand === 'all' ? 'all' : brand);
+      const LCP_MAX  = t(pBrand, 'LCP_MAX_S');
+      const CLS_MAX  = t(pBrand, 'CLS_MAX');
+      const INP_MAX  = t(pBrand, 'INP_MAX_MS');
+      const PERF_MIN = t(pBrand, 'PERF_MIN');
+      if (p.lcp != null && p.lcp > LCP_MAX) {
+        pagespeed_actions.push(newAction({
+          source: 'pagespeed', grain: 'url', brand: pBrand,
+          entity_id: p.name, entity_name: p.name,
+          action_type: 'FIX_PAGESPEED_LCP', priority: 'HIGH',
+          reason: `LCP ${p.lcp.toFixed(2)}s on ${p.name} — above the ${LCP_MAX}s CWV threshold. Compress hero image, defer non-critical JS, or upgrade caching.`,
+          metric_trigger: `Median LCP > ${LCP_MAX}s`,
+          current_value: p.lcp, benchmark_value: LCP_MAX,
+        }));
+      }
+      if (p.cls != null && p.cls > CLS_MAX) {
+        pagespeed_actions.push(newAction({
+          source: 'pagespeed', grain: 'url', brand: pBrand,
+          entity_id: p.name, entity_name: p.name,
+          action_type: 'FIX_PAGESPEED_CLS', priority: 'MEDIUM',
+          reason: `CLS ${p.cls.toFixed(3)} on ${p.name} — above the ${CLS_MAX} threshold. Reserve space for ads/images, set width/height on media.`,
+          metric_trigger: `Median CLS > ${CLS_MAX}`,
+          current_value: p.cls, benchmark_value: CLS_MAX,
+        }));
+      }
+      if (p.inp != null && p.inp > INP_MAX) {
+        pagespeed_actions.push(newAction({
+          source: 'pagespeed', grain: 'url', brand: pBrand,
+          entity_id: p.name, entity_name: p.name,
+          action_type: 'FIX_PAGESPEED_INP', priority: 'HIGH',
+          reason: `INP ${Math.round(p.inp)}ms on ${p.name} — above the ${INP_MAX}ms threshold. Break up long tasks, defer third-party scripts.`,
+          metric_trigger: `Median INP > ${INP_MAX}ms`,
+          current_value: p.inp, benchmark_value: INP_MAX,
+        }));
+      }
+      if (p.perf != null && p.perf < PERF_MIN) {
+        pagespeed_actions.push(newAction({
+          source: 'pagespeed', grain: 'url', brand: pBrand,
+          entity_id: p.name, entity_name: p.name,
+          action_type: 'FIX_PAGESPEED_PERF', priority: 'MEDIUM',
+          reason: `Performance score ${Math.round(p.perf)} on ${p.name} — below the ${PERF_MIN} floor. Run a full Lighthouse audit and prioritize the top opportunities.`,
+          metric_trigger: `Median Perf Score < ${PERF_MIN}`,
+          current_value: p.perf, benchmark_value: PERF_MIN,
         }));
       }
     });
@@ -3365,7 +3671,7 @@ function generateActionsFromSummaries(summaries, brand) {
     }));
   }
 
-  return { campaign_actions, keyword_actions, query_actions, post_actions, channel_actions, site_actions };
+  return { campaign_actions, keyword_actions, pagespeed_actions, query_actions, post_actions, channel_actions, site_actions };
 }
 
 /* ══════════════════════ PER-SECTION SUMMARY STRINGS ═════════════════
@@ -3373,8 +3679,8 @@ function generateActionsFromSummaries(summaries, brand) {
    just "what's happening on this channel". */
 
 function buildPerSection(summaries, brand) {
-  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum } = summaries;
-  const out = { ads: '', keywords: '', seo: '', ga: '', calls: '', social: '' };
+  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum, psSum } = summaries;
+  const out = { ads: '', keywords: '', seo: '', ga: '', calls: '', social: '', pagespeed: '' };
 
   if (adsSum.withConv.length) {
     const best = adsSum.withConv[0];
@@ -3414,6 +3720,13 @@ function buildPerSection(summaries, brand) {
     out.social = `No social posts detected for this period.`;
   }
 
+  if (psSum && psSum.pages && psSum.pages.length) {
+    const failing = psSum.pages.filter(p => p.lcp != null && p.lcp > 2.5).length;
+    out.pagespeed = `${psSum.pages.length} URL/device samples · median Perf ${psSum.medPerf != null ? Math.round(psSum.medPerf) : '—'} · ${failing} pages failing LCP > 2.5s.`;
+  } else {
+    out.pagespeed = `No Page Speed data for this period.`;
+  }
+
   return out;
 }
 
@@ -3442,9 +3755,10 @@ function buildNarrative(actionsByDataset, summaries, brand) {
   return bits.join(' ');
 }
 
-function generateInsights({ ads, gsc, ga, ac, social, keywords }, brand = 'all') {
+function generateInsights({ ads, gsc, ga, ac, social, keywords, pagespeed }, brand = 'all') {
   social = social || { rows: [] };
   keywords = keywords || { rows: [] };
+  pagespeed = pagespeed || { rows: [] };
   const summaries = {
     adsSum: summarizeAds(ads.rows),
     gscSum: summarizeGsc(gsc.rows),
@@ -3452,6 +3766,7 @@ function generateInsights({ ads, gsc, ga, ac, social, keywords }, brand = 'all')
     callsSum: summarizeCalls(ac.rows),
     socialSum: summarizeSocial(social.rows),
     kwSum: summarizeKeywords(keywords.rows),
+    psSum: summarizePagespeed(pagespeed.rows),
   };
   const actionsByDataset = generateActionsFromSummaries(summaries, brand);
   const perSection = buildPerSection(summaries, brand);
@@ -3472,6 +3787,8 @@ const REQUIRED_COLS = {
   /* Keywords: keyword-grain ads export — Spend + Clicks are enough to drive
      KILL/NEGATE/SCALE rules. Impressions checked too because NEGATE keys on it. */
   keywords:['Spend', 'Clicks'],
+  /* Page Speed: at minimum we need URL + a Perf Score to render anything. */
+  pagespeed:['URL', 'Perf Score'],
 };
 
 function mockChannel(mockFn, reason) {
@@ -3484,12 +3801,13 @@ function mockChannel(mockFn, reason) {
    (live vs. demo vs. failed, row counts, brand split, columns,
    error reason if any) and renders a per-source health card. */
 const SOURCE_DETAIL_REPORT = [
-  { key: 'ads',      prop: 'ads',      label: 'Google Ads',           bucket: 'Ads' },
-  { key: 'keywords', prop: 'keywords', label: 'Google Ads · Keywords',bucket: 'Keywords' },
-  { key: 'gsc',      prop: 'gsc',      label: 'Google Search Console',bucket: 'SEO / Search' },
-  { key: 'ga',       prop: 'ga',       label: 'Google Analytics 4',   bucket: 'Web Analytics' },
-  { key: 'aircall',  prop: 'ac',       label: 'Aircall',              bucket: 'Calls' },
-  { key: 'social',   prop: 'social',   label: 'Metricool · Social',   bucket: 'Social' },
+  { key: 'ads',       prop: 'ads',       label: 'Google Ads',            bucket: 'Ads' },
+  { key: 'keywords',  prop: 'keywords',  label: 'Google Ads · Keywords', bucket: 'Keywords' },
+  { key: 'gsc',       prop: 'gsc',       label: 'Google Search Console', bucket: 'SEO / Search' },
+  { key: 'ga',        prop: 'ga',        label: 'Google Analytics 4',    bucket: 'Web Analytics' },
+  { key: 'pagespeed', prop: 'pagespeed', label: 'Page Speed (Lighthouse)', bucket: 'Page Speed' },
+  { key: 'aircall',   prop: 'ac',        label: 'Aircall',               bucket: 'Calls' },
+  { key: 'social',    prop: 'social',    label: 'Metricool · Social',    bucket: 'Social' },
 ];
 
 function dateRangeFromRows(rows) {
@@ -3659,10 +3977,10 @@ function renderRefreshStrip() {
   if (top) top.textContent = `Updated ${ts.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`;
 }
 
-function paint(ads, gsc, ga, ac, social, keywords) {
+function paint(ads, gsc, ga, ac, social, keywords, pagespeed) {
   state.lastRefreshAt = new Date();
   renderRefreshStrip();
-  const insights = generateInsights({ ads, gsc, ga, ac, social, keywords }, state.brand);
+  const insights = generateInsights({ ads, gsc, ga, ac, social, keywords, pagespeed }, state.brand);
   /* Hydrate generated actions with persisted status overrides, then
      store for filter/status interactions to mutate + re-render. */
   state.actions = hydrateActions(insights.actionsByDataset, state.actionLog);
@@ -3679,6 +3997,7 @@ function paint(ads, gsc, ga, ac, social, keywords) {
   renderGa(ga, insights.perSection.ga);
   renderCalls(ac, insights.perSection.calls);
   renderSocial(social, insights.perSection.social);
+  renderPagespeed(pagespeed, insights.perSection.pagespeed);
   /* Always show what was actually pulled — not the brand/range slice. */
   if (state.raw) renderDataSources(state.raw);
   renderPlaceholders();
@@ -3686,15 +4005,16 @@ function paint(ads, gsc, ga, ac, social, keywords) {
 
 function repaint() {
   if (!state.raw) return;
-  const { ads, gsc, ga, ac, social, keywords } = state.raw;
+  const { ads, gsc, ga, ac, social, keywords, pagespeed } = state.raw;
   const range = state.timeRange;
   const scoped = {
-    ads:      scopeChannel(scopeByRange(ads,      range), state.brand),
-    gsc:      scopeChannel(scopeByRange(gsc,      range), state.brand),
-    ga:       scopeChannel(scopeByRange(ga,       range), state.brand),
-    ac:       scopeChannel(scopeByRange(ac,       range), state.brand),
-    social:   scopeChannel(scopeByRange(social,   range), state.brand),
-    keywords: scopeChannel(scopeByRange(keywords, range), state.brand),
+    ads:       scopeChannel(scopeByRange(ads,       range), state.brand),
+    gsc:       scopeChannel(scopeByRange(gsc,       range), state.brand),
+    ga:        scopeChannel(scopeByRange(ga,        range), state.brand),
+    ac:        scopeChannel(scopeByRange(ac,        range), state.brand),
+    social:    scopeChannel(scopeByRange(social,    range), state.brand),
+    keywords:  scopeChannel(scopeByRange(keywords,  range), state.brand),
+    pagespeed: scopeChannel(scopeByRange(pagespeed, range), state.brand),
   };
 
   /* If user picked a specific brand but a live channel has no brand column,
@@ -3704,7 +4024,7 @@ function repaint() {
   const pending = document.getElementById('brandPending');
   if (pending) {
     const needsBrand = state.brand !== 'all';
-    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social', keywords: 'keywords' };
+    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social', keywords: 'keywords', pagespeed: 'pagespeed' };
     const unsliceable = Object.entries(state.raw)
       .filter(([, c]) => c && c.source === 'live' && c.rows.length && !c.rows.some(r => r && r.brand))
       .map(([k]) => NAME[k] || k);
@@ -3714,41 +4034,44 @@ function repaint() {
     }
     pending.classList.toggle('hidden', !missingBrand);
   }
-  paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac, scoped.social, scoped.keywords);
+  paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac, scoped.social, scoped.keywords, scoped.pagespeed);
 }
 
 async function render() {
   try {
-    const [ads, gsc, ga, ac, social, keywords] = await Promise.all([
+    const [ads, gsc, ga, ac, social, keywords, pagespeed] = await Promise.all([
       loadChannel('ads', mockAds, REQUIRED_COLS.ads),
       loadChannel('gsc', mockGsc, REQUIRED_COLS.gsc),
       loadChannel('ga', mockGa, REQUIRED_COLS.ga),
       loadChannel('aircall', mockAircall, REQUIRED_COLS.aircall),
       loadChannel('social', mockSocial, REQUIRED_COLS.social),
       loadChannel('keywords', mockKeywords, REQUIRED_COLS.keywords),
+      loadChannel('pagespeed', mockPagespeed, REQUIRED_COLS.pagespeed),
     ]);
 
     console.table([
-      { channel: 'ads',      source: ads.source,      rows: ads.rows.length,      reason: ads.reason || '',      cols: ads.cols.join(', ') },
-      { channel: 'gsc',      source: gsc.source,      rows: gsc.rows.length,      reason: gsc.reason || '',      cols: gsc.cols.join(', ') },
-      { channel: 'ga',       source: ga.source,       rows: ga.rows.length,       reason: ga.reason || '',       cols: ga.cols.join(', ') },
-      { channel: 'aircall',  source: ac.source,       rows: ac.rows.length,       reason: ac.reason || '',       cols: ac.cols.join(', ') },
-      { channel: 'social',   source: social.source,   rows: social.rows.length,   reason: social.reason || '',   cols: social.cols.join(', ') },
-      { channel: 'keywords', source: keywords.source, rows: keywords.rows.length, reason: keywords.reason || '', cols: keywords.cols.join(', ') },
+      { channel: 'ads',       source: ads.source,       rows: ads.rows.length,       reason: ads.reason || '',       cols: ads.cols.join(', ') },
+      { channel: 'gsc',       source: gsc.source,       rows: gsc.rows.length,       reason: gsc.reason || '',       cols: gsc.cols.join(', ') },
+      { channel: 'ga',        source: ga.source,        rows: ga.rows.length,        reason: ga.reason || '',        cols: ga.cols.join(', ') },
+      { channel: 'aircall',   source: ac.source,        rows: ac.rows.length,        reason: ac.reason || '',        cols: ac.cols.join(', ') },
+      { channel: 'social',    source: social.source,    rows: social.rows.length,    reason: social.reason || '',    cols: social.cols.join(', ') },
+      { channel: 'keywords',  source: keywords.source,  rows: keywords.rows.length,  reason: keywords.reason || '',  cols: keywords.cols.join(', ') },
+      { channel: 'pagespeed', source: pagespeed.source, rows: pagespeed.rows.length, reason: pagespeed.reason || '', cols: pagespeed.cols.join(', ') },
     ]);
 
-    state.raw = { ads, gsc, ga, ac, social, keywords };
+    state.raw = { ads, gsc, ga, ac, social, keywords, pagespeed };
     repaint();
   } catch (err) {
     console.error('CMO render failed, falling back to mock:', err);
     const reason = `render error: ${err && err.message || err}`;
     state.raw = {
-      ads:      mockChannel(mockAds,      reason),
-      gsc:      mockChannel(mockGsc,      reason),
-      ga:       mockChannel(mockGa,       reason),
-      ac:       mockChannel(mockAircall,  reason),
-      social:   mockChannel(mockSocial,   reason),
-      keywords: mockChannel(mockKeywords, reason),
+      ads:       mockChannel(mockAds,       reason),
+      gsc:       mockChannel(mockGsc,       reason),
+      ga:        mockChannel(mockGa,        reason),
+      ac:        mockChannel(mockAircall,   reason),
+      social:    mockChannel(mockSocial,    reason),
+      keywords:  mockChannel(mockKeywords,  reason),
+      pagespeed: mockChannel(mockPagespeed, reason),
     };
     repaint();
   }
@@ -3797,7 +4120,7 @@ function renderAds({ rows, source, reason }, insight) {
   makeChart('adsChart', 'line', daily.map(([k]) => k.slice(5)), [{
     data: daily.map(([,v]) => +v.toFixed(2)),
     borderColor: BLUE,
-    backgroundColor: 'rgba(91,156,246,0.1)',
+    backgroundColor: 'rgba(31,119,255,0.12)',
     fill: true, tension: 0.35, pointRadius: 2, pointBackgroundColor: BLUE,
   }], { yScale: { ticks: { callback: v => '$'+v } }, xTicks: { maxTicksLimit: 8 } });
 
@@ -3853,13 +4176,13 @@ function renderSeo({ rows, source, reason }, insight) {
   const c = byDay(rows, 'Clicks');
   const i = byDay(rows, 'Impressions');
   makeChart('seoChart', 'line', c.map(([k]) => k.slice(5)), [
-    { data: c.map(([,v]) => v), borderColor: GREEN, backgroundColor:'rgba(76,175,125,0.1)', fill:true, tension: 0.35, pointRadius: 2, yAxisID:'y', label:'Clicks' },
+    { data: c.map(([,v]) => v), borderColor: GREEN, backgroundColor:'rgba(19,138,74,0.12)', fill:true, tension: 0.35, pointRadius: 2, yAxisID:'y', label:'Clicks' },
     { data: i.map(([,v]) => v), borderColor: AMBER, borderDash:[4,4], pointRadius: 0, tension: 0.35, yAxisID:'y1', label:'Impressions' },
   ], {
     legend: { display: true, labels: { color: TEXT2, boxWidth: 10, padding: 12 } },
     extra: { scales: {
       x: { grid: { display:false } },
-      y: { grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { grid: { color: GRID } },
       y1:{ position: 'right', grid: { display: false } },
     } },
   });
@@ -3921,14 +4244,14 @@ function renderGa({ rows, source, reason }, insight) {
   makeChart('gaChart', 'line', daily.map(([k]) => k.slice(5)), [{
     data: daily.map(([,v]) => v),
     borderColor: AMBER,
-    backgroundColor: 'rgba(212,168,67,0.1)',
+    backgroundColor: 'rgba(180,95,6,0.12)',
     fill: true, tension: 0.35, pointRadius: 2, pointBackgroundColor: AMBER,
   }], { xTicks: { maxTicksLimit: 8 } });
 
   const channels = topN(rows, 'Channel', 'Sessions', 6);
   makeChart('gaChannelChart', 'doughnut', channels.map(c => c.name), [{
     data: channels.map(c => c.Sessions),
-    backgroundColor: [GREEN, BLUE, AMBER, PURPLE, RED, 'rgba(255,255,255,0.15)'],
+    backgroundColor: [GREEN, BLUE, AMBER, PURPLE, RED, 'rgba(15,20,25,0.12)'],
     borderWidth: 0,
   }], { extra: { cutout: '60%', plugins: { legend: { display:true, position:'right', labels:{ color: TEXT2, boxWidth:10, padding:10, font:{ size:10 } } } } } });
 
@@ -4021,7 +4344,7 @@ function renderCalls({ rows, source, reason }, insight) {
   const daily = byDay(rows, 'Total Calls');
   makeChart('callsChart', 'bar', daily.map(([k]) => k.slice(5)), [{
     data: daily.map(([,v]) => v),
-    backgroundColor: 'rgba(91,156,246,0.55)', borderRadius: 3,
+    backgroundColor: 'rgba(31,119,255,0.55)', borderRadius: 3,
   }], { xTicks: { maxTicksLimit: 10 } });
 
   makeChart('callsDonut', 'doughnut', ['Answered','Missed'], [{
@@ -4107,7 +4430,7 @@ function renderSocial({ rows, source, reason }, insight) {
   makeChart('socialChart', 'line', daily.map(([k]) => k.slice(5)), [{
     data: daily.map(([,v]) => v),
     borderColor: PURPLE,
-    backgroundColor: 'rgba(181,125,214,0.12)',
+    backgroundColor: 'rgba(31,119,255,0.12)',
     fill: true, tension: 0.35, pointRadius: 2, pointBackgroundColor: PURPLE,
   }], { xTicks: { maxTicksLimit: 8 } });
 
@@ -4188,6 +4511,66 @@ function renderKeywords({ rows, source, reason }, insight) {
   }
 }
 
+function renderPagespeed({ rows, source, reason }, insight) {
+  const meta = document.getElementById('pagespeedMeta');
+  if (meta) meta.innerHTML = `${SHEETS.pagespeed.label} · ${sourceTag(source, reason)}`;
+  renderInsight('pagespeedInsight', insight);
+
+  const sum = summarizePagespeed(rows);
+  const failingLcp = sum.pages.filter(p => p.lcp != null && p.lcp > 2.5).length;
+  const failingCls = sum.pages.filter(p => p.cls != null && p.cls > 0.1).length;
+  const failingInp = sum.pages.filter(p => p.inp != null && p.inp > 200).length;
+  renderKpis('pagespeedKpis', [
+    { label: 'URLs sampled', value: fmt(sum.totalPages) },
+    { label: 'Median Perf Score', value: sum.medPerf != null ? Math.round(sum.medPerf) : '—' },
+    { label: 'Failing LCP', value: fmt(failingLcp) },
+    { label: 'Failing CLS', value: fmt(failingCls) },
+    { label: 'Failing INP', value: fmt(failingInp) },
+  ]);
+
+  const renderRow = (cells) => `<tr>${cells}</tr>`;
+  const fmtMs = v => v != null ? Math.round(v).toLocaleString() : '—';
+  const fmtSec = v => v != null ? v.toFixed(2) : '—';
+  const fmtPerf = v => v != null ? Math.round(v) : '—';
+
+  const worstLcp = [...sum.pages].filter(p => p.lcp != null).sort((a, b) => b.lcp - a.lcp).slice(0, 8);
+  const lcpBody = document.getElementById('pagespeedWorstLcp');
+  if (lcpBody) {
+    lcpBody.innerHTML = worstLcp.length
+      ? worstLcp.map(p => renderRow(`
+          <td>${escapeHtml(p.url)}</td>
+          <td>${escapeHtml(p.device || '—')}</td>
+          <td class="num">${fmtSec(p.lcp)}</td>
+          <td class="num">${fmtPerf(p.perf)}</td>`)).join('')
+      : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No Page Speed data in range.</td></tr>`;
+  }
+
+  const worstCls = [...sum.pages].filter(p => p.cls != null).sort((a, b) => b.cls - a.cls).slice(0, 8);
+  const clsBody = document.getElementById('pagespeedWorstCls');
+  if (clsBody) {
+    clsBody.innerHTML = worstCls.length
+      ? worstCls.map(p => renderRow(`
+          <td>${escapeHtml(p.url)}</td>
+          <td>${escapeHtml(p.device || '—')}</td>
+          <td class="num">${p.cls != null ? p.cls.toFixed(3) : '—'}</td>
+          <td class="num">${fmtPerf(p.perf)}</td>`)).join('')
+      : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No CLS samples in range.</td></tr>`;
+  }
+
+  const worstInp = [...sum.pages].filter(p => p.inp != null).sort((a, b) => b.inp - a.inp).slice(0, 8);
+  const inpBody = document.getElementById('pagespeedWorstInp');
+  if (inpBody) {
+    inpBody.innerHTML = worstInp.length
+      ? worstInp.map(p => renderRow(`
+          <td>${escapeHtml(p.url)}</td>
+          <td>${escapeHtml(p.device || '—')}</td>
+          <td class="num">${fmtMs(p.inp)}</td>
+          <td class="num">${fmtMs(p.tbt)}</td>
+          <td class="num">${fmtPerf(p.perf)}</td>`)).join('')
+      : `<tr><td colspan="5" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No INP samples in range.</td></tr>`;
+  }
+}
+
 /* ── Thresholds editor ──────────────────────────────────────────── */
 const THRESHOLD_META = {
   ads: [
@@ -4227,12 +4610,18 @@ const THRESHOLD_META = {
     { key: 'FIX_ROUTING_HIGH_RATE', label: 'FIX_ROUTING · HIGH if rate > (0–1)',    step: 0.01,  type: 'number' },
     { key: 'STAFFING_DELTA',        label: 'STAFFING · WoW volume change > (0–1)',  step: 0.05,  type: 'number' },
   ],
+  pagespeed: [
+    { key: 'LCP_MAX_S',  label: 'FIX_LCP · max LCP (seconds)',                     step: 0.1,   type: 'number' },
+    { key: 'CLS_MAX',    label: 'FIX_CLS · max CLS (0–1)',                         step: 0.01,  type: 'number' },
+    { key: 'INP_MAX_MS', label: 'FIX_INP · max INP (ms)',                          step: 10,    type: 'integer' },
+    { key: 'PERF_MIN',   label: 'FIX_PERF · min Lighthouse score (0–100)',         step: 5,     type: 'integer' },
+  ],
   cross: [
     { key: 'ATTR_GAP_CALLS_MIN', label: 'ATTRIBUTION_GAP · min calls',              step: 10,    type: 'integer' },
     { key: 'ATTR_GAP_MULT',      label: 'ATTRIBUTION_GAP · calls > conv × X',       step: 0.5,   type: 'number' },
   ],
 };
-const THRESHOLD_SECTIONS = ['ads', 'keywords', 'gsc', 'ga', 'social', 'aircall', 'cross'];
+const THRESHOLD_SECTIONS = ['ads', 'keywords', 'gsc', 'ga', 'pagespeed', 'social', 'aircall', 'cross'];
 
 function renderThresholds() {
   const grid = document.getElementById('thresholdsGrid');
@@ -4302,12 +4691,13 @@ function compactSummariesForClaude(summaries) {
     });
     return out;
   });
-  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum } = summaries;
+  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum, psSum } = summaries;
   return {
     ads: { totalSpend: adsSum.totalSpend, totalConv: adsSum.totalConv, medianCpa: adsSum.medianCpa, top: trim(adsSum.camps.sort((a,b)=>b.Spend-a.Spend), 10) },
     keywords: kwSum ? { totalSpend: kwSum.totalSpend, totalConv: kwSum.totalConv, medianCpa: kwSum.medianCpa, top: trim((kwSum.kws||[]).sort((a,b)=>b.Spend-a.Spend), 15) } : null,
     gsc: { queries: trim(gscSum.queries, 15) },
     ga: { totalSessions: gaSum.totalSessions, channels: trim(gaSum.channels, 10) },
+    pagespeed: psSum ? { medPerf: psSum.medPerf, totalPages: psSum.totalPages, worst: trim((psSum.pages || []).filter(p => p.lcp != null).sort((a,b) => b.lcp - a.lcp), 10) } : null,
     calls: { totalCalls: callsSum.totalCalls, missRate: callsSum.missRate, lines: trim(callsSum.lines, 10), volumeDelta: callsSum.volumeDelta },
     social: { totalPosts: socialSum.totalPosts, totalReach: socialSum.totalReach, platforms: trim(socialSum.platforms, 10) },
   };
@@ -4546,6 +4936,7 @@ function scopeByRange(channel, range) {
 /* ══════════════════════ ROUTING ══════════════════════════════════════ */
 const NAV_LABEL = {
   overview: 'Overview', ads: 'Ads', keywords: 'Keywords', seo: 'SEO', web: 'Web (GA4)',
+  pagespeed: 'Page Speed',
   calls: 'Calls', social: 'Social', content: 'Content', email: 'Email',
   decisions_filters: 'Decisions from Filters',
   decisions_claude: 'Decisions from Claude',
@@ -4596,14 +4987,21 @@ const state = {
   ),
 };
 
+function syncBodyBrandAttr(brand) {
+  if (brand === 'via' || brand === 'liq') document.body.setAttribute('data-brand', brand);
+  else document.body.removeAttribute('data-brand');
+}
+
 function initBrandToggle() {
   const buttons = document.querySelectorAll('.brand-toggle button[data-brand]');
+  syncBodyBrandAttr(state.brand);
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
       const next = btn.dataset.brand;
       if (state.brand === next) return;
       state.brand = next;
       state.filters.brand = next;
+      syncBodyBrandAttr(next);
       buttons.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
       repaint();
     });

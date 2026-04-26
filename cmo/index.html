@@ -2794,6 +2794,26 @@ function normalizeByKey(key, rows, cols) {
   return rows;
 }
 
+/* Metricool exports the timestamp column as lowercase `date` and the rest of
+   the per-post fields lowercase too (network/post_type/reach/url/text). The
+   renderer reads `r.network`, `r.reach`, `r.post_type` directly, but `byDay`
+   and the source-health card key on `r.Date` (capital D). Promote it here so
+   downstream code finds a canonical Date. Also coerce `reach` to Number. */
+function normalizeSocialRows(rows, _cols) {
+  if (!rows || !rows.length) return rows;
+  return rows.map(r => {
+    const out = { ...r };
+    if (out.Date == null && out.date != null) out.Date = out.date;
+    if (typeof out.Date === 'string') out.Date = out.Date.slice(0, 10);
+    else if (out.Date instanceof Date) out.Date = out.Date.toISOString().slice(0, 10);
+    if (out.reach != null && typeof out.reach !== 'number') {
+      const n = Number(out.reach);
+      if (!isNaN(n)) out.reach = n;
+    }
+    return out;
+  });
+}
+
 /* Lighthouse / PageSpeed metrics arrive in inconsistent units depending on
    the exporter — sometimes seconds, sometimes ms; sometimes 0–1 score,
    sometimes 0–100. Normalize to a single convention so thresholds are

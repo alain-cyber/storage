@@ -4,6 +4,15 @@ Snapshot of every data source the dashboard reads, where it comes from, how
 it lands in the spreadsheet, and the cadence the dashboard depends on. Update
 this whenever a connector is added, retired, or re-configured.
 
+> **Working agreement for any session that edits `cmo/index.html`:** before
+> committing, also append an entry to the `APP_HISTORY` array (search for
+> `const APP_HISTORY = [` near the bottom of the file). One entry per logical
+> change with `date`, `title`, `tags` (`Feature` / `Polish` / `Fix` /
+> `Foundation`), and 1–4 plain-English `bullets`. The "App History" sidebar
+> page is the user-visible changelog — it is the only way they see what
+> shipped, so commits that skip this leave them in the dark. Multiple commits
+> on the same day get separate entries.
+
 The whole dashboard is one HTML file (`cmo/index.html`) that runs in the
 browser. There is no backend. Every source listed below is a Google Sheet
 fetched directly via the Google Visualization API (gviz) when the page loads.

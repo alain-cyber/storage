@@ -1864,7 +1864,7 @@
     color: var(--text3);
   }
   .topbar .last-updated.is-hype {
-    font-size: 1rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--accent);
     animation: pulse 1.6s ease-in-out infinite;
@@ -6971,6 +6971,14 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Loading hype text toned down',
+    tags: ['Polish'],
+    bullets: [
+      'The rotating loading hype line ("Negotiating with the spreadsheet…", "Sweet-talking the spreadsheet…", etc.) used to render at 1rem (much bigger than the rest of the topbar) because cold gviz fetches took 30–60s and a small "Loading…" looked frozen. Now that the dashboard hydrates from cache instantly and only re-fetches on a manual Refresh, the loud treatment is overkill — dropped the font size to 0.78rem to match the regular "Updated …" timestamp. Still pulses gently in accent color so you can see it\'s working.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'LiqProp link in the sidebar',

@@ -1638,6 +1638,15 @@
   }
   .side-link:hover .side-link-icon { color: var(--text2); opacity: 1; }
   .side-link.is-active .side-link-icon { color: var(--accent); opacity: 1; }
+  .side-link-extern {
+    flex-shrink: 0;
+    margin-left: 0.25rem;
+    color: var(--text3);
+    opacity: 0.7;
+    transition: color 0.15s, opacity 0.15s;
+  }
+  .side-link-external:hover .side-link-extern { color: var(--accent); opacity: 1; }
+  body[data-side-collapsed="1"] .side-link-extern { display: none; }
   .side-sep { height: 1px; background: var(--border); margin: 0.5rem 1.15rem; }
   .side-foot {
     margin-top: auto;
@@ -1987,6 +1996,12 @@
     <a class="side-link" data-route="thresholds" href="#/thresholds"><span class="side-link-text">Thresholds</span></a>
     <a class="side-link" data-route="sources"   href="#/sources"><span class="side-link-text">Data Sources</span> <span class="pill" id="sideSourcesPill"></span></a>
     <a class="side-link" data-route="history"   href="#/history"><span class="side-link-text">App History</span></a>
+    <div class="side-sep"></div>
+    <a class="side-link side-link-external" href="https://liqprop.onrender.com" target="_blank" rel="noopener noreferrer" title="LiqProp — opens in a new tab">
+      <svg class="side-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg>
+      <span class="side-link-text">LiqProp</span>
+      <svg class="side-link-extern" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+    </a>
   </nav>
   <div class="side-foot">
     <span class="side-foot-powered">Powered by</span>
@@ -6956,6 +6971,14 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'LiqProp link in the sidebar',
+    tags: ['Polish'],
+    bullets: [
+      'Added a LiqProp entry at the bottom of the sidebar — one tap opens the listing-proposal app (liqprop.onrender.com) in a new tab. Small "↗" indicator on the row makes it clear it leaves the dashboard. Hidden when the sidebar is collapsed (icon-only mode).',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Data cached locally — only refetches on demand',

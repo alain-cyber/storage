@@ -2870,16 +2870,26 @@ function normalizeByKey(key, rows, cols) {
    downstream code finds a canonical Date. Also coerce `reach` to Number. */
 function normalizeSocialRows(rows, _cols) {
   if (!rows || !rows.length) return rows;
+  /* Metricool's Posts export drops the timestamp into the `date` column as
+     a serialized struct, e.g.
+     "{timezone=Europe/Madrid, dateTime=2026-04-21T23:53:57, date=2026-04-21, ...}"
+     — toISODate can't parse that and every row was being filtered out
+     even though 406 rows were live. Pull the inner dateTime / date
+     substring first, then run toISODate, which still covers ISO, ISO
+     datetime, localized strings, slash forms, Date objects, and numeric
+     timestamps. */
+  const extractDate = v => {
+    if (typeof v !== 'string' || !v.includes('=')) return v;
+    const dt = v.match(/\bdateTime\s*=\s*([^,}\s]+)/i);
+    if (dt) return dt[1];
+    const d = v.match(/\bdate\s*=\s*([^,}\s]+)/i);
+    if (d) return d[1];
+    return v;
+  };
   return rows.map(r => {
     const out = { ...r };
-    /* Route the raw date through toISODate so we cover Metricool's full
-       format zoo: ISO ("2026-04-22"), ISO datetime ("2026-04-22 14:30:00"),
-       localized ("Apr 22, 2026"), slash forms (M/D/Y or D/M/Y), Date
-       objects, and numeric timestamps. Previously a naive slice(0,10)
-       corrupted localized strings like "Apr 22, 2026" → "Apr 22, 20",
-       which made dateRangeFromRows + filterByRange both fail and the
-       Social page render zero even though 406 rows were live. */
-    const iso = toISODate(out.Date) || toISODate(out.date);
+    const raw = extractDate(out.Date) || extractDate(out.date);
+    const iso = toISODate(raw);
     if (iso) out.Date = iso;
     if (out.reach != null && typeof out.reach !== 'number') {
       const n = Number(out.reach);
@@ -6298,6 +6308,15 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Metricool struct dates parsed — Social page reads real numbers',
+    tags: ['Fix'],
+    bullets: [
+      'The Social page was still showing zero rows after range filtering even though Data Sources said 406 rows LIVE. Root cause: Metricool drops the timestamp into the Posts export as a serialized struct like "{timezone=Europe/Madrid, dateTime=2026-04-21T23:53:57, date=2026-04-21, ...}" — toISODate had no idea what to do with that, so every row failed the date filter.',
+      'The Metricool normalizer now extracts the inner dateTime / date substring before normalizing, so all 406 posts land with a proper Date column. Reach by day, Top posts, Networks by performance, and the Data Sources date-range readout all populate.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Refresh strip "Sources" tile renamed to "Data sources"',

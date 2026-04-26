@@ -246,6 +246,49 @@
   }
   .delta-up { color: var(--green); }
   .delta-down { color: var(--red); }
+
+  /* Glossary terms — dotted underline on jargon (CPC, CPA, LCP, INP, MTD…)
+     so non-pros can tap (or hover) for a plain-English definition + why
+     it matters. The decoration is intentionally subtle: no glyph, only a
+     hairline dotted underline that picks up the accent on hover. */
+  .gloss {
+    border-bottom: 1px dotted var(--border2);
+    cursor: help;
+    transition: border-color 120ms ease;
+    text-underline-offset: 2px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gloss:hover, .gloss:focus, .gloss.is-active { border-bottom-color: var(--accent); outline: none; }
+  .gloss-popover {
+    position: fixed;
+    z-index: 1200;
+    max-width: 320px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 28px rgba(15,20,25,0.10), 0 2px 6px rgba(15,20,25,0.06);
+    padding: 0.7rem 0.85rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+  .gloss-popover[hidden] { display: none; }
+  .gloss-popover-term {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.78rem;
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.005em;
+  }
+  .gloss-popover-what { color: var(--text); }
+  .gloss-popover-why {
+    color: var(--text3);
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+    border-top: 1px dashed var(--border);
+    font-size: 0.74rem;
+  }
   .delta-neutral { color: var(--text3); }
 
   .charts-grid-2 {
@@ -2357,6 +2400,8 @@
   </div>
 </div>
 
+<div id="glossPopover" class="gloss-popover" role="tooltip" hidden></div>
+
 <script id="appScript">
 /* Each sheet with per-brand tabs lists them under `brandTabs`. loadChannel
    fetches both tabs in parallel, tags each row with `brand: 'via' | 'liq'`,
@@ -2950,13 +2995,159 @@ function makeChart(id, type, labels, datasets, opts={}) {
   });
 }
 
+/* ────────────────────────────────────────────────────────────────────
+   Glossary — plain-English definitions for the jargon that shows up on
+   KPI labels, deltas, and section meta. decorateGlossary() wraps any
+   matching term in `<span class="gloss">…</span>`; a single delegated
+   click handler shows a popover. Goal: an exec who doesn't live in
+   marketing dashboards can tap any abbreviation and get "what" + "why".
+   ──────────────────────────────────────────────────────────────────── */
+const GLOSSARY = {
+  /* Cost / revenue ratios */
+  'CPC':        { what: 'Cost Per Click — what you pay every time someone clicks an ad.',                                    why: 'Lower is better, but only if those clicks convert. A cheap CPC on a non-converting keyword is wasted spend.' },
+  'CPA':        { what: 'Cost Per Acquisition — total spend divided by conversions.',                                        why: 'The bottom-line efficiency metric. Compare it against the average value of a customer.' },
+  'CPL':        { what: 'Cost Per Lead — spend divided by leads generated.',                                                 why: 'Same idea as CPA but counts top-of-funnel leads (forms / calls) instead of closed sales.' },
+  'CPM':        { what: 'Cost Per Mille — what you pay per 1,000 impressions.',                                              why: 'The currency of awareness campaigns. Useful for comparing display / video buys.' },
+  'Cost / Lead':{ what: 'Total spend divided by leads generated (forms + calls).',                                           why: 'Tells you whether the channel is paying for itself before any sales close.' },
+  'ROAS':       { what: 'Return On Ad Spend — revenue divided by ad spend.',                                                 why: 'Above 1 = ads are profitable on a revenue basis. Above 4 is healthy in most consumer categories.' },
+  /* Funnel / engagement */
+  'CTR':        { what: 'Click-Through Rate — clicks divided by impressions.',                                               why: 'Low CTR signals weak ad copy or wrong audience. Above 2% on Search is healthy; above 0.5% on Display is healthy.' },
+  'Conversions':{ what: 'Tracked actions you wanted users to take — purchase, form submit, signup, call.',                   why: 'The denominator behind CPA. Without conversions, every other ad metric is noise.' },
+  'Engagement Rate': { what: 'Interactions (likes, comments, shares) divided by reach (or followers).',                      why: 'Says whether content actually resonates. High reach + low engagement = scrolling-past content.' },
+  'Reach':      { what: 'Unique people who saw a post.',                                                                     why: 'Different from impressions: reach counts each person once, even if they see the post 10 times.' },
+  'Impressions':{ what: 'Total times content was shown, including repeat views to the same person.',                         why: 'Always ≥ reach. The gap between them shows how often the same audience sees you.' },
+  /* SEO / SEM */
+  'SEO':        { what: 'Search Engine Optimization — improving organic (unpaid) visibility on Google.',                     why: 'Once it works, the cheapest acquisition channel. But it compounds over months, not days.' },
+  'SEM':        { what: 'Search Engine Marketing — paid search ads, primarily Google Ads.',                                  why: 'Instant traffic, but the moment you stop paying, the traffic stops.' },
+  'GA4':        { what: 'Google Analytics 4 — the current version of Google Analytics.',                                     why: 'Replaced Universal Analytics in 2023. Source of all sessions, users, and engagement-rate numbers here.' },
+  'GSC':        { what: 'Google Search Console — Google\'s tool for monitoring organic search performance.',                 why: 'Shows the queries that bring you traffic, your average ranking, and which pages get surfaced.' },
+  'SemRush':    { what: 'Third-party SEO tool tracking rankings, search volume, and backlinks across sites.',                why: 'Independent of Google\'s data, so it\'s good for competitive benchmarking and keyword discovery.' },
+  'Avg position': { what: 'The average rank your pages held for tracked queries on Google.',                                 why: 'Position 1 wins ~30% of clicks; position 10 wins ~3%. Tiny moves at the top matter enormously.' },
+  'Avg difficulty': { what: 'SemRush\'s 0–100 score for how hard it is to rank for a keyword on average.',                   why: 'Above 70 = SEO-only is unrealistic without major authority. 30–60 is where quick wins live.' },
+  'Difficulty': { what: 'SemRush\'s 0–100 score for how hard it is to rank for a keyword.',                                  why: 'Above 70 = SEO-only is unrealistic without major authority. 30–60 is where quick wins live.' },
+  'Avg search volume': { what: 'How many times your tracked keywords are searched per month, on average.',                   why: 'No volume = no traffic, no matter how well you rank. But ultra-high volume is usually owned by giants.' },
+  'Search volume': { what: 'How many times a keyword is searched per month.',                                                why: 'No volume = no traffic, no matter how well you rank.' },
+  'Backlinks':  { what: 'Other sites linking to yours.',                                                                     why: 'Google\'s original ranking signal. More relevant referring domains = higher domain authority.' },
+  'Referring domains': { what: 'Unique websites linking to yours (one site can host many backlinks).',                       why: 'Better than raw backlinks count — 100 links from 100 different sites beats 100 from one.' },
+  'Top authority': { what: 'Authority Score (1–100) of your single strongest backlink source.',                              why: 'A few high-authority links carry more SEO weight than thousands of low-authority ones.' },
+  /* Page Speed / Core Web Vitals */
+  'CWV':        { what: 'Core Web Vitals — Google\'s headline trio of speed metrics: LCP, CLS, INP.',                        why: 'Fail any one and ranking takes a hit. Pass all three to qualify as a "Good" page.' },
+  'LCP':        { what: 'Largest Contentful Paint — time until the biggest visible element finishes loading.',               why: 'Google\'s main "is the page fast enough?" metric. Under 2.5s is good, over 4s hurts ranking.' },
+  'CLS':        { what: 'Cumulative Layout Shift — how much the page jumps around while loading.',                           why: 'High CLS = users tap the wrong thing. Under 0.1 is good.' },
+  'INP':        { what: 'Interaction to Next Paint — how long the page takes to react to a tap or click.',                   why: 'Replaced FID in March 2024. Under 200ms feels instant.' },
+  'TBT':        { what: 'Total Blocking Time — total time the browser was frozen during page load.',                         why: 'Lab-test stand-in for INP. Under 200ms is good.' },
+  'FCP':        { what: 'First Contentful Paint — time until any text or image appears on the page.',                        why: 'The first sign the page is alive for the user. Under 1.8s is good.' },
+  'TTFB':       { what: 'Time To First Byte — how long until the server starts responding.',                                 why: 'High TTFB = slow server or far-away CDN. Under 800ms is good.' },
+  'Perf Score': { what: 'Lighthouse Performance Score (0–100) — a weighted blend of LCP, CLS, INP/TBT, FCP, Speed Index.',   why: 'The rollup speed number Google publishes. Above 90 is "Good", under 50 is "Poor".' },
+  'Speed Index':{ what: 'How quickly visible content fills the viewport during load.',                                       why: 'Captures perceived speed better than any single timestamp can.' },
+  /* Social */
+  'Avg Reach / Post': { what: 'Total reach divided by number of posts.',                                                     why: 'Strips out posting frequency, so you can tell whether each individual post is landing.' },
+  'Best Network': { what: 'The social network with the highest average reach per post in this period.',                      why: 'Says where to lean in. Spending equal effort on a low-reach network = diminishing returns.' },
+  /* Calls */
+  'Aircall':    { what: 'Cloud phone system the team uses for inbound and outbound sales calls.',                            why: 'Source of all call data here — line, agent, status, duration, miss reason.' },
+  'Miss Rate':  { what: 'Missed inbound calls divided by total inbound calls.',                                              why: 'Above 10% in business hours = staffing or routing problem. After-hours misses usually need voicemail / SMS catch.' },
+  /* Time windows */
+  'MTD':        { what: 'Month To Date — from the 1st of the current month through today.',                                  why: 'Standard reporting window. Compare against last month\'s MTD-equivalent for trend.' },
+  'QTD':        { what: 'Quarter To Date — from the start of the current quarter through today.',                            why: 'Useful for board / investor cadence (quarterly reviews).' },
+  'YTD':        { what: 'Year To Date — Jan 1 through today.',                                                               why: 'Strips out month-to-month noise. Best for headline narrative numbers.' },
+  'WoW':        { what: 'Week over Week — change vs. the prior 7 days.',                                                     why: 'Smooths daily noise. The most actionable trend window for most marketing channels.' },
+  'DoD':        { what: 'Day over Day — change vs. yesterday.',                                                              why: 'Often too noisy to act on alone — pair it with WoW.' },
+  'YoY':        { what: 'Year over Year — change vs. the same period last year.',                                            why: 'Strips out seasonality. The cleanest measure of underlying growth.' },
+  /* Generic */
+  'KPI':        { what: 'Key Performance Indicator — a headline metric that proves whether something is working.',           why: 'Pick 3–5 per channel. More than that and the audience glazes over.' },
+  'KPIs':       { what: 'Key Performance Indicators — the headline metrics that prove whether something is working.',       why: 'Pick 3–5 per channel. More than that and the audience glazes over.' },
+};
+
+const _glossaryRegex = (() => {
+  /* Sort keys longest-first so "Avg Reach / Post" is matched before "Reach"
+     and "Top authority" before "authority". Whole-word boundaries on each
+     side, but tolerate the slash + spaces inside multi-word terms. Case-
+     insensitive so "Total backlinks" matches the "Backlinks" entry. */
+  const keys = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
+  const escaped = keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return new RegExp(`(?<![A-Za-z0-9])(?:${escaped.join('|')})(?![A-Za-z0-9])`, 'gi');
+})();
+const _glossaryByLower = (() => {
+  const out = {};
+  Object.keys(GLOSSARY).forEach(k => { out[k.toLowerCase()] = k; });
+  return out;
+})();
+
+/* Wrap every glossary term that appears in `text` with a `.gloss` span.
+   Pass plain text only — labels in this dashboard are template-string
+   plain text, no HTML, so this is safe. */
+function decorateGlossary(text) {
+  if (text == null) return '';
+  return String(text).replace(_glossaryRegex, m => {
+    const canonical = _glossaryByLower[m.toLowerCase()] || m;
+    return `<span class="gloss" data-gloss="${canonical}" tabindex="0">${m}</span>`;
+  });
+}
+
+/* Single global popover that surfaces "what" + "why" for the tapped term.
+   Click outside or tap another term to switch. Hover on desktop also
+   opens it; mouseleave closes after a short grace so the user can move
+   into the popover. */
+let _glossActiveEl = null;
+function _showGlossPopover(srcEl) {
+  const term = srcEl.dataset.gloss;
+  const entry = GLOSSARY[term];
+  const pop = document.getElementById('glossPopover');
+  if (!pop || !entry) return;
+  pop.innerHTML = `
+    <div class="gloss-popover-term">${term}</div>
+    <div class="gloss-popover-what">${entry.what}</div>
+    ${entry.why ? `<div class="gloss-popover-why"><strong>Why it matters:</strong> ${entry.why}</div>` : ''}
+  `;
+  pop.hidden = false;
+  /* Position above the term, flipped below if the top would clip. Centered
+     horizontally on the term, clamped to the viewport with an 8px gutter. */
+  const r = srcEl.getBoundingClientRect();
+  /* Force layout to read measured size after we set innerHTML. */
+  pop.style.left = '0px'; pop.style.top = '0px';
+  const pr = pop.getBoundingClientRect();
+  const gutter = 8;
+  let left = Math.round(r.left + r.width/2 - pr.width/2);
+  left = Math.max(gutter, Math.min(left, window.innerWidth - pr.width - gutter));
+  let top = Math.round(r.top - pr.height - 8);
+  if (top < gutter) top = Math.round(r.bottom + 8);
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+  if (_glossActiveEl && _glossActiveEl !== srcEl) _glossActiveEl.classList.remove('is-active');
+  srcEl.classList.add('is-active');
+  _glossActiveEl = srcEl;
+}
+function _hideGlossPopover() {
+  const pop = document.getElementById('glossPopover');
+  if (pop) pop.hidden = true;
+  if (_glossActiveEl) _glossActiveEl.classList.remove('is-active');
+  _glossActiveEl = null;
+}
+function installGlossaryHandlers() {
+  document.addEventListener('click', ev => {
+    const t = ev.target.closest('.gloss');
+    if (t) {
+      ev.stopPropagation();
+      if (_glossActiveEl === t) { _hideGlossPopover(); return; }
+      _showGlossPopover(t);
+      return;
+    }
+    if (!ev.target.closest('#glossPopover')) _hideGlossPopover();
+  });
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') _hideGlossPopover();
+  });
+  window.addEventListener('scroll', _hideGlossPopover, true);
+  window.addEventListener('resize', _hideGlossPopover);
+}
+
 function renderKpis(gridId, items) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = items.map(m => `
     <div class="metric-card${m.placeholder ? ' placeholder' : ''}">
-      <div class="metric-label">${m.label}</div>
+      <div class="metric-label">${decorateGlossary(m.label)}</div>
       <div class="metric-value">${m.value}</div>
-      ${m.delta != null ? `<div class="metric-delta ${m.deltaClass||'delta-neutral'}">${m.delta}</div>` : ''}
+      ${m.delta != null ? `<div class="metric-delta ${m.deltaClass||'delta-neutral'}">${decorateGlossary(m.delta)}</div>` : ''}
     </div>
   `).join('');
 }
@@ -6109,6 +6300,16 @@ function renderLowHanging(scoped) {
 const APP_HISTORY = [
   {
     date: 'Apr 26, 2026',
+    title: 'Tap any abbreviation for a plain-English definition + why it matters',
+    tags: ['Feature', 'Polish'],
+    bullets: [
+      'Every KPI label that contains marketing jargon (CPC, CPA, CTR, CPL, ROAS, CWV, LCP, CLS, INP, TBT, FCP, TTFB, GA4, GSC, SemRush, MTD, QTD, WoW, Reach, Impressions, Conversions, Engagement Rate, Avg position, Difficulty, Backlinks, Referring domains, Top authority, Miss Rate, Best Network, Avg Reach / Post, Cost / Lead, Speed Index, Perf Score, and a few more) is now subtly underlined with a dotted line.',
+      'Tap (or hover, on desktop) and a small popover explains what the term means in one sentence and why it actually matters for the business — written for execs, not analysts.',
+      'Detection is case-insensitive ("Total backlinks" still triggers the "Backlinks" definition) and matches longest-term-first ("Avg Reach / Post" wins over plain "Reach"). Adding a new term is a one-line append to the GLOSSARY map in cmo/index.html.',
+    ],
+  },
+  {
+    date: 'Apr 26, 2026',
     title: 'Metricool dates parsed properly — Social page populates again',
     tags: ['Fix'],
     bullets: [
@@ -6819,6 +7020,7 @@ function initNav() {
     toggle.addEventListener('click', () => side.classList.toggle('is-open'));
   }
   installSidebarIcons();
+  installGlossaryHandlers();
   window.addEventListener('hashchange', route);
 }
 

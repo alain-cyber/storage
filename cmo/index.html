@@ -633,6 +633,80 @@
   .claude-status.error { color: var(--red); }
   .claude-status.busy { color: var(--amber); }
   .claude-status.ok { color: var(--green); }
+  /* Spinner used by any in-flight LLM call (Claude/GPT decisions, Chat). */
+  .spinner {
+    display: inline-block;
+    width: 0.8rem; height: 0.8rem;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: cmo-spin 0.8s linear infinite;
+    vertical-align: -2px;
+    margin-right: 0.4rem;
+  }
+  @keyframes cmo-spin { to { transform: rotate(360deg); } }
+  /* Button flash on Save key — gives the click obvious local feedback. */
+  .btn-flash-ok {
+    background: var(--green-dim) !important;
+    color: var(--green) !important;
+    border-color: transparent !important;
+  }
+
+  /* SemRush page */
+  .brand-pill { display:inline-block; font-size:0.62rem; padding:0.1rem 0.45rem; border-radius:999px; background:var(--surface2); color:var(--text2); border:1px solid var(--border2); }
+  .brand-pill.brand-via { background: rgba(31,119,255,0.12); color: var(--accent); border-color: transparent; }
+  .brand-pill.brand-liq { background: rgba(19,138,74,0.12); color: var(--green); border-color: transparent; }
+  .semrush-movers { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top: 0.75rem; }
+  .semrush-movers-col { background: var(--surface2); border:1px solid var(--border); border-radius:6px; padding:0.75rem; }
+  .semrush-mover-list { list-style:none; padding:0; margin:0.5rem 0 0; display:flex; flex-direction:column; gap:0.4rem; font-size:0.75rem; }
+  .semrush-mover-list li { line-height:1.4; }
+  .semrush-brand-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:0.75rem; }
+  .semrush-brand-card { background: var(--surface2); border:1px solid var(--border); border-radius:6px; padding:0.75rem; }
+  @media (max-width: 768px) {
+    .semrush-movers { grid-template-columns: 1fr; }
+  }
+
+  /* Chat page */
+  .chat-model-toggle { display: inline-flex; gap: 0; border: 1px solid var(--border2); border-radius: 6px; overflow: hidden; }
+  .chat-model-toggle button {
+    background: transparent; color: var(--text2);
+    border: none; padding: 0.35rem 0.85rem;
+    font-family: 'Inter', system-ui, sans-serif; font-size: 0.72rem;
+    cursor: pointer; transition: background 0.15s, color 0.15s;
+  }
+  .chat-model-toggle button[aria-pressed="true"] { background: var(--accent-dim); color: var(--accent); }
+  .chat-log {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface2);
+    padding: 0.75rem;
+    min-height: 280px;
+    max-height: 55vh;
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 0.6rem;
+    margin-bottom: 0.75rem;
+  }
+  .chat-msg { max-width: 85%; padding: 0.55rem 0.75rem; border-radius: 8px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.82rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
+  .chat-msg-user { align-self: flex-end; background: var(--accent-dim); color: var(--accent); border-bottom-right-radius: 2px; }
+  .chat-msg-bot  { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 2px; }
+  .chat-msg-err  { align-self: flex-start; background: rgba(212,53,28,0.12); border: 1px solid var(--red); color: var(--red); border-bottom-left-radius: 2px; }
+  .chat-msg-meta { font-size: 0.65rem; color: var(--text3); margin-top: 0.2rem; }
+  .chat-empty { color: var(--text3); font-style: italic; font-size: 0.78rem; text-align: center; padding: 2rem 0; }
+  .chat-input-row { display: flex; gap: 0.5rem; align-items: flex-end; }
+  .chat-input-row textarea {
+    flex: 1 1 auto;
+    min-height: 2.6rem; max-height: 10rem;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    padding: 0.55rem 0.75rem;
+    resize: vertical;
+  }
+  .chat-input-row textarea:focus { outline: none; border-color: var(--accent); }
+  .chat-clear-btn { background: transparent; }
 
   /* Thresholds page */
   .threshold-bar {
@@ -1308,6 +1382,7 @@
     <a class="side-link" data-route="ads"      href="#/ads">Ads</a>
     <a class="side-link" data-route="keywords" href="#/keywords">Keywords</a>
     <a class="side-link" data-route="seo"      href="#/seo">SEO</a>
+    <a class="side-link" data-route="semrush"  href="#/semrush">SemRush</a>
     <a class="side-link" data-route="web"      href="#/web">Web</a>
     <a class="side-link" data-route="pagespeed" href="#/pagespeed">Page Speed</a>
     <a class="side-link" data-route="calls"    href="#/calls">Calls</a>
@@ -1315,8 +1390,10 @@
     <a class="side-link" data-route="content"  href="#/content">Content</a>
     <a class="side-link" data-route="email"    href="#/email">Email</a>
     <div class="side-sep"></div>
+    <a class="side-link" data-route="chat"              href="#/chat">Chat</a>
     <a class="side-link" data-route="decisions_filters" href="#/decisions_filters">Decisions from Filters <span class="pill" id="sideDecisionsCount"></span></a>
     <a class="side-link" data-route="decisions_claude"  href="#/decisions_claude">Decisions from Claude</a>
+    <a class="side-link" data-route="decisions_gpt"     href="#/decisions_gpt">Decisions from GPT</a>
     <a class="side-link" data-route="thresholds" href="#/thresholds">Thresholds</a>
     <a class="side-link" data-route="sources"   href="#/sources">Data Sources <span class="pill" id="sideSourcesPill"></span></a>
   </nav>
@@ -1802,6 +1879,55 @@
   </section>
 </section>
 
+<section class="page" data-page="semrush" hidden>
+  <section class="section" id="semrushKwSection">
+    <div class="section-head">
+      <div class="section-title">SemRush — Keywords</div>
+      <div class="section-meta" id="semrushKwMeta"></div>
+    </div>
+    <div class="metrics-grid" id="semrushKwKpis"></div>
+    <div class="semrush-movers" id="semrushKwMovers"></div>
+    <div class="section-head" style="margin-top:1rem"><div class="section-title" style="font-size:0.9rem">Top tracked keywords (by volume)</div></div>
+    <table class="data-table">
+      <thead><tr><th>Keyword</th><th>Brand</th><th class="num">Pos</th><th class="num">Volume</th><th class="num">Diff.</th><th>Δ pos</th><th>URL</th></tr></thead>
+      <tbody id="semrushKwTable"></tbody>
+    </table>
+  </section>
+  <section class="section" id="semrushBlSection">
+    <div class="section-head">
+      <div class="section-title">SemRush — Backlinks</div>
+      <div class="section-meta" id="semrushBlMeta"></div>
+    </div>
+    <div class="metrics-grid" id="semrushBlKpis"></div>
+    <div class="semrush-brand-grid" id="semrushBlBrandSplit" style="margin-top:0.75rem"></div>
+    <div class="section-head" style="margin-top:1rem"><div class="section-title" style="font-size:0.9rem">Referring-domains trend</div></div>
+    <div class="chart-wrap" style="height:200px"><canvas id="semrushBlChart"></canvas></div>
+  </section>
+</section>
+
+<section class="page" data-page="chat" hidden>
+  <section class="section" id="chatSection">
+    <div class="section-head">
+      <div class="section-title">Chat</div>
+      <div class="section-meta">Ad-hoc Q&amp;A grounded in the current dashboard scope (brand + range)</div>
+    </div>
+    <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;margin-bottom:0.75rem">
+      <span class="src-stat-label" style="margin:0">Model</span>
+      <div class="chat-model-toggle" role="group" aria-label="Chat model">
+        <button type="button" data-cmodel="claude" aria-pressed="true">Claude</button>
+        <button type="button" data-cmodel="gpt"    aria-pressed="false">GPT</button>
+      </div>
+      <button type="button" class="rec-btn chat-clear-btn" id="chatClear">Clear history</button>
+    </div>
+    <div class="chat-log" id="chatLog"></div>
+    <div class="chat-input-row">
+      <textarea id="chatInput" rows="2" placeholder="Ask about the data… (Enter to send, Shift+Enter for newline)"></textarea>
+      <button type="button" class="rec-btn rec-btn-primary" id="chatSend">Send</button>
+    </div>
+    <div class="claude-status" id="chatStatus"></div>
+  </section>
+</section>
+
 <section class="page" data-page="decisions_claude" hidden>
   <section class="section" id="decisionsClaudeSection">
     <div class="section-head">
@@ -1816,6 +1942,23 @@
     </div>
     <div class="claude-status" id="claudeStatus"></div>
     <div class="ai-recs" id="claudeRecs"></div>
+  </section>
+</section>
+
+<section class="page" data-page="decisions_gpt" hidden>
+  <section class="section" id="decisionsGptSection">
+    <div class="section-head">
+      <div class="section-title">Decisions from GPT</div>
+      <div class="section-meta">Same data, second opinion — OpenAI gpt-4o-mini reasoning over the dashboard summaries</div>
+    </div>
+    <div class="claude-key-row">
+      <input type="password" id="gptKey" class="claude-key-input" placeholder="sk-…  OpenAI API key (stored locally)" autocomplete="off" />
+      <button type="button" class="rec-btn" id="gptKeySave">Save key</button>
+      <button type="button" class="rec-btn" id="gptKeyClear">Clear</button>
+      <button type="button" class="rec-btn rec-btn-primary" id="gptGenerate">Generate decisions</button>
+    </div>
+    <div class="claude-status" id="gptStatus"></div>
+    <div class="ai-recs" id="gptRecs"></div>
   </section>
 </section>
 
@@ -1900,6 +2043,20 @@ const SHEETS = {
     id: '1f9J-XrnwKDHGRNrrBsApebDp8bBAp5Zh7DjNr5tTd4M',
     label: 'Page Speed', headers: 1,
     brandTabs: { via: 'perf_via', liq: 'perf_lnow' },
+  },
+  /* SemRush — Keywords (organic ranking export). One row per (date, keyword)
+     per brand. No Coefficient banner → headers: 1. */
+  semrush_kw: {
+    id: '1gGFtFMEWL1iqXVn1OVwqPdbrE9tMwg93-i0tbBDkHe8',
+    label: 'SemRush · Keywords', headers: 1,
+    brandTabs: { via: 'kw_via', liq: 'kw_lnow' },
+  },
+  /* SemRush — Backlinks (daily authority snapshot). One row per (date, brand).
+     No Coefficient banner → headers: 1. */
+  semrush_bl: {
+    id: '17vtH6XeDzd3O9i3qjNFAL5XESxSYfi15WrszCgq-xeo',
+    label: 'SemRush · Backlinks', headers: 1,
+    brandTabs: { via: 'bl_via', liq: 'bl_lnow' },
   },
 };
 
@@ -2133,15 +2290,36 @@ async function fetchSheet(id, opts = {}) {
   else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
   if (opts.headers != null) params.push(`headers=${encodeURIComponent(opts.headers)}`);
   const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?${params.join('&')}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000);
+  /* Timed-out gviz fetches (cold sheets, big tabs like GSC + GA4) used to
+     surface as the cryptic "signal is aborted without reason". We now allow
+     60s per attempt and silently retry once after a 2s backoff before
+     giving up — covers the common case where the first request is slow but
+     the second succeeds. */
+  const PER_ATTEMPT_MS = 60000;
+  const fetchOnce = async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PER_ATTEMPT_MS);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw new Error(`gviz ${res.status}`);
+      return await res.text();
+    } finally {
+      clearTimeout(timer);
+    }
+  };
   let text;
   try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) throw new Error(`gviz ${res.status}`);
-    text = await res.text();
-  } finally {
-    clearTimeout(timer);
+    text = await fetchOnce();
+  } catch (e) {
+    const isAbort = (e && (e.name === 'AbortError' || /abort/i.test(e.message || '')));
+    if (!isAbort) throw e;
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      text = await fetchOnce();
+    } catch (e2) {
+      const isAbort2 = (e2 && (e2.name === 'AbortError' || /abort/i.test(e2.message || '')));
+      throw new Error(isAbort2 ? 'Timed out after retry — sheet shared as Viewer?' : (e2.message || String(e2)));
+    }
   }
   const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
   const cols = json.table.cols.map(c => c.label || c.id);
@@ -2194,6 +2372,25 @@ const COLUMN_ALIASES = {
     FCP:          ['First Contentful Paint', 'fcp', 'FCP (s)'],
     'Speed Index':['speed_index', 'SI', 'speedIndex'],
     Date:         ['Day', 'Audit Date', 'Run Date', 'Timestamp'],
+  },
+  /* SemRush — organic keyword ranking export (one row per keyword per day). */
+  semrush_kw: {
+    Date:           ['date', 'Day'],
+    Keyword:        ['keyword'],
+    Position:       ['position', 'rank'],
+    URL:            ['url', 'page'],
+    'Search Volume':['search_volume', 'volume'],
+    Difficulty:     ['difficulty', 'kd', 'keyword_difficulty'],
+    'Position Delta':['position_delta', 'delta', 'change'],
+  },
+  /* SemRush — backlink authority snapshot (one row per brand per day). */
+  semrush_bl: {
+    Date:                 ['date', 'Day'],
+    'Referring Domains':  ['referring_domains', 'ref_domains'],
+    'New Domains':        ['new_domains'],
+    'Lost Domains':       ['lost_domains'],
+    'Total Backlinks':    ['total_backlinks', 'backlinks'],
+    'Top Authority':      ['top_linking_domain_authority', 'top_authority', 'authority'],
   },
   /* Keyword-grain Ads export from Coefficient. "Cost Micros" is already
      dollars (Coefficient's quirk — see ads block above). */
@@ -2419,20 +2616,22 @@ const ACTION_TYPE_LABELS = {
   NEGATE_KEYWORD: 'Add as negative',
   SCALE_KEYWORD: 'Scale keyword',
 };
-const SOURCE_LABELS = { ads: 'Ads', gsc: 'SEO', ga: 'GA4', aircall: 'Calls', social: 'Social', cross: 'Cross', keywords: 'Keywords' };
+const SOURCE_LABELS = { ads: 'Ads', gsc: 'SEO', ga: 'GA4', aircall: 'Calls', social: 'Social', cross: 'Cross', keywords: 'Keywords', semrush_kw: 'SemRush Kw', semrush_bl: 'SemRush BL' };
 /* Display order + descriptive copy for the grouped Decisions view. Cards are
    bucketed under these headers so it's obvious which source generated what,
    and which sources had nothing to flag in the current filter window. */
-const SOURCE_ORDER = ['ads', 'keywords', 'gsc', 'ga', 'pagespeed', 'social', 'aircall', 'cross'];
+const SOURCE_ORDER = ['ads', 'keywords', 'gsc', 'semrush_kw', 'semrush_bl', 'ga', 'pagespeed', 'social', 'aircall', 'cross'];
 const SOURCE_DETAIL = {
-  ads:       { label: 'Ads',           hint: 'Google Ads campaigns' },
-  keywords:  { label: 'Keywords',      hint: 'Google Ads keywords' },
-  gsc:       { label: 'SEO / Search',  hint: 'Search Console queries' },
-  ga:        { label: 'Web Analytics', hint: 'GA4 channels & landings' },
-  pagespeed: { label: 'Page Speed',    hint: 'Lighthouse / Core Web Vitals per URL' },
-  social:    { label: 'Social',        hint: 'Metricool posts' },
-  aircall:   { label: 'Calls',         hint: 'Aircall lines & volume' },
-  cross:     { label: 'Cross-Channel', hint: 'Multi-source signals' },
+  ads:        { label: 'Ads',                hint: 'Google Ads campaigns' },
+  keywords:   { label: 'Keywords',           hint: 'Google Ads keywords' },
+  gsc:        { label: 'SEO / Search',       hint: 'Search Console queries' },
+  semrush_kw: { label: 'SemRush · Keywords', hint: 'Organic ranking & search volume' },
+  semrush_bl: { label: 'SemRush · Backlinks', hint: 'Referring domains & authority' },
+  ga:         { label: 'Web Analytics',      hint: 'GA4 channels & landings' },
+  pagespeed:  { label: 'Page Speed',         hint: 'Lighthouse / Core Web Vitals per URL' },
+  social:     { label: 'Social',             hint: 'Metricool posts' },
+  aircall:    { label: 'Calls',              hint: 'Aircall lines & volume' },
+  cross:      { label: 'Cross-Channel',      hint: 'Multi-source signals' },
 };
 
 const ACTION_LOG_KEY = 'cmoActionLog_v1';
@@ -3046,6 +3245,59 @@ function mockSocial() {
   return out;
 }
 
+function mockSemrushKw() {
+  /* Synthetic ranking sample so the page still renders when the SemRush
+     export is missing or sharing is wrong. Two brands × ~30 keywords. */
+  const seeds = [
+    'liquidation pallets','wholesale liquidation','closeout merchandise',
+    'returns pallets','overstock inventory','bulk wholesale',
+    'liquidation auctions','pallet liquidation','b2b wholesale',
+    'discount inventory','clearance pallets','customer returns',
+    'amazon returns pallets','truckload liquidation','salvage inventory',
+  ];
+  const dayList = days(30);
+  const out = [];
+  ['via', 'liq'].forEach(brand => {
+    seeds.forEach((kw, i) => {
+      const basePos = 3 + (i * 2 % 30);
+      dayList.slice(-7).forEach(d => {
+        out.push({
+          date: d, Date: d,
+          keyword: kw + (brand === 'liq' ? ' liquidatenow' : ''),
+          position: Math.max(1, basePos + Math.floor((Math.random()-0.5)*4)),
+          url: brand === 'via' ? 'https://www.viatrading.com/' : 'https://www.liquidatenow.com/',
+          search_volume: 200 + Math.floor(Math.random()*4000),
+          difficulty: 20 + Math.floor(Math.random()*60),
+          position_delta: Math.floor((Math.random()-0.5)*8),
+          brand,
+        });
+      });
+    });
+  });
+  return out;
+}
+
+function mockSemrushBl() {
+  const dayList = days(30);
+  const out = [];
+  ['via', 'liq'].forEach(brand => {
+    let ref = brand === 'via' ? 380 : 95;
+    dayList.forEach(d => {
+      ref += Math.floor((Math.random()-0.4)*4);
+      out.push({
+        date: d, Date: d,
+        referring_domains: ref,
+        new_domains: Math.floor(Math.random()*5),
+        lost_domains: Math.floor(Math.random()*4),
+        total_backlinks: ref * (brand === 'via' ? 38 : 22) + Math.floor(Math.random()*200),
+        top_linking_domain_authority: brand === 'via' ? 88 : 72,
+        brand,
+      });
+    });
+  });
+  return out;
+}
+
 /* ── Aggregation helpers ────────────────────────────────────────── */
 const sum = (rows, col) => rows.reduce((a,r) => a + (Number(r[col])||0), 0);
 const avg = (rows, col) => rows.length ? sum(rows,col)/rows.length : 0;
@@ -3076,6 +3328,7 @@ function breakdownCallsByHours(rows) {
 }
 
 function scopeChannel(channel, brand) {
+  if (!channel) return channel;
   if (brand === 'all') return channel;
   const hasBrand = channel.rows.some(r => r && r.brand);
   if (!hasBrand) return channel; /* live data without a Brand column — pass through unfiltered */
@@ -3306,6 +3559,114 @@ function summarizeCalls(rows) {
     if (prior > 0) volumeDelta = { recent, prior, delta: (recent - prior) / prior };
   }
   return { break_, totalCalls, missed, missRate, lines, volumeDelta };
+}
+
+/* SemRush keywords: one row per (date, keyword) per brand. Dashboard usually
+   only cares about the latest snapshot per keyword in the active range — we
+   take the most-recent row per keyword and bucket by ranking band. */
+function summarizeSemrushKw(rows) {
+  if (!rows || !rows.length) return { totalKeywords: 0, top10Count: 0, top3Count: 0,
+    avgPosition: null, avgDifficulty: null, avgVolume: null,
+    biggestGainers: [], biggestLosers: [], topByVolume: [], top10: [], all: [] };
+  /* Latest row per keyword (per brand) — keyed `kw|brand`. */
+  const latest = {};
+  rows.forEach(r => {
+    const kw = String(r.Keyword || '').trim();
+    if (!kw) return;
+    const k = `${kw}|${r.brand || 'all'}`;
+    const d = typeof r.Date === 'string' ? r.Date.slice(0, 10) : '';
+    const cur = latest[k];
+    if (!cur || (cur._d || '') < d) latest[k] = { ...r, _d: d, Keyword: kw };
+  });
+  const list = Object.values(latest).map(r => ({
+    keyword: r.Keyword,
+    brand: r.brand || null,
+    position: Number(r.Position) || null,
+    url: r.URL || '',
+    volume: Number(r['Search Volume']) || 0,
+    difficulty: Number(r.Difficulty) || null,
+    delta: Number(r['Position Delta']) || 0,
+    date: r._d,
+  }));
+  const ranked = list.filter(k => k.position != null);
+  const top10 = ranked.filter(k => k.position <= 10);
+  const top3 = ranked.filter(k => k.position <= 3);
+  const avg = (arr, key) => {
+    const vs = arr.map(x => x[key]).filter(v => typeof v === 'number' && !isNaN(v));
+    return vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : null;
+  };
+  /* Position-delta convention: SemRush exports negative = improved (moved up
+     toward #1). Surface "gainers" as the most-negative deltas. */
+  const withDelta = list.filter(k => k.delta);
+  const biggestGainers = [...withDelta].sort((a, b) => a.delta - b.delta).slice(0, 10);
+  const biggestLosers  = [...withDelta].sort((a, b) => b.delta - a.delta).slice(0, 10);
+  const topByVolume = [...list].sort((a, b) => b.volume - a.volume).slice(0, 15);
+  return {
+    totalKeywords: list.length,
+    top10Count: top10.length,
+    top3Count: top3.length,
+    avgPosition: avg(ranked, 'position'),
+    avgDifficulty: avg(list, 'difficulty'),
+    avgVolume: avg(list, 'volume'),
+    biggestGainers, biggestLosers, topByVolume,
+    top10: top10.sort((a, b) => a.position - b.position),
+    all: list,
+  };
+}
+
+/* SemRush backlinks: one row per (date) per brand. We take the latest row in
+   the range per brand and compare to the earliest to surface the delta. */
+function summarizeSemrushBl(rows) {
+  if (!rows || !rows.length) return { latest: null, earliest: null,
+    refDomainsDelta: null, newDomains: 0, lostDomains: 0,
+    totalBacklinks: 0, topAuthority: null, perBrand: [] };
+  const groups = {};
+  rows.forEach(r => {
+    const b = r.brand || 'all';
+    (groups[b] || (groups[b] = [])).push(r);
+  });
+  const sortByDate = arr => [...arr].sort((a, b) => {
+    const da = typeof a.Date === 'string' ? a.Date : '';
+    const db = typeof b.Date === 'string' ? b.Date : '';
+    return da.localeCompare(db);
+  });
+  const perBrand = Object.entries(groups).map(([brand, arr]) => {
+    const sorted = sortByDate(arr);
+    const earliest = sorted[0];
+    const latest = sorted[sorted.length - 1];
+    const refStart = Number(earliest['Referring Domains']) || 0;
+    const refEnd = Number(latest['Referring Domains']) || 0;
+    return {
+      brand,
+      latest: {
+        date: latest.Date,
+        refDomains: refEnd,
+        newDomains: Number(latest['New Domains']) || 0,
+        lostDomains: Number(latest['Lost Domains']) || 0,
+        totalBacklinks: Number(latest['Total Backlinks']) || 0,
+        topAuthority: Number(latest['Top Authority']) || null,
+      },
+      earliest: { date: earliest.Date, refDomains: refStart },
+      refDomainsDelta: refEnd - refStart,
+    };
+  });
+  const allLatest = sortByDate(rows).slice(-1)[0] || null;
+  return {
+    latest: allLatest && {
+      date: allLatest.Date,
+      refDomains: Number(allLatest['Referring Domains']) || 0,
+      newDomains: Number(allLatest['New Domains']) || 0,
+      lostDomains: Number(allLatest['Lost Domains']) || 0,
+      totalBacklinks: Number(allLatest['Total Backlinks']) || 0,
+      topAuthority: Number(allLatest['Top Authority']) || null,
+    },
+    refDomainsDelta: perBrand.reduce((a, p) => a + (p.refDomainsDelta || 0), 0),
+    newDomains: perBrand.reduce((a, p) => a + (p.latest.newDomains || 0), 0),
+    lostDomains: perBrand.reduce((a, p) => a + (p.latest.lostDomains || 0), 0),
+    totalBacklinks: perBrand.reduce((a, p) => Math.max(a, p.latest.totalBacklinks || 0), 0),
+    topAuthority: perBrand.reduce((a, p) => Math.max(a || 0, p.latest.topAuthority || 0), 0) || null,
+    perBrand,
+  };
 }
 
 /* ══════════════════════ ACTION GENERATION ══════════════════════════
@@ -3789,6 +4150,11 @@ const REQUIRED_COLS = {
   keywords:['Spend', 'Clicks'],
   /* Page Speed: at minimum we need URL + a Perf Score to render anything. */
   pagespeed:['URL', 'Perf Score'],
+  /* SemRush keyword export — we need the keyword + its position to do anything.
+     Volume / difficulty are nice-to-haves but won't fail loading. */
+  semrush_kw: ['Keyword', 'Position'],
+  /* SemRush backlinks — referring-domain count is the headline figure. */
+  semrush_bl: ['Referring Domains'],
 };
 
 function mockChannel(mockFn, reason) {
@@ -3801,13 +4167,15 @@ function mockChannel(mockFn, reason) {
    (live vs. demo vs. failed, row counts, brand split, columns,
    error reason if any) and renders a per-source health card. */
 const SOURCE_DETAIL_REPORT = [
-  { key: 'ads',       prop: 'ads',       label: 'Google Ads',            bucket: 'Ads' },
-  { key: 'keywords',  prop: 'keywords',  label: 'Google Ads · Keywords', bucket: 'Keywords' },
-  { key: 'gsc',       prop: 'gsc',       label: 'Google Search Console', bucket: 'SEO / Search' },
-  { key: 'ga',        prop: 'ga',        label: 'Google Analytics 4',    bucket: 'Web Analytics' },
-  { key: 'pagespeed', prop: 'pagespeed', label: 'Page Speed (Lighthouse)', bucket: 'Page Speed' },
-  { key: 'aircall',   prop: 'ac',        label: 'Aircall',               bucket: 'Calls' },
-  { key: 'social',    prop: 'social',    label: 'Metricool · Social',    bucket: 'Social' },
+  { key: 'ads',         prop: 'ads',         label: 'Google Ads',              bucket: 'Ads' },
+  { key: 'keywords',    prop: 'keywords',    label: 'Google Ads · Keywords',   bucket: 'Keywords' },
+  { key: 'gsc',         prop: 'gsc',         label: 'Google Search Console',   bucket: 'SEO / Search' },
+  { key: 'semrush_kw',  prop: 'semrush_kw',  label: 'SemRush · Keywords',      bucket: 'SEO / Authority' },
+  { key: 'semrush_bl',  prop: 'semrush_bl',  label: 'SemRush · Backlinks',     bucket: 'SEO / Authority' },
+  { key: 'ga',          prop: 'ga',          label: 'Google Analytics 4',      bucket: 'Web Analytics' },
+  { key: 'pagespeed',   prop: 'pagespeed',   label: 'Page Speed (Lighthouse)', bucket: 'Page Speed' },
+  { key: 'aircall',     prop: 'ac',          label: 'Aircall',                 bucket: 'Calls' },
+  { key: 'social',      prop: 'social',      label: 'Metricool · Social',      bucket: 'Social' },
 ];
 
 function dateRangeFromRows(rows) {
@@ -3977,7 +4345,7 @@ function renderRefreshStrip() {
   if (top) top.textContent = `Updated ${ts.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`;
 }
 
-function paint(ads, gsc, ga, ac, social, keywords, pagespeed) {
+function paint(ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl) {
   state.lastRefreshAt = new Date();
   renderRefreshStrip();
   const insights = generateInsights({ ads, gsc, ga, ac, social, keywords, pagespeed }, state.brand);
@@ -3998,6 +4366,7 @@ function paint(ads, gsc, ga, ac, social, keywords, pagespeed) {
   renderCalls(ac, insights.perSection.calls);
   renderSocial(social, insights.perSection.social);
   renderPagespeed(pagespeed, insights.perSection.pagespeed);
+  renderSemrush(semrush_kw, semrush_bl);
   /* Always show what was actually pulled — not the brand/range slice. */
   if (state.raw) renderDataSources(state.raw);
   renderPlaceholders();
@@ -4005,16 +4374,18 @@ function paint(ads, gsc, ga, ac, social, keywords, pagespeed) {
 
 function repaint() {
   if (!state.raw) return;
-  const { ads, gsc, ga, ac, social, keywords, pagespeed } = state.raw;
+  const { ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl } = state.raw;
   const range = state.timeRange;
   const scoped = {
-    ads:       scopeChannel(scopeByRange(ads,       range), state.brand),
-    gsc:       scopeChannel(scopeByRange(gsc,       range), state.brand),
-    ga:        scopeChannel(scopeByRange(ga,        range), state.brand),
-    ac:        scopeChannel(scopeByRange(ac,        range), state.brand),
-    social:    scopeChannel(scopeByRange(social,    range), state.brand),
-    keywords:  scopeChannel(scopeByRange(keywords,  range), state.brand),
-    pagespeed: scopeChannel(scopeByRange(pagespeed, range), state.brand),
+    ads:        scopeChannel(scopeByRange(ads,        range), state.brand),
+    gsc:        scopeChannel(scopeByRange(gsc,        range), state.brand),
+    ga:         scopeChannel(scopeByRange(ga,         range), state.brand),
+    ac:         scopeChannel(scopeByRange(ac,         range), state.brand),
+    social:     scopeChannel(scopeByRange(social,     range), state.brand),
+    keywords:   scopeChannel(scopeByRange(keywords,   range), state.brand),
+    pagespeed:  scopeChannel(scopeByRange(pagespeed,  range), state.brand),
+    semrush_kw: scopeChannel(scopeByRange(semrush_kw, range), state.brand),
+    semrush_bl: scopeChannel(scopeByRange(semrush_bl, range), state.brand),
   };
 
   /* If user picked a specific brand but a live channel has no brand column,
@@ -4024,7 +4395,7 @@ function repaint() {
   const pending = document.getElementById('brandPending');
   if (pending) {
     const needsBrand = state.brand !== 'all';
-    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social', keywords: 'keywords', pagespeed: 'pagespeed' };
+    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social', keywords: 'keywords', pagespeed: 'pagespeed', semrush_kw: 'semrush kw', semrush_bl: 'semrush bl' };
     const unsliceable = Object.entries(state.raw)
       .filter(([, c]) => c && c.source === 'live' && c.rows.length && !c.rows.some(r => r && r.brand))
       .map(([k]) => NAME[k] || k);
@@ -4034,12 +4405,12 @@ function repaint() {
     }
     pending.classList.toggle('hidden', !missingBrand);
   }
-  paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac, scoped.social, scoped.keywords, scoped.pagespeed);
+  paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac, scoped.social, scoped.keywords, scoped.pagespeed, scoped.semrush_kw, scoped.semrush_bl);
 }
 
 async function render() {
   try {
-    const [ads, gsc, ga, ac, social, keywords, pagespeed] = await Promise.all([
+    const [ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl] = await Promise.all([
       loadChannel('ads', mockAds, REQUIRED_COLS.ads),
       loadChannel('gsc', mockGsc, REQUIRED_COLS.gsc),
       loadChannel('ga', mockGa, REQUIRED_COLS.ga),
@@ -4047,31 +4418,37 @@ async function render() {
       loadChannel('social', mockSocial, REQUIRED_COLS.social),
       loadChannel('keywords', mockKeywords, REQUIRED_COLS.keywords),
       loadChannel('pagespeed', mockPagespeed, REQUIRED_COLS.pagespeed),
+      loadChannel('semrush_kw', mockSemrushKw, REQUIRED_COLS.semrush_kw),
+      loadChannel('semrush_bl', mockSemrushBl, REQUIRED_COLS.semrush_bl),
     ]);
 
     console.table([
-      { channel: 'ads',       source: ads.source,       rows: ads.rows.length,       reason: ads.reason || '',       cols: ads.cols.join(', ') },
-      { channel: 'gsc',       source: gsc.source,       rows: gsc.rows.length,       reason: gsc.reason || '',       cols: gsc.cols.join(', ') },
-      { channel: 'ga',        source: ga.source,        rows: ga.rows.length,        reason: ga.reason || '',        cols: ga.cols.join(', ') },
-      { channel: 'aircall',   source: ac.source,        rows: ac.rows.length,        reason: ac.reason || '',        cols: ac.cols.join(', ') },
-      { channel: 'social',    source: social.source,    rows: social.rows.length,    reason: social.reason || '',    cols: social.cols.join(', ') },
-      { channel: 'keywords',  source: keywords.source,  rows: keywords.rows.length,  reason: keywords.reason || '',  cols: keywords.cols.join(', ') },
-      { channel: 'pagespeed', source: pagespeed.source, rows: pagespeed.rows.length, reason: pagespeed.reason || '', cols: pagespeed.cols.join(', ') },
+      { channel: 'ads',        source: ads.source,        rows: ads.rows.length,        reason: ads.reason || '',        cols: ads.cols.join(', ') },
+      { channel: 'gsc',        source: gsc.source,        rows: gsc.rows.length,        reason: gsc.reason || '',        cols: gsc.cols.join(', ') },
+      { channel: 'ga',         source: ga.source,         rows: ga.rows.length,         reason: ga.reason || '',         cols: ga.cols.join(', ') },
+      { channel: 'aircall',    source: ac.source,         rows: ac.rows.length,         reason: ac.reason || '',         cols: ac.cols.join(', ') },
+      { channel: 'social',     source: social.source,     rows: social.rows.length,     reason: social.reason || '',     cols: social.cols.join(', ') },
+      { channel: 'keywords',   source: keywords.source,   rows: keywords.rows.length,   reason: keywords.reason || '',   cols: keywords.cols.join(', ') },
+      { channel: 'pagespeed',  source: pagespeed.source,  rows: pagespeed.rows.length,  reason: pagespeed.reason || '',  cols: pagespeed.cols.join(', ') },
+      { channel: 'semrush_kw', source: semrush_kw.source, rows: semrush_kw.rows.length, reason: semrush_kw.reason || '', cols: semrush_kw.cols.join(', ') },
+      { channel: 'semrush_bl', source: semrush_bl.source, rows: semrush_bl.rows.length, reason: semrush_bl.reason || '', cols: semrush_bl.cols.join(', ') },
     ]);
 
-    state.raw = { ads, gsc, ga, ac, social, keywords, pagespeed };
+    state.raw = { ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl };
     repaint();
   } catch (err) {
     console.error('CMO render failed, falling back to mock:', err);
     const reason = `render error: ${err && err.message || err}`;
     state.raw = {
       ads:       mockChannel(mockAds,       reason),
-      gsc:       mockChannel(mockGsc,       reason),
-      ga:        mockChannel(mockGa,        reason),
-      ac:        mockChannel(mockAircall,   reason),
-      social:    mockChannel(mockSocial,    reason),
-      keywords:  mockChannel(mockKeywords,  reason),
-      pagespeed: mockChannel(mockPagespeed, reason),
+      gsc:        mockChannel(mockGsc,        reason),
+      ga:         mockChannel(mockGa,         reason),
+      ac:         mockChannel(mockAircall,    reason),
+      social:     mockChannel(mockSocial,     reason),
+      keywords:   mockChannel(mockKeywords,   reason),
+      pagespeed:  mockChannel(mockPagespeed,  reason),
+      semrush_kw: mockChannel(mockSemrushKw,  reason),
+      semrush_bl: mockChannel(mockSemrushBl,  reason),
     };
     repaint();
   }
@@ -4571,6 +4948,114 @@ function renderPagespeed({ rows, source, reason }, insight) {
   }
 }
 
+/* ── SemRush ─────────────────────────────────────────────────────
+   One page, two stacked sections — Keywords (organic ranking) above
+   Backlinks (referring-domain authority). Both come from SemRush
+   exports, brand-tabbed exactly like the rest of the dashboard. */
+function renderSemrush(kwChannel, blChannel) {
+  kwChannel = kwChannel || { rows: [], source: 'demo', reason: 'no channel' };
+  blChannel = blChannel || { rows: [], source: 'demo', reason: 'no channel' };
+  const kwMeta = document.getElementById('semrushKwMeta');
+  if (kwMeta) kwMeta.innerHTML = `${SHEETS.semrush_kw.label} · ${sourceTag(kwChannel.source, kwChannel.reason)}`;
+  const blMeta = document.getElementById('semrushBlMeta');
+  if (blMeta) blMeta.innerHTML = `${SHEETS.semrush_bl.label} · ${sourceTag(blChannel.source, blChannel.reason)}`;
+
+  const kwSum = summarizeSemrushKw(kwChannel.rows);
+  renderKpis('semrushKwKpis', [
+    { label: 'Keywords tracked',   value: fmt(kwSum.totalKeywords) },
+    { label: 'In Top 10',          value: fmt(kwSum.top10Count) },
+    { label: 'In Top 3',           value: fmt(kwSum.top3Count) },
+    { label: 'Avg position',       value: kwSum.avgPosition != null ? kwSum.avgPosition.toFixed(1) : '—' },
+    { label: 'Avg difficulty',     value: kwSum.avgDifficulty != null ? Math.round(kwSum.avgDifficulty) : '—' },
+    { label: 'Avg search volume',  value: kwSum.avgVolume != null ? fmt(Math.round(kwSum.avgVolume)) : '—' },
+  ]);
+
+  const fmtPos = p => p != null ? p : '—';
+  /* Negative deltas = improved ranking. Render gainers green, losers red. */
+  const fmtDelta = d => {
+    if (!d) return '<span class="num">0</span>';
+    const cls = d < 0 ? 'delta-up' : 'delta-down';
+    const arrow = d < 0 ? '▲' : '▼';
+    return `<span class="num ${cls}">${arrow} ${Math.abs(d)}</span>`;
+  };
+
+  const tbody = document.getElementById('semrushKwTable');
+  if (tbody) {
+    const list = kwSum.topByVolume.slice(0, 25);
+    tbody.innerHTML = list.length
+      ? list.map(k => `<tr>
+          <td>${escapeHtml(k.keyword)}</td>
+          <td><span class="brand-pill brand-${k.brand || 'all'}">${k.brand === 'liq' ? 'Liq' : k.brand === 'via' ? 'Via' : '—'}</span></td>
+          <td class="num">${fmtPos(k.position)}</td>
+          <td class="num">${fmt(k.volume)}</td>
+          <td class="num">${k.difficulty != null ? k.difficulty : '—'}</td>
+          <td>${fmtDelta(k.delta)}</td>
+          <td class="src-card-sub" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(k.url || '')}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="7" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No SemRush keyword data in range.</td></tr>`;
+  }
+
+  const movers = document.getElementById('semrushKwMovers');
+  if (movers) {
+    const renderMover = k => `<li><strong>${escapeHtml(k.keyword)}</strong> ${fmtDelta(k.delta)} <span class="src-card-sub">· pos ${fmtPos(k.position)} · vol ${fmt(k.volume)}</span></li>`;
+    const gainers = kwSum.biggestGainers.slice(0, 5);
+    const losers = kwSum.biggestLosers.slice(0, 5);
+    movers.innerHTML = `
+      <div class="semrush-movers-col"><div class="src-stat-label">Biggest gainers</div><ul class="semrush-mover-list">${gainers.length ? gainers.map(renderMover).join('') : '<li class="rec-empty">None in range.</li>'}</ul></div>
+      <div class="semrush-movers-col"><div class="src-stat-label">Biggest losers</div><ul class="semrush-mover-list">${losers.length ? losers.map(renderMover).join('') : '<li class="rec-empty">None in range.</li>'}</ul></div>
+    `;
+  }
+
+  const blSum = summarizeSemrushBl(blChannel.rows);
+  renderKpis('semrushBlKpis', [
+    { label: 'Referring domains', value: blSum.latest ? fmt(blSum.latest.refDomains) : '—' },
+    { label: 'New domains (latest)', value: blSum.latest ? fmt(blSum.latest.newDomains) : '—' },
+    { label: 'Lost domains (latest)', value: blSum.latest ? fmt(blSum.latest.lostDomains) : '—' },
+    { label: 'Total backlinks', value: blSum.totalBacklinks ? fmt(blSum.totalBacklinks) : '—' },
+    { label: 'Top authority', value: blSum.topAuthority != null ? blSum.topAuthority : '—' },
+    { label: 'Δ ref domains (range)', value: blSum.refDomainsDelta != null ? (blSum.refDomainsDelta >= 0 ? '+' : '') + fmt(blSum.refDomainsDelta) : '—' },
+  ]);
+
+  const blBrand = document.getElementById('semrushBlBrandSplit');
+  if (blBrand) {
+    blBrand.innerHTML = blSum.perBrand.length
+      ? blSum.perBrand.map(p => `
+          <div class="semrush-brand-card">
+            <div class="src-stat-label">${p.brand === 'via' ? 'Viatrading' : p.brand === 'liq' ? 'Liquidatenow' : escapeHtml(p.brand)}</div>
+            <div class="src-stat-value">${fmt(p.latest.refDomains)} ref</div>
+            <div class="src-card-sub">${fmt(p.latest.totalBacklinks)} backlinks · ${p.latest.topAuthority != null ? p.latest.topAuthority : '—'} authority</div>
+            <div class="src-card-sub">Δ ${p.refDomainsDelta >= 0 ? '+' : ''}${fmt(p.refDomainsDelta)} since ${escapeHtml(p.earliest.date || '—')}</div>
+          </div>`).join('')
+      : '<div class="rec-empty">No backlink data in range.</div>';
+  }
+
+  /* Time-series of referring domains, all brands stacked. */
+  const trendId = 'semrushBlChart';
+  const trendEl = document.getElementById(trendId);
+  if (trendEl) {
+    const sorted = [...(blChannel.rows || [])].sort((a, b) => String(a.Date || '').localeCompare(String(b.Date || '')));
+    const dates = [...new Set(sorted.map(r => r.Date))];
+    const seriesByBrand = {};
+    sorted.forEach(r => {
+      const b = r.brand || 'all';
+      (seriesByBrand[b] || (seriesByBrand[b] = {}))[r.Date] = Number(r['Referring Domains']) || 0;
+    });
+    const palette = { via: BLUE, liq: GREEN, all: AMBER };
+    const datasets = Object.entries(seriesByBrand).map(([brand, byDate]) => ({
+      label: brand === 'via' ? 'Viatrading' : brand === 'liq' ? 'Liquidatenow' : brand,
+      data: dates.map(d => byDate[d] || 0),
+      borderColor: palette[brand] || BLUE,
+      backgroundColor: 'transparent',
+      fill: false, tension: 0.35, pointRadius: 2,
+    }));
+    if (dates.length) {
+      makeChart(trendId, 'line', dates.map(d => String(d).slice(5)), datasets, { xTicks: { maxTicksLimit: 8 } });
+    } else {
+      trendEl.innerHTML = '';
+    }
+  }
+}
+
 /* ── Thresholds editor ──────────────────────────────────────────── */
 const THRESHOLD_META = {
   ads: [
@@ -4673,15 +5158,25 @@ function commitThresholdInputs() {
   document.querySelectorAll('#thresholdsGrid input.threshold-input').forEach(i => i.classList.remove('dirty'));
 }
 
-/* ── Decisions from Claude ─────────────────────────────────────── */
+/* ── Decisions from Claude / GPT + Chat ─────────────────────────
+   Both decisions pages share a single payload (compactSummariesForLLM),
+   a shared decision-card renderer, and similar busy-state machinery.
+   The only thing that differs is the API call. */
 const CLAUDE_MODEL = 'claude-sonnet-4-5';
 const CLAUDE_KEY_STORAGE = 'cmoAnthropicKey_v1';
 const CLAUDE_RESULT_STORAGE = 'cmoClaudeResult_v1';
+const OPENAI_MODEL = 'gpt-4o-mini';
+const OPENAI_KEY_STORAGE = 'cmoOpenAIKey_v1';
+const OPENAI_RESULT_STORAGE = 'cmoGptResult_v1';
+const CHAT_STORAGE = 'cmoChat_v1';
+const CHAT_HISTORY_LIMIT = 30;
+const CHAT_CONTEXT_TURNS = 6;
 
-function compactSummariesForClaude(summaries) {
-  /* Trim sums to the shape Claude needs — keep only what drives decisions.
-     Floor large arrays so the prompt stays small. */
-  const trim = (arr, n = 20) => arr.slice(0, n).map(o => {
+function compactSummariesForLLM(summaries) {
+  /* Trim sums to the shape an LLM needs — keep only what drives decisions.
+     Floor large arrays so the prompt stays small. Used by Claude, GPT, and
+     the Chat page so all three see the same scoped numbers. */
+  const trim = (arr, n = 20) => (arr || []).slice(0, n).map(o => {
     const out = {};
     Object.keys(o).forEach(k => {
       const v = o[k];
@@ -4691,43 +5186,90 @@ function compactSummariesForClaude(summaries) {
     });
     return out;
   });
-  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum, psSum } = summaries;
+  const { adsSum, gscSum, gaSum, callsSum, socialSum, kwSum, psSum, semrushKwSum, semrushBlSum } = summaries;
   return {
     ads: { totalSpend: adsSum.totalSpend, totalConv: adsSum.totalConv, medianCpa: adsSum.medianCpa, top: trim(adsSum.camps.sort((a,b)=>b.Spend-a.Spend), 10) },
     keywords: kwSum ? { totalSpend: kwSum.totalSpend, totalConv: kwSum.totalConv, medianCpa: kwSum.medianCpa, top: trim((kwSum.kws||[]).sort((a,b)=>b.Spend-a.Spend), 15) } : null,
     gsc: { queries: trim(gscSum.queries, 15) },
+    semrush_kw: semrushKwSum ? {
+      totalKeywords: semrushKwSum.totalKeywords,
+      top10Count: semrushKwSum.top10Count,
+      top3Count: semrushKwSum.top3Count,
+      avgPosition: semrushKwSum.avgPosition,
+      avgDifficulty: semrushKwSum.avgDifficulty,
+      gainers: trim(semrushKwSum.biggestGainers, 8),
+      losers: trim(semrushKwSum.biggestLosers, 8),
+      topByVolume: trim(semrushKwSum.topByVolume, 10),
+    } : null,
+    semrush_bl: semrushBlSum && semrushBlSum.latest ? {
+      refDomains: semrushBlSum.latest.refDomains,
+      refDomainsDelta: semrushBlSum.refDomainsDelta,
+      newDomains: semrushBlSum.latest.newDomains,
+      lostDomains: semrushBlSum.latest.lostDomains,
+      totalBacklinks: semrushBlSum.latest.totalBacklinks,
+      topAuthority: semrushBlSum.latest.topAuthority,
+      perBrand: trim(semrushBlSum.perBrand.map(p => ({ brand: p.brand, refDomains: p.latest.refDomains, refDomainsDelta: p.refDomainsDelta, totalBacklinks: p.latest.totalBacklinks })), 5),
+    } : null,
     ga: { totalSessions: gaSum.totalSessions, channels: trim(gaSum.channels, 10) },
     pagespeed: psSum ? { medPerf: psSum.medPerf, totalPages: psSum.totalPages, worst: trim((psSum.pages || []).filter(p => p.lcp != null).sort((a,b) => b.lcp - a.lcp), 10) } : null,
     calls: { totalCalls: callsSum.totalCalls, missRate: callsSum.missRate, lines: trim(callsSum.lines, 10), volumeDelta: callsSum.volumeDelta },
     social: { totalPosts: socialSum.totalPosts, totalReach: socialSum.totalReach, platforms: trim(socialSum.platforms, 10) },
+    scope: { brand: state.brand, range: state.timeRange && state.timeRange.key },
   };
 }
 
-function claudeCacheKey(payload) {
+/* Build the same scoped + summarized payload we feed both decision pages
+   and the chat. Returns null if data isn't loaded yet. */
+function buildLLMScopedPayload() {
+  if (!state.raw) return null;
+  const range = state.timeRange;
+  const sc = (k) => scopeChannel(scopeByRange(state.raw[k], range), state.brand);
+  const ads = sc('ads'), gsc = sc('gsc'), ga = sc('ga'), ac = sc('ac');
+  const social = sc('social'), keywords = sc('keywords'), pagespeed = sc('pagespeed');
+  const semrush_kw = sc('semrush_kw'), semrush_bl = sc('semrush_bl');
+  const summaries = {
+    adsSum:        ads      ? summarizeAds(ads.rows)            : { camps: [], totalSpend: 0, totalConv: 0, medianCpa: null },
+    gscSum:        gsc      ? summarizeGsc(gsc.rows)            : { queries: [] },
+    gaSum:         ga       ? summarizeGa(ga.rows)              : { channels: [], totalSessions: 0 },
+    callsSum:      ac       ? summarizeCalls(ac.rows)           : { totalCalls: 0, missRate: 0, lines: [], volumeDelta: null },
+    socialSum:     social   ? summarizeSocial(social.rows)      : { platforms: [], totalPosts: 0, totalReach: 0 },
+    kwSum:         keywords ? summarizeKeywords(keywords.rows)  : null,
+    psSum:         pagespeed? summarizePagespeed(pagespeed.rows): null,
+    semrushKwSum:  semrush_kw ? summarizeSemrushKw(semrush_kw.rows) : null,
+    semrushBlSum:  semrush_bl ? summarizeSemrushBl(semrush_bl.rows) : null,
+  };
+  return compactSummariesForLLM(summaries);
+}
+
+function llmCacheKey(prefix, payload) {
   /* Cheap stable hash so we don't re-bill the API for the exact same input. */
   const s = JSON.stringify(payload) + '|' + state.brand + '|' + (state.timeRange && state.timeRange.key);
   let h = 0;
   for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
-  return 'cl_' + (h >>> 0).toString(36) + '_' + s.length;
+  return prefix + '_' + (h >>> 0).toString(36) + '_' + s.length;
 }
 
-function loadCachedClaude(key) {
+function loadCachedDecisions(storage, key) {
   try {
-    const raw = localStorage.getItem(CLAUDE_RESULT_STORAGE);
+    const raw = localStorage.getItem(storage);
     if (!raw) return null;
     const obj = JSON.parse(raw);
     return obj && obj.key === key ? obj : null;
   } catch { return null; }
 }
 
-function saveCachedClaude(key, decisions, raw) {
+function saveCachedDecisions(storage, key, decisions, raw) {
   try {
-    localStorage.setItem(CLAUDE_RESULT_STORAGE, JSON.stringify({ key, decisions, raw, at: new Date().toISOString() }));
+    localStorage.setItem(storage, JSON.stringify({ key, decisions, raw, at: new Date().toISOString() }));
   } catch {}
 }
 
-async function callClaudeAPI(payload, apiKey) {
-  const prompt = `You are a CMO copilot reviewing the marketing data summarized below for the period the user selected. Pick the 5–8 highest-leverage decisions for the team. Skip boilerplate ("monitor performance"); only return decisions backed by a number in the data. Output strict JSON: {"decisions":[{"title":"…","source":"ads|keywords|gsc|ga|social|aircall|cross","brand":"all|via|liq","priority":"HIGH|MEDIUM|LOW","entity":"…","reason":"…","metric_trigger":"…"}]}\n\nDATA:\n${JSON.stringify(payload)}`;
+const LLM_DECISIONS_PROMPT = `You are a CMO copilot reviewing the marketing data summarized below for the period the user selected. Pick the 5–8 highest-leverage decisions for the team. Skip boilerplate ("monitor performance"); only return decisions backed by a number in the data. Output strict JSON: {"decisions":[{"title":"…","source":"ads|keywords|gsc|semrush_kw|semrush_bl|ga|pagespeed|social|aircall|cross","brand":"all|via|liq","priority":"HIGH|MEDIUM|LOW","entity":"…","reason":"…","metric_trigger":"…"}]}`;
+
+async function callClaudeAPI(payload, apiKey, opts = {}) {
+  const userContent = opts.userContent || `${LLM_DECISIONS_PROMPT}\n\nDATA:\n${JSON.stringify(payload)}`;
+  const messages = opts.messages || [{ role: 'user', content: userContent }];
+  const system = opts.system || undefined;
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -4738,8 +5280,9 @@ async function callClaudeAPI(payload, apiKey) {
     },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: prompt }],
+      max_tokens: opts.maxTokens || 1500,
+      ...(system ? { system } : {}),
+      messages,
     }),
   });
   if (!res.ok) {
@@ -4749,23 +5292,83 @@ async function callClaudeAPI(payload, apiKey) {
   }
   const data = await res.json();
   const text = (data.content || []).map(p => p.text || '').join('\n');
+  return { text, raw: data };
+}
+
+async function callOpenAIAPI(payload, apiKey, opts = {}) {
+  const messages = opts.messages || [
+    { role: 'system', content: LLM_DECISIONS_PROMPT },
+    { role: 'user',   content: `DATA:\n${JSON.stringify(payload)}` },
+  ];
+  const body = {
+    model: OPENAI_MODEL,
+    max_tokens: opts.maxTokens || 1500,
+    messages,
+  };
+  if (opts.jsonMode) body.response_format = { type: 'json_object' };
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { detail = JSON.stringify(await res.json()); } catch { detail = await res.text(); }
+    throw new Error(`OpenAI API ${res.status}: ${detail.slice(0, 280)}`);
+  }
+  const data = await res.json();
+  const text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+  return { text, raw: data };
+}
+
+function parseDecisionsJson(text) {
   /* Extract JSON object from the response — handles fenced or unfenced. */
   const m = text.match(/\{[\s\S]*"decisions"[\s\S]*\}/);
-  if (!m) throw new Error('Could not parse decisions JSON from Claude response');
+  if (!m) throw new Error('Could not parse decisions JSON from response');
   const parsed = JSON.parse(m[0]);
-  return { decisions: parsed.decisions || [], raw: text };
+  return parsed.decisions || [];
 }
 
-function setClaudeStatus(text, kind = '') {
-  const el = document.getElementById('claudeStatus');
+/* Generic status writer with optional spinner. Used by Claude, GPT, Chat. */
+function setLLMStatus(elId, text, kind = '') {
+  const el = document.getElementById(elId);
   if (!el) return;
-  el.textContent = text;
   el.classList.remove('busy', 'error', 'ok');
   if (kind) el.classList.add(kind);
+  if (kind === 'busy') {
+    el.innerHTML = `<span class="spinner" aria-hidden="true"></span>${escapeHtml(text)}`;
+  } else {
+    el.textContent = text;
+  }
 }
 
-function renderClaudeDecisions(list) {
-  const el = document.getElementById('claudeRecs');
+/* Back-compat shim so nothing that still calls setClaudeStatus breaks. */
+function setClaudeStatus(text, kind = '') { setLLMStatus('claudeStatus', text, kind); }
+function setGptStatus(text, kind = '') { setLLMStatus('gptStatus', text, kind); }
+
+/* Briefly flash a button green with "Saved ✓" so the click has obvious
+   local feedback even if the user misses the status line below. */
+function flashSavedButton(btnId) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  const original = btn.textContent;
+  btn.classList.add('btn-flash-ok');
+  btn.textContent = 'Saved ✓';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.classList.remove('btn-flash-ok');
+    btn.textContent = original;
+    btn.disabled = false;
+  }, 1200);
+}
+
+/* Shared renderer for Claude + GPT decisions. The badge label distinguishes
+   which model produced the cards visually. */
+function renderLLMDecisions(list, mountId, badgeLabel) {
+  const el = document.getElementById(mountId);
   if (!el) return;
   if (!list || !list.length) {
     el.innerHTML = `<div class="action-empty">No decisions yet. Save your API key and click Generate.</div>`;
@@ -4775,7 +5378,9 @@ function renderClaudeDecisions(list) {
   const grouped = {};
   list.forEach(d => { (grouped[d.source] || (grouped[d.source] = [])).push(d); });
   const visible = SOURCE_ORDER.filter(s => grouped[s] && grouped[s].length);
-  el.innerHTML = visible.map(src => {
+  /* Tail bucket for sources the LLM made up that aren't in our taxonomy. */
+  const otherSources = Object.keys(grouped).filter(s => !SOURCE_ORDER.includes(s));
+  el.innerHTML = [...visible, ...otherSources].map(src => {
     const detail = SOURCE_DETAIL[src] || { label: src, hint: '' };
     const cards = grouped[src].map(d => {
       const sev = (d.priority || 'MEDIUM').toLowerCase();
@@ -4784,7 +5389,7 @@ function renderClaudeDecisions(list) {
         <div class="rec-card status-OPEN">
           <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
             <span class="rec-sev rec-sev-${sev}">${(d.priority || 'MEDIUM').toUpperCase()}</span>
-            <span class="rec-status-tag rec-status-OPEN">CLAUDE</span>
+            <span class="rec-status-tag rec-status-OPEN">${escapeHtml(badgeLabel)}</span>
           </div>
           <div class="rec-title">${escapeHtml(d.title || 'Decision')} — ${escapeHtml(d.entity || '—')}</div>
           <div class="rec-rationale">${escapeHtml(d.reason || '')}</div>
@@ -4804,52 +5409,167 @@ function renderClaudeDecisions(list) {
   }).join('');
 }
 
-async function generateClaudeDecisions() {
-  const key = (state.anthropicKey || '').trim();
-  if (!key) { setClaudeStatus('Enter and save an Anthropic API key first.', 'error'); return; }
-  if (!state.raw) { setClaudeStatus('Data still loading…', 'busy'); return; }
-  /* Re-derive the same summaries the rules see, but from the brand+range
-     scoped channels so the LLM and the rules disagree fairly on the same
-     window the user is viewing. */
-  const range = state.timeRange;
-  const scoped = {
-    ads:      scopeChannel(scopeByRange(state.raw.ads,      range), state.brand),
-    gsc:      scopeChannel(scopeByRange(state.raw.gsc,      range), state.brand),
-    ga:       scopeChannel(scopeByRange(state.raw.ga,       range), state.brand),
-    ac:       scopeChannel(scopeByRange(state.raw.ac,       range), state.brand),
-    social:   scopeChannel(scopeByRange(state.raw.social,   range), state.brand),
-    keywords: scopeChannel(scopeByRange(state.raw.keywords, range), state.brand),
-  };
-  const summaries = {
-    adsSum:    summarizeAds(scoped.ads.rows),
-    gscSum:    summarizeGsc(scoped.gsc.rows),
-    gaSum:     summarizeGa(scoped.ga.rows),
-    callsSum:  summarizeCalls(scoped.ac.rows),
-    socialSum: summarizeSocial(scoped.social.rows),
-    kwSum:     summarizeKeywords(scoped.keywords.rows),
-  };
-  const payload = compactSummariesForClaude(summaries);
-  const cacheKey = claudeCacheKey(payload);
+/* Back-compat: anything still calling renderClaudeDecisions keeps working. */
+function renderClaudeDecisions(list) { renderLLMDecisions(list, 'claudeRecs', 'CLAUDE'); }
 
-  const cached = loadCachedClaude(cacheKey);
+/* Generic generator used by both Decisions pages. Disables the button +
+   shows a spinner while in flight so the user knows something's happening. */
+async function generateDecisions(opts) {
+  const { provider, model, key, callFn, statusId, mountId, badgeLabel, btnId, storageKey, cachePrefix, stateProp } = opts;
+  if (!key) { setLLMStatus(statusId, `Enter and save a${provider === 'OpenAI' ? 'n' : 'n'} ${provider} API key first.`, 'error'); return; }
+  if (!state.raw) { setLLMStatus(statusId, 'Data still loading…', 'busy'); return; }
+  const payload = buildLLMScopedPayload();
+  if (!payload) { setLLMStatus(statusId, 'No scoped data available.', 'error'); return; }
+  const cacheKey = llmCacheKey(cachePrefix, payload);
+
+  const cached = loadCachedDecisions(storageKey, cacheKey);
   if (cached) {
-    state.claude = { result: cached.decisions, status: 'ok', error: null, lastAt: cached.at, cached: true };
-    renderClaudeDecisions(cached.decisions);
-    setClaudeStatus(`Loaded ${cached.decisions.length} decisions from cache · ${new Date(cached.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, 'ok');
+    state[stateProp] = { result: cached.decisions, status: 'ok', error: null, lastAt: cached.at, cached: true };
+    renderLLMDecisions(cached.decisions, mountId, badgeLabel);
+    setLLMStatus(statusId, `Loaded ${cached.decisions.length} decisions from cache · ${new Date(cached.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, 'ok');
     return;
   }
 
-  setClaudeStatus(`Calling ${CLAUDE_MODEL}…`, 'busy');
-  state.claude.status = 'busy';
+  const btn = document.getElementById(btnId);
+  if (btn) btn.disabled = true;
+  setLLMStatus(statusId, `Calling ${model}…`, 'busy');
+  state[stateProp].status = 'busy';
   try {
-    const { decisions, raw } = await callClaudeAPI(payload, key);
-    saveCachedClaude(cacheKey, decisions, raw);
-    state.claude = { result: decisions, status: 'ok', error: null, lastAt: new Date().toISOString(), cached: false };
-    renderClaudeDecisions(decisions);
-    setClaudeStatus(`${decisions.length} decisions generated · ${new Date().toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, 'ok');
+    const { text, raw } = await callFn(payload, key, { jsonMode: provider === 'OpenAI' });
+    const decisions = parseDecisionsJson(text);
+    saveCachedDecisions(storageKey, cacheKey, decisions, raw);
+    state[stateProp] = { result: decisions, status: 'ok', error: null, lastAt: new Date().toISOString(), cached: false };
+    renderLLMDecisions(decisions, mountId, badgeLabel);
+    setLLMStatus(statusId, `${decisions.length} decisions generated · ${new Date().toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, 'ok');
   } catch (e) {
-    state.claude = { result: null, status: 'error', error: e.message || String(e), lastAt: null };
-    setClaudeStatus(e.message || String(e), 'error');
+    state[stateProp] = { result: null, status: 'error', error: e.message || String(e), lastAt: null };
+    setLLMStatus(statusId, e.message || String(e), 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function generateClaudeDecisions() {
+  return generateDecisions({
+    provider: 'Anthropic',
+    model: CLAUDE_MODEL,
+    key: (state.anthropicKey || '').trim(),
+    callFn: callClaudeAPI,
+    statusId: 'claudeStatus',
+    mountId: 'claudeRecs',
+    badgeLabel: 'CLAUDE',
+    btnId: 'claudeGenerate',
+    storageKey: CLAUDE_RESULT_STORAGE,
+    cachePrefix: 'cl',
+    stateProp: 'claude',
+  });
+}
+
+async function generateGptDecisions() {
+  return generateDecisions({
+    provider: 'OpenAI',
+    model: OPENAI_MODEL,
+    key: (state.openaiKey || '').trim(),
+    callFn: callOpenAIAPI,
+    statusId: 'gptStatus',
+    mountId: 'gptRecs',
+    badgeLabel: 'GPT',
+    btnId: 'gptGenerate',
+    storageKey: OPENAI_RESULT_STORAGE,
+    cachePrefix: 'gp',
+    stateProp: 'gpt',
+  });
+}
+
+/* ── Chat ────────────────────────────────────────────────────────
+   Single-page Q&A backed by either Claude or GPT. The current scoped
+   dashboard summary is injected as a system message so answers cite
+   numbers from the data. History persists locally. */
+function loadChatHistory() {
+  try {
+    const raw = localStorage.getItem(CHAT_STORAGE);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.slice(-CHAT_HISTORY_LIMIT) : [];
+  } catch { return []; }
+}
+function saveChatHistory(history) {
+  try { localStorage.setItem(CHAT_STORAGE, JSON.stringify(history.slice(-CHAT_HISTORY_LIMIT))); } catch {}
+}
+function renderChatLog() {
+  const log = document.getElementById('chatLog');
+  if (!log) return;
+  const history = (state.chat && state.chat.history) || [];
+  if (!history.length) {
+    log.innerHTML = `<div class="chat-empty">Ask anything about the current scope (brand + range). Examples: "Which campaigns waste the most spend?" · "What's our biggest organic ranking opportunity?"</div>`;
+    return;
+  }
+  log.innerHTML = history.map(m => {
+    const cls = m.role === 'user' ? 'chat-msg-user' : (m.error ? 'chat-msg-err' : 'chat-msg-bot');
+    return `<div class="chat-msg ${cls}">${escapeHtml(m.content)}</div>`;
+  }).join('');
+  /* Scroll to latest. */
+  log.scrollTop = log.scrollHeight;
+}
+async function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const send = document.getElementById('chatSend');
+  if (!input) return;
+  const text = (input.value || '').trim();
+  if (!text) return;
+  const model = (state.chat && state.chat.model) || 'claude';
+  const usingClaude = model === 'claude';
+  const apiKey = (usingClaude ? state.anthropicKey : state.openaiKey || '').trim();
+  if (!apiKey) {
+    setLLMStatus('chatStatus', `Save your ${usingClaude ? 'Anthropic' : 'OpenAI'} API key on the Decisions from ${usingClaude ? 'Claude' : 'GPT'} page first.`, 'error');
+    return;
+  }
+  if (!state.raw) {
+    setLLMStatus('chatStatus', 'Data still loading…', 'busy');
+    return;
+  }
+  state.chat.history.push({ role: 'user', content: text, at: new Date().toISOString() });
+  saveChatHistory(state.chat.history);
+  input.value = '';
+  renderChatLog();
+
+  if (send) send.disabled = true;
+  setLLMStatus('chatStatus', `Asking ${usingClaude ? CLAUDE_MODEL : OPENAI_MODEL}…`, 'busy');
+
+  const payload = buildLLMScopedPayload();
+  const systemPrompt = `You are a CMO copilot. Answer concisely (2–4 sentences). Cite specific numbers from the dashboard summary when relevant. If a question can't be answered from the summary, say so. Current scoped dashboard data follows as JSON:\n${JSON.stringify(payload)}`;
+  /* Last N turns of history, excluding the system context. Anthropic requires
+     the first message to be `user` — drop any leading assistant messages from
+     the slice. */
+  let recent = state.chat.history.slice(-CHAT_CONTEXT_TURNS).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
+  while (recent.length && recent[0].role !== 'user') recent.shift();
+
+  try {
+    let answer;
+    if (usingClaude) {
+      const { text: t } = await callClaudeAPI(null, apiKey, {
+        system: systemPrompt,
+        messages: recent,
+        maxTokens: 600,
+      });
+      answer = (t || '').trim();
+    } else {
+      const messages = [{ role: 'system', content: systemPrompt }, ...recent];
+      const { text: t } = await callOpenAIAPI(null, apiKey, { messages, maxTokens: 600 });
+      answer = (t || '').trim();
+    }
+    state.chat.history.push({ role: 'assistant', content: answer || '(empty response)', at: new Date().toISOString() });
+    saveChatHistory(state.chat.history);
+    renderChatLog();
+    setLLMStatus('chatStatus', `${usingClaude ? 'Claude' : 'GPT'} replied · ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`, 'ok');
+  } catch (e) {
+    const msg = e.message || String(e);
+    state.chat.history.push({ role: 'assistant', content: msg, error: true, at: new Date().toISOString() });
+    saveChatHistory(state.chat.history);
+    renderChatLog();
+    setLLMStatus('chatStatus', msg, 'error');
+  } finally {
+    if (send) send.disabled = false;
   }
 }
 
@@ -4935,11 +5655,14 @@ function scopeByRange(channel, range) {
 
 /* ══════════════════════ ROUTING ══════════════════════════════════════ */
 const NAV_LABEL = {
-  overview: 'Overview', ads: 'Ads', keywords: 'Keywords', seo: 'SEO', web: 'Web (GA4)',
+  overview: 'Overview', ads: 'Ads', keywords: 'Keywords', seo: 'SEO', semrush: 'SemRush',
+  web: 'Web (GA4)',
   pagespeed: 'Page Speed',
   calls: 'Calls', social: 'Social', content: 'Content', email: 'Email',
+  chat: 'Chat',
   decisions_filters: 'Decisions from Filters',
   decisions_claude: 'Decisions from Claude',
+  decisions_gpt: 'Decisions from GPT',
   thresholds: 'Thresholds',
   sources: 'Data Sources',
 };
@@ -4979,7 +5702,10 @@ const state = {
   thresholds: loadThresholds(),
   thresholdBrand: 'via',  /* which brand the Thresholds editor is currently editing */
   claude: { result: null, status: 'idle', error: null, lastAt: null },
+  gpt:    { result: null, status: 'idle', error: null, lastAt: null },
   anthropicKey: (typeof localStorage !== 'undefined' && localStorage.getItem('cmoAnthropicKey_v1')) || '',
+  openaiKey:    (typeof localStorage !== 'undefined' && localStorage.getItem('cmoOpenAIKey_v1')) || '',
+  chat: { model: 'claude', history: [] /* loaded by initChat() once DOM is up */ },
   timeRange: resolveRange(
     (typeof localStorage !== 'undefined' && RANGE_KEYS.has(localStorage.getItem('cmoRange_v1')))
       ? localStorage.getItem('cmoRange_v1')
@@ -5095,6 +5821,7 @@ function initClaude() {
       else localStorage.removeItem(CLAUDE_KEY_STORAGE);
     } catch {}
     setClaudeStatus(v ? 'API key saved locally.' : 'API key cleared.', 'ok');
+    if (v) flashSavedButton('claudeKeySave');
   });
   const clear = document.getElementById('claudeKeyClear');
   if (clear) clear.addEventListener('click', () => {
@@ -5122,12 +5849,87 @@ function initClaude() {
   } catch { renderClaudeDecisions([]); }
 }
 
+function initGpt() {
+  const input = document.getElementById('gptKey');
+  if (input) input.value = state.openaiKey || '';
+  const save = document.getElementById('gptKeySave');
+  if (save) save.addEventListener('click', () => {
+    const v = (input && input.value || '').trim();
+    state.openaiKey = v;
+    try {
+      if (v) localStorage.setItem(OPENAI_KEY_STORAGE, v);
+      else localStorage.removeItem(OPENAI_KEY_STORAGE);
+    } catch {}
+    setGptStatus(v ? 'API key saved locally.' : 'API key cleared.', 'ok');
+    if (v) flashSavedButton('gptKeySave');
+  });
+  const clear = document.getElementById('gptKeyClear');
+  if (clear) clear.addEventListener('click', () => {
+    state.openaiKey = '';
+    try { localStorage.removeItem(OPENAI_KEY_STORAGE); } catch {}
+    if (input) input.value = '';
+    setGptStatus('API key cleared.', '');
+  });
+  const gen = document.getElementById('gptGenerate');
+  if (gen) gen.addEventListener('click', generateGptDecisions);
+  /* Restore last cached result. */
+  try {
+    const raw = localStorage.getItem(OPENAI_RESULT_STORAGE);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj && Array.isArray(obj.decisions)) {
+        renderLLMDecisions(obj.decisions, 'gptRecs', 'GPT');
+        setGptStatus(`${obj.decisions.length} decisions cached · ${new Date(obj.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, '');
+      } else {
+        renderLLMDecisions([], 'gptRecs', 'GPT');
+      }
+    } else {
+      renderLLMDecisions([], 'gptRecs', 'GPT');
+    }
+  } catch { renderLLMDecisions([], 'gptRecs', 'GPT'); }
+}
+
+function initChat() {
+  state.chat.history = loadChatHistory();
+  /* Model toggle. */
+  const toggleBtns = document.querySelectorAll('.chat-model-toggle button[data-cmodel]');
+  toggleBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const next = btn.dataset.cmodel;
+      if (state.chat.model === next) return;
+      state.chat.model = next;
+      toggleBtns.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+    });
+  });
+  const send = document.getElementById('chatSend');
+  if (send) send.addEventListener('click', sendChatMessage);
+  const input = document.getElementById('chatInput');
+  if (input) input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  });
+  const clear = document.getElementById('chatClear');
+  if (clear) clear.addEventListener('click', () => {
+    if (!state.chat.history.length) return;
+    if (!confirm('Clear chat history?')) return;
+    state.chat.history = [];
+    saveChatHistory(state.chat.history);
+    renderChatLog();
+    setLLMStatus('chatStatus', 'History cleared.', '');
+  });
+  renderChatLog();
+}
+
 initBrandToggle();
 initActionFilters();
 initRangePicker();
 initNav();
 initThresholds();
 initClaude();
+initGpt();
+initChat();
 renderThresholds();
 route();
 render();

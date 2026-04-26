@@ -166,6 +166,17 @@
     color: var(--text3);
     letter-spacing: 0.01em;
   }
+  /* While the dashboard is still booting, the topbar "last updated" slot
+     becomes a much louder hype line — bigger, accented, gently pulsing —
+     so a slow gviz fetch doesn't look like a blank page. Cleared the moment
+     the first paint() completes. */
+  .last-updated.is-hype {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
 
   .dashboard { padding: 2rem 2.5rem; position: relative; z-index: 1; }
 
@@ -290,7 +301,9 @@
   .badge-blue { background: var(--blue-dim); color: var(--blue); }
   .badge-purple { background: var(--accent-dim); color: var(--accent); }
   .badge-ghost { background: var(--surface2); color: var(--text3); border: 1px dashed var(--border2); }
-  .demo-reason { font-family: 'Inter', system-ui, sans-serif; font-size: 0.74rem; color: var(--text3); margin-left: 6px; opacity: 0.85; }
+  .badge-fail { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+  .fail-reason { font-family: 'Inter', system-ui, sans-serif; font-size: 0.74rem; color: var(--red); margin-left: 6px; opacity: 0.9; }
+  .meta-hint { font-family: 'Inter', system-ui, sans-serif; font-size: 0.74rem; color: var(--text3); margin-left: 6px; opacity: 0.85; }
 
   .chart-wrap { position: relative; }
 
@@ -468,7 +481,6 @@
     margin-top: 0.2rem;
   }
   .src-counter-value.live { color: var(--green); }
-  .src-counter-value.demo { color: var(--amber); }
   .src-counter-value.fail { color: var(--red); }
   .sources-grid {
     display: grid;
@@ -485,7 +497,6 @@
     gap: 0.55rem;
   }
   .src-card.is-live   { border-left: 3px solid var(--green); }
-  .src-card.is-demo   { border-left: 3px solid var(--amber); }
   .src-card.is-fail   { border-left: 3px solid var(--red); }
   .src-card-head {
     display: flex; align-items: baseline; gap: 0.55rem; flex-wrap: wrap;
@@ -510,7 +521,6 @@
     margin-left: auto;
   }
   .src-status.live { background: var(--green-dim); color: var(--green); }
-  .src-status.demo { background: var(--amber-dim); color: var(--amber); }
   .src-status.fail { background: var(--red-dim); color: var(--red); }
   .src-stats {
     display: grid;
@@ -1562,6 +1572,12 @@
     letter-spacing: 0.01em;
     color: var(--text3);
   }
+  .topbar .last-updated.is-hype {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
 
   .main {
     grid-area: main;
@@ -1701,7 +1717,7 @@
       <option value="90d">Last 90 days</option>
     </select>
   </div>
-  <span class="last-updated" id="lastUpdated">Loading…</span>
+  <span class="last-updated is-hype" id="lastUpdated">Negotiating with the spreadsheet…</span>
 </header>
 
 <main class="main" id="main">
@@ -1715,7 +1731,7 @@
         <div class="ai-brief-sub" id="aiBriefSub">Analyzing last 30 days across 5 channels…</div>
       </div>
     </div>
-    <div class="ai-brief-text" id="aiBriefText">Generating briefing…</div>
+    <div class="ai-brief-text" id="aiBriefText">Brewing the briefing…</div>
   </section>
 
   <div class="refresh-strip" id="refreshStrip" role="status" aria-live="polite">
@@ -2294,7 +2310,7 @@
   <section class="section" id="sourcesSection">
     <div class="section-head">
       <div class="section-title">Data Sources</div>
-      <div class="section-meta">Live · Demo · Failed status for every connector</div>
+      <div class="section-meta">Live or Fail status for every connector</div>
     </div>
     <div class="sources-summary" id="sourcesSummary"></div>
     <div class="sources-grid" id="sourcesGrid"></div>
@@ -2392,8 +2408,6 @@ Chart.defaults.font.size = 12;
 const fmt = (n, p='', s='') => (n==null||isNaN(n)) ? '—' : p + Number(n).toLocaleString(undefined,{maximumFractionDigits:1}) + s;
 const fmtCur = n => (n==null||isNaN(n)) ? '—' : '$' + Math.round(n).toLocaleString();
 const fmtPct = n => (n==null||isNaN(n)) ? '—' : Number(n).toFixed(1) + '%';
-
-const FORCE_DEMO = new URLSearchParams(location.search).get('demo') === '1';
 
 function coerceCell(v) {
   if (typeof v === 'string') {
@@ -2807,12 +2821,7 @@ function normalizePagespeedRows(rows, _cols) {
   });
 }
 
-async function loadChannel(key, mockFn, requiredCols = []) {
-  if (FORCE_DEMO) {
-    const rows = mockFn();
-    const normalized = normalizeByKey(key, rows, Object.keys(rows[0]||{}));
-    return { rows: normalized, source: 'demo', cols: Object.keys(normalized[0]||{}), reason: 'forced' };
-  }
+async function loadChannel(key, requiredCols = []) {
   try {
     const sheet = SHEETS[key];
     let rawRows, rawCols;
@@ -2851,9 +2860,9 @@ async function loadChannel(key, mockFn, requiredCols = []) {
     const normalized = normalizeByKey(key, rows, cols);
     return { rows: normalized, source: 'live', cols };
   } catch (e) {
-    const rows = mockFn();
-    const normalized = normalizeByKey(key, rows, Object.keys(rows[0]||{}));
-    return { rows: normalized, source: 'demo', cols: Object.keys(normalized[0]||{}), reason: e.message };
+    /* No more silent demo fallback — leave rows empty and let the UI render
+       a FAIL tag with the reason. */
+    return { rows: [], source: 'fail', cols: [], reason: e.message };
   }
 }
 
@@ -2863,9 +2872,9 @@ function badge(kind, text) {
 
 function sourceTag(source, reason) {
   if (source === 'live') return badge('green', 'LIVE');
-  const title = reason ? ` title="Fallback: ${reason}"` : '';
-  const why = reason ? ` <span class="demo-reason">(${escapeHtml(String(reason))})</span>` : '';
-  return `<span class="chart-badge badge-ghost"${title}>DEMO</span>${why}`;
+  const title = reason ? ` title="${escapeHtml(String(reason))}"` : '';
+  const why = reason ? ` <span class="fail-reason">(${escapeHtml(String(reason))})</span>` : '';
+  return `<span class="chart-badge badge-fail"${title}>FAIL</span>${why}`;
 }
 
 function escapeHtml(s) {
@@ -3250,393 +3259,6 @@ function renderInsight(id, text) {
   const el = document.getElementById(id);
   if (!el) return;
   el.innerHTML = text ? `<strong>Insight</strong>${text}` : '';
-}
-
-/* ── Mock generators (used when a sheet is unreachable) ─────────── */
-/* Mocks produce the widest possible window (90 days). The time-range
-   filter then narrows rows per selection via filterByRange(). */
-const MOCK_WINDOW_DAYS = 90;
-function days(n) {
-  const out = [];
-  const today = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    out.push(d.toISOString().slice(0,10));
-  }
-  return out;
-}
-function jitter(base, amp) { return Math.max(0, Math.round(base + (Math.random()-0.5)*amp)); }
-function pick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
-
-/* Per-brand volumes/profiles — Viatrading is the bigger brand; Liquidatenow
-   is higher-intent but smaller. Campaign/query names are brand-specific so
-   toggling the brand filter produces a visibly different dashboard. */
-const BRAND_PROFILES = {
-  via: {
-    adsCampaigns: ['Via-Brand','Via-Wholesale','Via-Generic Liquidation','Via-Remarketing','Via-Competitor'],
-    gscQueries: ['viatrading','wholesale pallets','bulk surplus','overstock inventory','via trading review','liquidation wholesale','truckload pallets'],
-    gaChannels: ['Organic','Paid','Direct','Referral','Email','Social'],
-    adsSpend: 260, adsSpendJ: 90,
-    adsImpr: 11000, adsImprJ: 3000,
-    adsClicks: 280, adsClicksJ: 80,
-    adsConv: 8, adsConvJ: 4,
-    gscClicks: 160, gscClicksJ: 60,
-    gscImpr: 6400, gscImprJ: 1600,
-    gscPosBase: 5.5, gscPosSpread: 4,
-    gaSessions: 520, gaSessionsJ: 160,
-    gaUsers: 410, gaUsersJ: 130,
-    gaEngBase: 54, gaEngSpread: 16,
-    callsTotal: 28, callsTotalJ: 10,
-    callsMissed: 5, callsMissedJ: 3,
-    callsDur: 195, callsDurJ: 60,
-  },
-  liq: {
-    adsCampaigns: ['Liq-Auction','Liq-Brand','Liq-Pallets','Liq-Competitor','Liq-Remarketing'],
-    gscQueries: ['liquidatenow','auction pallets','online liquidation','truckload deals','liquidate inventory','surplus auction','amazon returns pallets'],
-    gaChannels: ['Organic','Paid','Direct','Social','Email','Referral'],
-    adsSpend: 155, adsSpendJ: 70,
-    adsImpr: 5800, adsImprJ: 1800,
-    adsClicks: 160, adsClicksJ: 55,
-    adsConv: 6, adsConvJ: 3,
-    gscClicks: 80, gscClicksJ: 40,
-    gscImpr: 3100, gscImprJ: 1000,
-    gscPosBase: 7.0, gscPosSpread: 5,
-    gaSessions: 290, gaSessionsJ: 110,
-    gaUsers: 240, gaUsersJ: 95,
-    gaEngBase: 48, gaEngSpread: 14,
-    callsTotal: 18, callsTotalJ: 8,
-    callsMissed: 4, callsMissedJ: 3,
-    callsDur: 220, callsDurJ: 70,
-  },
-};
-
-function forBrands(dayList, make) {
-  const out = [];
-  dayList.forEach(d => {
-    ['via','liq'].forEach(brand => out.push({ ...make(d, brand, BRAND_PROFILES[brand]), brand }));
-  });
-  return out;
-}
-
-function mockAds() {
-  return forBrands(days(MOCK_WINDOW_DAYS), (d, brand, p) => ({
-    Date: d,
-    Spend: jitter(p.adsSpend, p.adsSpendJ),
-    Impressions: jitter(p.adsImpr, p.adsImprJ),
-    Clicks: jitter(p.adsClicks, p.adsClicksJ),
-    Conversions: jitter(p.adsConv, p.adsConvJ),
-    Campaign: pick(p.adsCampaigns),
-  }));
-}
-const MOCK_KEYWORDS = {
-  via: ['liquidation pallets', 'wholesale liquidation', 'amazon return pallets', 'truckload liquidation', 'mystery box pallets', 'returns pallets near me', 'discount overstock', 'cheap pallets'],
-  liq: ['b2b liquidation', 'liquidation marketplace', 'wholesale returns auction', 'liquidate inventory', 'bulk liquidation buyer', 'closeout overstock buyer'],
-};
-const MOCK_MATCH_TYPES = ['EXACT', 'PHRASE', 'BROAD'];
-/* Keyword-grain mock: many rows per (day, brand) so KILL/NEGATE/SCALE rules
-   actually fire in demo mode. Spend is deliberately spiky so a few keywords
-   cross the KILL threshold ($100, 0 conv) on the demo path. */
-function mockKeywords() {
-  const out = [];
-  const dayList = days(MOCK_WINDOW_DAYS);
-  dayList.forEach(d => {
-    ['via', 'liq'].forEach(brand => {
-      const kws = MOCK_KEYWORDS[brand];
-      const profile = BRAND_PROFILES[brand];
-      kws.forEach((kw, idx) => {
-        const isWaster = idx === 0;       /* first kw spends, no conversions */
-        const isWinner = idx === 1;       /* second kw is efficient — for SCALE */
-        const baseCost  = isWaster ? 25 : isWinner ? 18 : 6 + Math.random() * 12;
-        const baseImpr  = isWaster ? 1800 : isWinner ? 1200 : 200 + Math.floor(Math.random() * 1500);
-        const baseClicks = isWaster ? 30 : isWinner ? 90 : Math.floor(baseImpr * (0.005 + Math.random() * 0.04));
-        const baseConv = isWaster ? 0 : isWinner ? 6 : Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 3) : 0;
-        const cost = jitter(baseCost, baseCost * 0.4);
-        const clicks = Math.max(1, jitter(baseClicks, baseClicks * 0.4));
-        const impr = Math.max(clicks * 5, jitter(baseImpr, baseImpr * 0.4));
-        const conv = Math.max(0, jitter(baseConv, 1));
-        out.push({
-          Date: d,
-          Keyword: kw,
-          'Match Type': MOCK_MATCH_TYPES[idx % MOCK_MATCH_TYPES.length],
-          'Ad Group': `${brand === 'via' ? 'Via' : 'LiqNow'}-AG-${(idx % 3) + 1}`,
-          Campaign: pick(profile.adsCampaigns),
-          Spend: +cost.toFixed(2),
-          Impressions: impr,
-          Clicks: clicks,
-          Conversions: conv,
-          CTR: +(clicks / impr * 100).toFixed(2),
-          'Avg CPC': clicks ? +(cost / clicks).toFixed(2) : 0,
-          CPA: conv ? +(cost / conv).toFixed(2) : 0,
-          'Conv Value': conv ? +(conv * (40 + Math.random() * 60)).toFixed(2) : 0,
-          brand,
-        });
-      });
-    });
-  });
-  return out;
-}
-/* Page Speed mock: a handful of URLs per brand with one bad-LCP and one
-   bad-CLS page so the corresponding rules fire in demo mode. */
-const MOCK_PS_URLS = {
-  via: ['/', '/wholesale-pallets', '/truckload', '/contact', '/category/electronics'],
-  liq: ['/', '/sellers', '/buyers', '/auction', '/help'],
-};
-function mockPagespeed() {
-  const out = [];
-  const dayList = days(MOCK_WINDOW_DAYS);
-  const devices = ['mobile', 'desktop'];
-  dayList.forEach(d => {
-    ['via', 'liq'].forEach(brand => {
-      MOCK_PS_URLS[brand].forEach((url, idx) => {
-        devices.forEach(dev => {
-          const isSlow = idx === 1;
-          const isShifty = idx === 2;
-          const baseLcp = (dev === 'mobile' ? 2.4 : 1.6) + (isSlow ? 1.4 : 0) + Math.random() * 0.4;
-          const baseCls = (isShifty ? 0.18 : 0.05) + Math.random() * 0.04;
-          const baseInp = (dev === 'mobile' ? 180 : 120) + (isSlow ? 80 : 0) + Math.random() * 40;
-          const basePerf = 90 - (isSlow ? 30 : 0) - (isShifty ? 15 : 0) - (dev === 'mobile' ? 8 : 0) + Math.random() * 6;
-          out.push({
-            Date: d,
-            URL: url,
-            Device: dev,
-            'Perf Score': +basePerf.toFixed(0),
-            LCP: +baseLcp.toFixed(2),
-            CLS: +baseCls.toFixed(3),
-            INP: +baseInp.toFixed(0),
-            TBT: +(baseInp * 1.5).toFixed(0),
-            FCP: +(baseLcp * 0.55).toFixed(2),
-            'Speed Index': +(baseLcp * 1.4).toFixed(2),
-            brand,
-          });
-        });
-      });
-    });
-  });
-  return out;
-}
-function mockGsc() {
-  return forBrands(days(MOCK_WINDOW_DAYS), (d, brand, p) => ({
-    Date: d,
-    Clicks: jitter(p.gscClicks, p.gscClicksJ),
-    Impressions: jitter(p.gscImpr, p.gscImprJ),
-    'Avg Position': +(p.gscPosBase + Math.random()*p.gscPosSpread).toFixed(1),
-    Query: pick(p.gscQueries),
-  }));
-}
-function mockGa() {
-  return forBrands(days(MOCK_WINDOW_DAYS), (d, brand, p) => ({
-    Date: d,
-    Sessions: jitter(p.gaSessions, p.gaSessionsJ),
-    Users: jitter(p.gaUsers, p.gaUsersJ),
-    'Engagement Rate': +(p.gaEngBase + Math.random()*p.gaEngSpread).toFixed(1),
-    Channel: pick(p.gaChannels),
-  }));
-}
-/* Per-call mock: each row is one phone call, with Time + User + Status.
-   Aggregates (Total Calls / Answered / Missed) are 0/1 so the existing
-   sum()-based renderers keep working, and the new in-hours vs after-hours
-   split can be computed from Time + Date day-of-week. */
-const VIA_CALL_AGENTS = ['Maria Lopez', 'Derek Chen', 'Viatrading Sales', 'Sofia Ramirez', 'Jordan Wells'];
-/* Agent names for liq are deliberately different from line names so the per-line
-   and per-agent rules don't smear their boosts across each other. */
-const LIQ_CALL_AGENTS = ['Santiago Cruz', 'Amanda Briones', 'Rita Gomez', 'Diego Alvarez'];
-/* Inbound line names per brand — the last entry is the "problem line" with
-   elevated miss rate so the per-line coverage rule has something to surface. */
-const VIA_LINES = ['Main Receptionist (ENG)', 'Sales (ENG) Department', 'Support - Via Trading', 'Shipping & Receiving Department'];
-const LIQ_LINES = ['LiquidateNow Department', 'Ashley Sheppard', 'Justin Prescott'];
-const VIA_PROBLEM_LINE = 'Shipping & Receiving Department';
-const LIQ_PROBLEM_LINE = 'Justin Prescott';
-/* Likewise, one agent per brand has elevated miss rate. */
-const VIA_PROBLEM_AGENT = 'Jordan Wells';
-const LIQ_PROBLEM_AGENT = 'Santiago Cruz';
-
-function mockAircall() {
-  const out = [];
-  const dayList = days(MOCK_WINDOW_DAYS);
-  dayList.forEach(dateStr => {
-    const dow = new Date(dateStr).getDay();
-    const isWeekday = WORK_HOURS.workDays.includes(dow);
-    ['via','liq'].forEach(brand => {
-      const p = BRAND_PROFILES[brand];
-      const total = Math.max(1, jitter(p.callsTotal, p.callsTotalJ));
-      /* Weekends are always "after-hours" by classification, so we only mint
-         in-hours timestamps on weekdays to keep the mock self-consistent with
-         isCallInHours. ~80% of weekday calls land in the 9-6 window. */
-      const inHoursShare = isWeekday ? 0.8 : 0;
-      const agents = brand === 'liq' ? LIQ_CALL_AGENTS : VIA_CALL_AGENTS;
-      const lines = brand === 'liq' ? LIQ_LINES : VIA_LINES;
-      const problemLine = brand === 'liq' ? LIQ_PROBLEM_LINE : VIA_PROBLEM_LINE;
-      const problemAgent = brand === 'liq' ? LIQ_PROBLEM_AGENT : VIA_PROBLEM_AGENT;
-      /* miss rates by window: tune so via is borderline in-hours, liq is over */
-      const inMissRate  = brand === 'liq' ? 0.14 : 0.08;
-      const outMissRate = brand === 'liq' ? 0.66 : 0.52;
-      for (let i = 0; i < total; i++) {
-        const inHours = Math.random() < inHoursShare;
-        const hour = inHours
-          ? WORK_HOURS.start + Math.floor(Math.random() * (WORK_HOURS.end - WORK_HOURS.start))
-          : (Math.random() < 0.5 ? Math.floor(Math.random() * WORK_HOURS.start)
-                                  : WORK_HOURS.end + Math.floor(Math.random() * (24 - WORK_HOURS.end)));
-        const minute = Math.floor(Math.random() * 60);
-        const time = `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
-        const agent = agents[Math.floor(Math.random() * agents.length)];
-        const line = lines[Math.floor(Math.random() * lines.length)];
-        /* Bump miss rate substantially for the designated problem line/agent
-           so the per-line and per-agent rules fire on the demo path. */
-        const isProblem = line === problemLine || agent === problemAgent;
-        let rate = inHours ? inMissRate : outMissRate;
-        if (isProblem) rate = inHours ? 0.48 : 0.88;
-        const missed = Math.random() < rate ? 1 : 0;
-        out.push({
-          Date: dateStr,
-          Time: time,
-          User: agent,
-          'Number Name': line,
-          Status: missed ? 'Missed' : 'Answered',
-          'Total Calls': 1,
-          Answered: missed ? 0 : 1,
-          Missed: missed,
-          'Avg Duration (s)': missed ? 0 : jitter(p.callsDur, p.callsDurJ),
-          brand,
-        });
-      }
-    });
-  });
-  return out;
-}
-
-/* ── Social (Metricool) helpers + mock ──────────────────────────── */
-const SOCIAL_NETWORKS = ['instagram','facebook','linkedin','tiktok','youtube','twitter'];
-const SOCIAL_POST_TYPES = {
-  instagram: ['reel','post','story'],
-  facebook:  ['post','reel','video'],
-  linkedin:  ['post','article','video'],
-  tiktok:    ['video'],
-  youtube:   ['video','short'],
-  twitter:   ['post','thread'],
-};
-/* Metricool's `date` column is serialized as something like
-   "{dateTime=2026-04-21T23:53:57, timezone=Europe/Madrid, dateTime=...}" —
-   extract the ISO timestamp. */
-const METRICOOL_DATE_RX = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?)/;
-function extractMetricoolDate(v) {
-  if (v == null) return null;
-  if (typeof v === 'string') {
-    const m = v.match(METRICOOL_DATE_RX);
-    if (m) return m[1].length === 16 ? m[1] + ':00' : m[1];
-    /* Fall through — maybe it's already a plain date string */
-    if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 19);
-  }
-  return null;
-}
-
-function normalizeSocialRows(rows, cols) {
-  if (!rows || !rows.length) return rows;
-  const hasDate = cols.includes('date') || cols.includes('Date');
-  return rows.map(r => {
-    const out = { ...r };
-    /* Normalize `network` / `post_type` to lower-case for consistent grouping */
-    if (out.network) out.network = String(out.network).trim().toLowerCase();
-    if (out.post_type) out.post_type = String(out.post_type).trim().toLowerCase();
-    /* Pull an ISO timestamp out of the Metricool date field into a plain Date col */
-    if (hasDate) {
-      const iso = extractMetricoolDate(out.date || out.Date);
-      if (iso) out.Date = iso.slice(0, 10);
-    }
-    /* Ensure numeric reach */
-    if (out.reach != null) out.reach = Number(out.reach) || 0;
-    return out;
-  });
-}
-
-function mockSocial() {
-  const out = [];
-  const dayList = days(MOCK_WINDOW_DAYS);
-  /* Post frequency + reach profile per network */
-  const profile = {
-    instagram: { postsPerDay: 2.5, reachBase: 520, reachJ: 320 },
-    facebook:  { postsPerDay: 1.2, reachBase: 180, reachJ: 140 },
-    linkedin:  { postsPerDay: 0.8, reachBase: 340, reachJ: 210 },
-    tiktok:    { postsPerDay: 1.0, reachBase: 980, reachJ: 620 },
-    youtube:   { postsPerDay: 0.3, reachBase: 410, reachJ: 240 },
-    twitter:   { postsPerDay: 1.8, reachBase: 95,  reachJ: 80  },
-  };
-  dayList.forEach(dateStr => {
-    SOCIAL_NETWORKS.forEach(net => {
-      const p = profile[net];
-      /* Random number of posts on this day; below-1 frequencies = chance */
-      const count = p.postsPerDay >= 1
-        ? Math.max(0, jitter(p.postsPerDay, p.postsPerDay))
-        : (Math.random() < p.postsPerDay ? 1 : 0);
-      for (let i = 0; i < count; i++) {
-        const types = SOCIAL_POST_TYPES[net];
-        out.push({
-          network: net,
-          post_type: types[Math.floor(Math.random() * types.length)],
-          date: dateStr + 'T' + String(Math.floor(Math.random()*24)).padStart(2,'0') + ':' + String(Math.floor(Math.random()*60)).padStart(2,'0') + ':00',
-          Date: dateStr,
-          id: `mock-${net}-${dateStr}-${i}`,
-          url: `https://example.com/mock/${net}/${dateStr}/${i}`,
-          text: `Mock ${net} ${types[0]} content`,
-          reach: jitter(p.reachBase, p.reachJ),
-        });
-      }
-    });
-  });
-  return out;
-}
-
-function mockSemrushKw() {
-  /* Synthetic ranking sample so the page still renders when the SemRush
-     export is missing or sharing is wrong. Two brands × ~30 keywords. */
-  const seeds = [
-    'liquidation pallets','wholesale liquidation','closeout merchandise',
-    'returns pallets','overstock inventory','bulk wholesale',
-    'liquidation auctions','pallet liquidation','b2b wholesale',
-    'discount inventory','clearance pallets','customer returns',
-    'amazon returns pallets','truckload liquidation','salvage inventory',
-  ];
-  const dayList = days(30);
-  const out = [];
-  ['via', 'liq'].forEach(brand => {
-    seeds.forEach((kw, i) => {
-      const basePos = 3 + (i * 2 % 30);
-      dayList.slice(-7).forEach(d => {
-        out.push({
-          date: d, Date: d,
-          keyword: kw + (brand === 'liq' ? ' liquidatenow' : ''),
-          position: Math.max(1, basePos + Math.floor((Math.random()-0.5)*4)),
-          url: brand === 'via' ? 'https://www.viatrading.com/' : 'https://www.liquidatenow.com/',
-          search_volume: 200 + Math.floor(Math.random()*4000),
-          difficulty: 20 + Math.floor(Math.random()*60),
-          position_delta: Math.floor((Math.random()-0.5)*8),
-          brand,
-        });
-      });
-    });
-  });
-  return out;
-}
-
-function mockSemrushBl() {
-  const dayList = days(30);
-  const out = [];
-  ['via', 'liq'].forEach(brand => {
-    let ref = brand === 'via' ? 380 : 95;
-    dayList.forEach(d => {
-      ref += Math.floor((Math.random()-0.4)*4);
-      out.push({
-        date: d, Date: d,
-        referring_domains: ref,
-        new_domains: Math.floor(Math.random()*5),
-        lost_domains: Math.floor(Math.random()*4),
-        total_backlinks: ref * (brand === 'via' ? 38 : 22) + Math.floor(Math.random()*200),
-        top_linking_domain_authority: brand === 'via' ? 88 : 72,
-        brand,
-      });
-    });
-  });
-  return out;
 }
 
 /* ── Aggregation helpers ────────────────────────────────────────── */
@@ -4498,15 +4120,10 @@ const REQUIRED_COLS = {
   semrush_bl: ['Referring Domains'],
 };
 
-function mockChannel(mockFn, reason) {
-  const rows = mockFn();
-  return { rows, source: 'demo', cols: Object.keys(rows[0] || {}), reason };
-}
-
 /* ── Data Sources report ─────────────────────────────────────────
    Reads what `loadChannel` actually produced for each connector
-   (live vs. demo vs. failed, row counts, brand split, columns,
-   error reason if any) and renders a per-source health card. */
+   (live vs. failed, row counts, brand split, columns, error reason
+   if any) and renders a per-source health card. */
 const SOURCE_DETAIL_REPORT = [
   { key: 'ads',         prop: 'ads',         label: 'Google Ads',              bucket: 'Ads' },
   { key: 'keywords',    prop: 'keywords',    label: 'Google Ads · Keywords',   bucket: 'Keywords' },
@@ -4537,13 +4154,11 @@ function dateRangeFromRows(rows) {
 }
 
 function summarizeSourceHealth(raw) {
-  const counts = { live: 0, demo: 0, fail: 0 };
+  const counts = { live: 0, fail: 0 };
   if (!raw) return counts;
   SOURCE_DETAIL_REPORT.forEach(s => {
     const ch = raw[s.prop];
-    if (!ch) { counts.fail++; return; }
-    if (ch.source === 'live') counts.live++;
-    else if (ch.source === 'demo' && (ch.rows || []).length) counts.demo++;
+    if (ch && ch.source === 'live') counts.live++;
     else counts.fail++;
   });
   return counts;
@@ -4571,32 +4186,29 @@ function renderDataSources(raw) {
     return { ...s, channel: ch };
   });
 
-  let live = 0, demo = 0, fail = 0, totalRows = 0;
+  let live = 0, fail = 0, totalRows = 0;
   rows.forEach(r => {
     totalRows += r.channel.rows.length;
     if (r.channel.source === 'live') live++;
-    else if (r.channel.source === 'demo' && r.channel.rows.length) demo++;
     else fail++;
   });
 
   summary.innerHTML = `
     <div class="src-counter"><div class="src-counter-label">Sources connected</div><div class="src-counter-value live">${live} / ${rows.length}</div></div>
-    <div class="src-counter"><div class="src-counter-label">On demo data</div><div class="src-counter-value demo">${demo}</div></div>
     <div class="src-counter"><div class="src-counter-label">Failed</div><div class="src-counter-value fail">${fail}</div></div>
     <div class="src-counter"><div class="src-counter-label">Total rows pulled</div><div class="src-counter-value">${fmt(totalRows)}</div></div>
   `;
 
   if (sidePill) {
-    const off = demo + fail;
-    sidePill.textContent = off ? String(off) : '';
-    sidePill.classList.toggle('warn', off > 0);
+    sidePill.textContent = fail ? String(fail) : '';
+    sidePill.classList.toggle('warn', fail > 0);
   }
 
   grid.innerHTML = rows.map(r => {
     const ch = r.channel;
     const sheet = SHEETS[r.key] || {};
-    const status = ch.source === 'live' ? 'live' : (ch.rows.length ? 'demo' : 'fail');
-    const statusLabel = status === 'live' ? 'LIVE' : status === 'demo' ? 'DEMO' : 'FAILED';
+    const status = ch.source === 'live' ? 'live' : 'fail';
+    const statusLabel = status === 'live' ? 'LIVE' : 'FAIL';
     const range = dateRangeFromRows(ch.rows);
     const split = brandSplit(ch.rows);
     const tabs = sheet.brandTabs
@@ -4676,12 +4288,12 @@ function renderRefreshStrip() {
   if (bEl) bEl.textContent = BRAND_DISPLAY[state.brand] || state.brand;
   if (sEl) {
     const h = summarizeSourceHealth(state.raw);
-    sEl.textContent = `${h.live} live · ${h.demo} demo · ${h.fail} failed`;
+    sEl.textContent = `${h.live} live · ${h.fail} failed`;
     sEl.classList.remove('warn', 'fail');
     if (h.fail > 0) sEl.classList.add('fail');
-    else if (h.demo > 0) sEl.classList.add('warn');
   }
   /* Mirror the timestamp in the topbar. */
+  stopLoadingHype();
   const top = document.getElementById('lastUpdated');
   if (top) top.textContent = `Updated ${ts.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`;
 }
@@ -4736,8 +4348,7 @@ function repaint() {
 
   /* If user picked a specific brand but a live channel has no brand column,
      surface the "filter pending" hint with the channel names so the user
-     knows exactly which datasets aren't being sliced. Mock data always has
-     brand tags via forBrands(), so demo sources are always fully active. */
+     knows exactly which datasets aren't being sliced. */
   const pending = document.getElementById('brandPending');
   if (pending) {
     const needsBrand = state.brand !== 'all';
@@ -4754,18 +4365,52 @@ function repaint() {
   paint(scoped.ads, scoped.gsc, scoped.ga, scoped.ac, scoped.social, scoped.keywords, scoped.pagespeed, scoped.semrush_kw, scoped.semrush_bl);
 }
 
+/* Rotating placeholder copy for the topbar "last updated" slot while the
+   first fetch is in flight. Picked at random and cycled every couple of
+   seconds — gviz can take 10-30s on a cold start, so a frozen "Loading…"
+   makes the page feel broken. stopLoadingHype() is called from
+   renderRefreshStrip() the instant the real timestamp lands. */
+const LOADING_HYPE = [
+  'Sweet-talking the spreadsheet…',
+  'Bribing Coefficient with cookies…',
+  'Negotiating with gviz, again…',
+  'Counting impressions one by one…',
+  'Untangling the brand split…',
+  'Politely asking Google for the rows…',
+  'Convincing the API we mean well…',
+  'Lighting candles for the fetch…',
+  'Pretending to understand CTR…',
+  'Translating CSV into vibes…',
+];
+let _loadingHypeTimer = null;
+function startLoadingHype() {
+  const el = document.getElementById('lastUpdated');
+  if (!el) return;
+  let i = Math.floor(Math.random() * LOADING_HYPE.length);
+  el.classList.add('is-hype');
+  el.textContent = LOADING_HYPE[i++ % LOADING_HYPE.length];
+  _loadingHypeTimer = setInterval(() => {
+    el.textContent = LOADING_HYPE[i++ % LOADING_HYPE.length];
+  }, 2200);
+}
+function stopLoadingHype() {
+  if (_loadingHypeTimer) { clearInterval(_loadingHypeTimer); _loadingHypeTimer = null; }
+  const el = document.getElementById('lastUpdated');
+  if (el) el.classList.remove('is-hype');
+}
+
 async function render() {
   try {
     const [ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl] = await Promise.all([
-      loadChannel('ads', mockAds, REQUIRED_COLS.ads),
-      loadChannel('gsc', mockGsc, REQUIRED_COLS.gsc),
-      loadChannel('ga', mockGa, REQUIRED_COLS.ga),
-      loadChannel('aircall', mockAircall, REQUIRED_COLS.aircall),
-      loadChannel('social', mockSocial, REQUIRED_COLS.social),
-      loadChannel('keywords', mockKeywords, REQUIRED_COLS.keywords),
-      loadChannel('pagespeed', mockPagespeed, REQUIRED_COLS.pagespeed),
-      loadChannel('semrush_kw', mockSemrushKw, REQUIRED_COLS.semrush_kw),
-      loadChannel('semrush_bl', mockSemrushBl, REQUIRED_COLS.semrush_bl),
+      loadChannel('ads', REQUIRED_COLS.ads),
+      loadChannel('gsc', REQUIRED_COLS.gsc),
+      loadChannel('ga', REQUIRED_COLS.ga),
+      loadChannel('aircall', REQUIRED_COLS.aircall),
+      loadChannel('social', REQUIRED_COLS.social),
+      loadChannel('keywords', REQUIRED_COLS.keywords),
+      loadChannel('pagespeed', REQUIRED_COLS.pagespeed),
+      loadChannel('semrush_kw', REQUIRED_COLS.semrush_kw),
+      loadChannel('semrush_bl', REQUIRED_COLS.semrush_bl),
     ]);
 
     console.table([
@@ -4783,18 +4428,16 @@ async function render() {
     state.raw = { ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl };
     repaint();
   } catch (err) {
-    console.error('CMO render failed, falling back to mock:', err);
+    console.error('CMO render failed:', err);
+    /* Each loadChannel already catches its own errors and returns a `fail`
+       channel — getting here means something blew up after the fetches
+       (insights, hydration). Mark every channel as failed with the reason
+       so the UI shows the error instead of stale or fake data. */
     const reason = `render error: ${err && err.message || err}`;
+    const failCh = () => ({ rows: [], cols: [], source: 'fail', reason });
     state.raw = {
-      ads:       mockChannel(mockAds,       reason),
-      gsc:        mockChannel(mockGsc,        reason),
-      ga:         mockChannel(mockGa,         reason),
-      ac:         mockChannel(mockAircall,    reason),
-      social:     mockChannel(mockSocial,     reason),
-      keywords:   mockChannel(mockKeywords,   reason),
-      pagespeed:  mockChannel(mockPagespeed,  reason),
-      semrush_kw: mockChannel(mockSemrushKw,  reason),
-      semrush_bl: mockChannel(mockSemrushBl,  reason),
+      ads: failCh(), gsc: failCh(), ga: failCh(), ac: failCh(), social: failCh(),
+      keywords: failCh(), pagespeed: failCh(), semrush_kw: failCh(), semrush_bl: failCh(),
     };
     repaint();
   }
@@ -5013,14 +4656,14 @@ function renderCalls({ rows, source, reason }, insight) {
       .filter(([k]) => k !== 'answered')
       .map(([k, v]) => `${k}×${v}`)
       .join(', ') || 'no miss signal';
-    meta += ` <span class="demo-reason">miss: ${escapeHtml(detected)}</span>`;
+    meta += ` <span class="meta-hint">miss: ${escapeHtml(detected)}</span>`;
     /* When no miss signal fired, show the raw column names the sheet
        actually has so the user (on iPad — no tooltips) can paste them
        back and we add the right synonyms. */
     const noSignal = !Object.keys(d.signalsUsed).some(k => k !== 'answered');
     if (noSignal && d.cols && d.cols.length) {
       const colsStr = d.cols.join(' · ');
-      meta += `<div class="demo-reason" style="margin-top:4px;display:block;max-width:100%">sheet columns: ${escapeHtml(colsStr)}</div>`;
+      meta += `<div class="meta-hint" style="margin-top:4px;display:block;max-width:100%">sheet columns: ${escapeHtml(colsStr)}</div>`;
     }
   }
   document.getElementById('callsMeta').innerHTML = meta;
@@ -5299,8 +4942,8 @@ function renderPagespeed({ rows, source, reason }, insight) {
    Backlinks (referring-domain authority). Both come from SemRush
    exports, brand-tabbed exactly like the rest of the dashboard. */
 function renderSemrush(kwChannel, blChannel) {
-  kwChannel = kwChannel || { rows: [], source: 'demo', reason: 'no channel' };
-  blChannel = blChannel || { rows: [], source: 'demo', reason: 'no channel' };
+  kwChannel = kwChannel || { rows: [], source: 'fail', reason: 'no channel' };
+  blChannel = blChannel || { rows: [], source: 'fail', reason: 'no channel' };
   const kwMeta = document.getElementById('semrushKwMeta');
   if (kwMeta) kwMeta.innerHTML = `${SHEETS.semrush_kw.label} · ${sourceTag(kwChannel.source, kwChannel.reason)}`;
   const blMeta = document.getElementById('semrushBlMeta');
@@ -7180,6 +6823,7 @@ initDecisionModal();
 renderHistory();
 renderThresholds();
 route();
+startLoadingHype();
 render();
 </script>
 </body>

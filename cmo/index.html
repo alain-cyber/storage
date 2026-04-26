@@ -1665,7 +1665,36 @@
     color: var(--text);
     letter-spacing: -0.005em;
   }
+  .topbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    color: var(--text3);
+    letter-spacing: 0.005em;
+    padding: 0.25rem 0.65rem 0.25rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+  }
+  .topbar-brand strong {
+    color: var(--accent);
+    font-weight: 600;
+    margin-left: 2px;
+  }
+  .topbar-brand-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim);
+    flex-shrink: 0;
+  }
   .topbar-spacer { flex: 1; }
+  @media (max-width: 768px) {
+    .topbar-brand { display: none; }
+  }
   .nav-toggle {
     display: none;
     width: 34px; height: 34px;
@@ -1840,6 +1869,10 @@
 <header class="topbar">
   <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
   <div class="topbar-title" id="pageTitle">Overview</div>
+  <span class="topbar-brand" aria-label="Powered by Vicki Intelligence">
+    <span class="topbar-brand-dot" aria-hidden="true"></span>
+    Powered by <strong>Vicki Intelligence</strong>
+  </span>
   <div class="topbar-spacer"></div>
   <div class="brand-toggle">
     <span class="label">Brand</span>
@@ -6636,6 +6669,14 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: '"Powered by Vicki Intelligence" branding in the topbar',
+    tags: ['Polish'],
+    bullets: [
+      'Added a small pill-style "Powered by Vicki Intelligence" brand mark to the right of the page title in the topbar — visible on every page (Overview, Ads, Social, Decisions, etc.) without taking up vertical space. Hidden on narrow widths so the brand toggle and range picker still fit on phone-size screens.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Social — Reach Efficiency, Posting Cadence, Best Day',

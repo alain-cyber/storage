@@ -2827,9 +2827,15 @@ function normalizeSocialRows(rows, _cols) {
   if (!rows || !rows.length) return rows;
   return rows.map(r => {
     const out = { ...r };
-    if (out.Date == null && out.date != null) out.Date = out.date;
-    if (typeof out.Date === 'string') out.Date = out.Date.slice(0, 10);
-    else if (out.Date instanceof Date) out.Date = out.Date.toISOString().slice(0, 10);
+    /* Route the raw date through toISODate so we cover Metricool's full
+       format zoo: ISO ("2026-04-22"), ISO datetime ("2026-04-22 14:30:00"),
+       localized ("Apr 22, 2026"), slash forms (M/D/Y or D/M/Y), Date
+       objects, and numeric timestamps. Previously a naive slice(0,10)
+       corrupted localized strings like "Apr 22, 2026" → "Apr 22, 20",
+       which made dateRangeFromRows + filterByRange both fail and the
+       Social page render zero even though 406 rows were live. */
+    const iso = toISODate(out.Date) || toISODate(out.date);
+    if (iso) out.Date = iso;
     if (out.reach != null && typeof out.reach !== 'number') {
       const n = Number(out.reach);
       if (!isNaN(n)) out.reach = n;
@@ -6103,6 +6109,16 @@ function renderLowHanging(scoped) {
 const APP_HISTORY = [
   {
     date: 'Apr 26, 2026',
+    title: 'Metricool dates parsed properly — Social page populates again',
+    tags: ['Fix'],
+    bullets: [
+      'Fixed the Social page rendering all zeros (Posts (MTD): 0, Total Reach: 0, Best Network: —) even though Metricool was tagged LIVE with 406 rows on the Data Sources page. Root cause: the Metricool normalizer used a naive slice(0,10) on the date column, which corrupted localized formats like "Apr 22, 2026" → "Apr 22, 20", so Date range read "no date column" and the range filter dropped every row.',
+      'The Metricool normalizer now routes the date through the same toISODate helper SemRush uses, so ISO datetimes ("2026-04-22 14:30:00"), localized strings ("Apr 22, 2026"), slash forms (M/D/Y and D/M/Y), Date objects, and numeric timestamps all land as YYYY-MM-DD.',
+      'The shared toISODate helper now validates slash-separated dates — "22/04/2026" correctly resolves to 2026-04-22 instead of being parsed as month=22 and silently filtered out. Numeric (Unix) timestamps in seconds or ms are also accepted.',
+    ],
+  },
+  {
+    date: 'Apr 26, 2026',
     title: '2-decimal precision on $ + percent + Conversions, SemRush date fix',
     tags: ['Fix', 'Polish'],
     bullets: [
@@ -6640,19 +6656,33 @@ function resolveRange(key, now = new Date()) {
    why SemRush · Keywords was reading zero with a LIVE badge. */
 function toISODate(v) {
   if (v == null || v === '') return '';
-  if (v instanceof Date) {
-    if (isNaN(v.getTime())) return '';
-    return `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getDate()).padStart(2,'0')}`;
+  const fromDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  if (v instanceof Date) return isNaN(v.getTime()) ? '' : fromDate(v);
+  if (typeof v === 'number' && isFinite(v)) {
+    /* Accept ms (>1e10) and s (>1e9) Unix timestamps. Anything smaller is
+       almost certainly not a date — bail rather than guess (Excel serial
+       dates would land here, but Metricool/Coefficient never emit them). */
+    if (v > 1e10) return fromDate(new Date(v));
+    if (v > 1e9)  return fromDate(new Date(v * 1000));
+    return '';
   }
   if (typeof v === 'string') {
     if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
-    const us = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (us) return `${us[3]}-${String(+us[1]).padStart(2,'0')}-${String(+us[2]).padStart(2,'0')}`;
-    const t = Date.parse(v);
-    if (!isNaN(t)) {
-      const d = new Date(t);
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    /* Slash-separated: try US (M/D/Y) first; if month is out of [1..12]
+       fall back to EU (D/M/Y). Catches "22/04/2026" being misparsed as
+       month=22 → invalid date string > "2026-04-30" → filtered out. */
+    const slash = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (slash) {
+      const a = +slash[1], b = +slash[2], y = slash[3];
+      if (a >= 1 && a <= 12 && b >= 1 && b <= 31) {
+        return `${y}-${String(a).padStart(2,'0')}-${String(b).padStart(2,'0')}`;
+      }
+      if (b >= 1 && b <= 12 && a >= 1 && a <= 31) {
+        return `${y}-${String(b).padStart(2,'0')}-${String(a).padStart(2,'0')}`;
+      }
     }
+    const t = Date.parse(v);
+    if (!isNaN(t)) return fromDate(new Date(t));
   }
   return '';
 }

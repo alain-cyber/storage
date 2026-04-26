@@ -144,6 +144,26 @@
     background: var(--surface);
     box-shadow: 0 1px 2px rgba(15,20,25,0.06);
   }
+  /* Brand-specific accent — matches each company's logo color so the
+     active brand reads at a glance: Viatrading = blue, Liquidatenow =
+     orange. Idle buttons get a subtle tint of the same hue; active
+     buttons fill solid + bold. */
+  .brand-toggle button[data-brand="via"] { color: #1f77ff; }
+  .brand-toggle button[data-brand="via"]:hover { color: #1f77ff; background: rgba(31,119,255,0.08); }
+  .brand-toggle button[data-brand="via"][aria-pressed="true"] {
+    color: #ffffff;
+    background: #1f77ff;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(31,119,255,0.30);
+  }
+  .brand-toggle button[data-brand="liq"] { color: #f97316; }
+  .brand-toggle button[data-brand="liq"]:hover { color: #f97316; background: rgba(249,115,22,0.08); }
+  .brand-toggle button[data-brand="liq"][aria-pressed="true"] {
+    color: #ffffff;
+    background: #f97316;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(249,115,22,0.30);
+  }
   .brand-pending {
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.78rem;
@@ -6814,6 +6834,14 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Brand toggle painted with each company\'s color',
+    tags: ['Polish'],
+    bullets: [
+      'The Viatrading and Liquidatenow buttons in the topbar brand toggle now use each company\'s brand color — Viatrading blue, Liquidatenow orange. Idle state shows the brand color in the text with a subtle hover tint; the active brand fills solid in its hue with a soft glow so it\'s instantly readable from across the room.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Vicki Intelligence brand mark + collapsible sidebar',

@@ -580,6 +580,7 @@
     gap: 0.55rem;
   }
   .src-card.is-live   { border-left: 3px solid var(--green); }
+  .src-card.is-mixed  { border-left: 3px solid var(--amber); }
   .src-card.is-fail   { border-left: 3px solid var(--red); }
   .src-card-head {
     display: flex; align-items: baseline; gap: 0.55rem; flex-wrap: wrap;
@@ -603,8 +604,21 @@
     border-radius: 4px;
     margin-left: auto;
   }
-  .src-status.live { background: var(--green-dim); color: var(--green); }
-  .src-status.fail { background: var(--red-dim); color: var(--red); }
+  .src-status.live  { background: var(--green-dim); color: var(--green); }
+  .src-status.mixed { background: var(--amber-dim); color: var(--amber); }
+  .src-status.fail  { background: var(--red-dim);   color: var(--red); }
+  /* Per-tab sub-block heading inside a merged card. */
+  .src-tab-head {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.005em;
+    margin-top: 0.4rem;
+    padding-top: 0.55rem;
+    border-top: 1px dashed var(--border);
+  }
+  .src-card > .src-tab-head:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
   .src-stats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4938,16 +4952,118 @@ function renderDataSources(raw) {
     sidePill.classList.toggle('warn', tabFail > 0);
   }
 
-  grid.innerHTML = rows.map(r => {
+  /* Group entries by their underlying Sheet ID. Metricool ships as a
+     single workbook with two tabs (Posts + Analytics) of different
+     schemas — they\'re separate channels in state.raw but the user sees
+     them as ONE sheet, so they get one merged card with per-tab stats
+     inside. Anything else (single-channel sources, brand-tabs sources)
+     stays as one card per channel as before. */
+  const grouped = [];
+  const groupBySheet = new Map();
+  rows.forEach(r => {
+    const sheet = SHEETS[r.key] || {};
+    /* Only group when the sheet has multiple SOURCE_DETAIL_REPORT entries
+       pointing at the same id (Metricool today). brandTabs sources don\'t
+       qualify — they\'re one channel covering both tabs. */
+    const others = SOURCE_DETAIL_REPORT.filter(s => (SHEETS[s.key] || {}).id === sheet.id);
+    if (sheet.id && others.length > 1) {
+      let g = groupBySheet.get(sheet.id);
+      if (!g) {
+        g = {
+          isGroup: true,
+          sheetId: sheet.id,
+          /* Strip the "· Posts" / "· Analytics" suffix from the label
+             ("Metricool · Posts" -> "Metricool"). */
+          label: r.label.split('·')[0].trim(),
+          bucket: r.bucket,
+          constituents: [],
+        };
+        groupBySheet.set(sheet.id, g);
+        grouped.push(g);
+      }
+      g.constituents.push(r);
+    } else {
+      grouped.push(r);
+    }
+  });
+
+  /* Per-channel stats block — used both for standalone cards and as
+     repeating sub-blocks inside a merged card. */
+  const renderTabBlock = (r, opts = {}) => {
+    const ch = r.channel;
+    const sheet = SHEETS[r.key] || {};
+    const range = dateRangeFromRows(ch.rows);
+    const split = brandSplit(ch.rows);
+    const cols = (ch.cols || []).slice(0, 12).map(c => `<span class="src-col-chip">${escapeHtml(String(c))}</span>`).join('');
+    const colsExtra = (ch.cols || []).length > 12 ? `<span class="src-col-chip">+${ch.cols.length - 12} more</span>` : '';
+    const splitLine = sheet.brandTabs
+      ? `<span class="src-stat-value">${fmt(split.via)} via · ${fmt(split.liq)} liq${split.none ? ` · ${fmt(split.none)} untagged` : ''}</span>`
+      : `<span class="src-stat-value dim">single tab</span>`;
+    const head = opts.head ? `<div class="src-tab-head">${escapeHtml(opts.head)}</div>` : '';
+    return `
+      ${head}
+      <div class="src-stats">
+        <div><div class="src-stat-label">Rows</div><div class="src-stat-value">${fmt(ch.rows.length)}</div></div>
+        <div><div class="src-stat-label">Brand split</div>${splitLine}</div>
+        <div><div class="src-stat-label">Date range</div>${range ? `<span class="src-stat-value">${range.min} → ${range.max}</span>` : '<span class="src-stat-value dim">no date column</span>'}</div>
+        <div><div class="src-stat-label">Columns</div><div class="src-stat-value">${(ch.cols || []).length}</div></div>
+      </div>
+      ${cols ? `<div class="src-cols">${cols}${colsExtra}</div>` : ''}
+    `;
+  };
+
+  grid.innerHTML = grouped.map(g => {
+    if (g.isGroup) {
+      /* Merged card — Metricool today. Header reflects the workbook;
+         per-tab stats stack inside; tab chips show ALL constituent tabs
+         with live/fail status. */
+      const allLive  = g.constituents.every(r => r.channel.source === 'live');
+      const anyLive  = g.constituents.some(r => r.channel.source === 'live');
+      const status      = allLive ? 'live' : (anyLive ? 'mixed' : 'fail');
+      const statusLabel = allLive ? 'LIVE' : (anyLive ? 'PARTIAL' : 'FAIL');
+      const sheet = SHEETS[g.constituents[0].key] || {};
+      const sheetLink = sheet.id
+        ? `<a href="https://docs.google.com/spreadsheets/d/${sheet.id}/edit" target="_blank" rel="noopener">${sheet.id.slice(0, 8)}…${sheet.id.slice(-4)}</a>`
+        : '<span class="src-stat-value dim">—</span>';
+      const cardTabs = tabs.filter(t => g.constituents.some(c => c.key === t.source));
+      const tabs_html = cardTabs.map(t => {
+        const cls = t.live ? 'src-tab-live' : 'src-tab-fail';
+        const mark = t.live ? '✓' : '✗';
+        return `<span class="src-tab-chip ${cls}"><span class="src-tab-mark">${mark}</span>${escapeHtml(t.tab)}</span>`;
+      }).join(' ');
+      const subKeys = g.constituents.map(c => c.key).join(' + ');
+      const reasons = g.constituents
+        .filter(c => c.channel.reason)
+        .map(c => `<div class="src-reason${c.channel.source !== 'live' ? ' fail' : ''}">${escapeHtml(c.label)}: ${escapeHtml(String(c.channel.reason))}</div>`)
+        .join('');
+      const blocks = g.constituents.map(c => {
+        const head = (c.label.split('·')[1] || c.label).trim();
+        return renderTabBlock(c, { head });
+      }).join('');
+      return `
+        <article class="src-card is-${status}">
+          <header class="src-card-head">
+            <div>
+              <div class="src-card-title">${escapeHtml(g.label)}</div>
+              <div class="src-card-sub">${escapeHtml(g.bucket)} · ${escapeHtml(subKeys)}</div>
+            </div>
+            <span class="src-status ${status}">${statusLabel}</span>
+          </header>
+          <div class="src-meta">
+            <div><strong>Sheet</strong> ${sheetLink}</div>
+            <div><strong>Tabs</strong> ${tabs_html}</div>
+          </div>
+          ${blocks}
+          ${reasons}
+        </article>
+      `;
+    }
+    /* Standard single-channel card. */
+    const r = g;
     const ch = r.channel;
     const sheet = SHEETS[r.key] || {};
     const status = ch.source === 'live' ? 'live' : 'fail';
     const statusLabel = status === 'live' ? 'LIVE' : 'FAIL';
-    const range = dateRangeFromRows(ch.rows);
-    const split = brandSplit(ch.rows);
-    /* Each tab gets an explicit ✓ / ✗ badge so the user can see exactly
-       which gviz fetches succeeded — splitting a brand-tabs card into
-       cards-per-tab would balloon the page, but a tab badge is compact. */
     const cardTabs = tabs.filter(t => t.source === r.key);
     const tabs_html = cardTabs.map(t => {
       const cls = t.live ? 'src-tab-live' : 'src-tab-fail';
@@ -4957,15 +5073,9 @@ function renderDataSources(raw) {
     const sheetLink = sheet.id
       ? `<a href="https://docs.google.com/spreadsheets/d/${sheet.id}/edit" target="_blank" rel="noopener">${sheet.id.slice(0, 8)}…${sheet.id.slice(-4)}</a>`
       : '<span class="src-stat-value dim">—</span>';
-    const cols = (ch.cols || []).slice(0, 12).map(c => `<span class="src-col-chip">${escapeHtml(String(c))}</span>`).join('');
-    const colsExtra = (ch.cols || []).length > 12 ? `<span class="src-col-chip">+${ch.cols.length - 12} more</span>` : '';
-    const splitLine = sheet.brandTabs
-      ? `<span class="src-stat-value">${fmt(split.via)} via · ${fmt(split.liq)} liq${split.none ? ` · ${fmt(split.none)} untagged` : ''}</span>`
-      : `<span class="src-stat-value dim">single tab</span>`;
     const reasonBlock = ch.reason
       ? `<div class="src-reason${status === 'fail' ? ' fail' : ''}">${escapeHtml(String(ch.reason))}</div>`
       : '';
-
     return `
       <article class="src-card is-${status}">
         <header class="src-card-head">
@@ -4975,29 +5085,11 @@ function renderDataSources(raw) {
           </div>
           <span class="src-status ${status}">${statusLabel}</span>
         </header>
-        <div class="src-stats">
-          <div>
-            <div class="src-stat-label">Rows</div>
-            <div class="src-stat-value">${fmt(ch.rows.length)}</div>
-          </div>
-          <div>
-            <div class="src-stat-label">Brand split</div>
-            ${splitLine}
-          </div>
-          <div>
-            <div class="src-stat-label">Date range</div>
-            ${range ? `<span class="src-stat-value">${range.min} → ${range.max}</span>` : '<span class="src-stat-value dim">no date column</span>'}
-          </div>
-          <div>
-            <div class="src-stat-label">Columns</div>
-            <div class="src-stat-value">${(ch.cols || []).length}</div>
-          </div>
-        </div>
+        ${renderTabBlock(r)}
         <div class="src-meta">
           <div><strong>Sheet</strong> ${sheetLink}</div>
           <div><strong>Tabs</strong> ${tabs_html}</div>
         </div>
-        ${cols ? `<div class="src-cols">${cols}${colsExtra}</div>` : ''}
         ${reasonBlock}
       </article>
     `;
@@ -6953,6 +7045,15 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Metricool collapsed to one Data Sources card with two tabs',
+    tags: ['Polish'],
+    bullets: [
+      'Metricool was rendering as two cards on the Data Sources page (Posts + Analytics) even though it\'s one Google Sheet workbook with two tabs. Now it shows as a single "Metricool" card with a per-tab breakdown stacked inside (Posts: 396 rows, Apr 2021 → Apr 2026, 14 cols + Analytics: 358 rows, Mar → Apr 2026, 4 cols). Tab chips show ✓ for each tab; if one fails the card status reads PARTIAL (amber) instead of all-or-nothing.',
+      'The 17-of-17-tabs counter and the underlying state.raw split (social vs social_analytics) are unchanged — this is purely a card-layout change so the workbook reads as one source instead of two.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Sidebar logos pinned to top-left',

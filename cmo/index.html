@@ -1589,11 +1589,11 @@
     border-bottom: 1px solid var(--border);
   }
   .side-brand-logos {
-    display: flex; flex-direction: column; gap: 0.5rem;
-    margin-bottom: 0.65rem;
+    display: flex; flex-direction: column; gap: 0.7rem;
+    margin-bottom: 0.85rem;
   }
   .side-brand-logo {
-    height: 22px;
+    height: 38px;
     width: auto;
     max-width: 100%;
     object-fit: contain;
@@ -1736,6 +1736,17 @@
     font-weight: 700;
   }
   .vicki-rest { color: var(--text); font-weight: 500; }
+  .vicki-mark-compact .vicki-icon svg { width: 22px; height: 22px; }
+  .vicki-mark-compact .vicki-text { font-size: 0.92rem; }
+  .topbar-divider {
+    width: 1px; height: 22px;
+    background: var(--border);
+    margin: 0 0.4rem;
+  }
+  @media (max-width: 768px) {
+    .vicki-mark-compact .vicki-text { display: none; }
+    .topbar-divider { display: none; }
+  }
   .refresh-btn {
     width: 30px; height: 30px;
     background: transparent;
@@ -1760,7 +1771,7 @@
   .side-brand-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 0.4rem;
     margin-bottom: 0.6rem;
   }
@@ -1937,22 +1948,6 @@
 <aside class="side" id="sideNav" aria-label="Channel navigation">
   <div class="side-brand">
     <div class="side-brand-row">
-      <a class="vicki-mark" href="#/overview" aria-label="Vicki Intelligence — go to overview">
-        <span class="vicki-icon" aria-hidden="true">
-          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="vickiGrad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#6d28d9"/>
-                <stop offset="50%" stop-color="#a855f7"/>
-                <stop offset="100%" stop-color="#ec4899"/>
-              </linearGradient>
-            </defs>
-            <path d="M16 2.5 L18.6 13.4 L29.5 16 L18.6 18.6 L16 29.5 L13.4 18.6 L2.5 16 L13.4 13.4 Z" fill="url(#vickiGrad)"/>
-            <circle cx="24.5" cy="6" r="1.7" fill="#c4b5fd"/>
-          </svg>
-        </span>
-        <span class="vicki-text"><span class="vicki-name">Vicki</span><span class="vicki-rest">Intelligence</span></span>
-      </a>
       <button type="button" class="side-collapse-toggle" id="sideCollapseToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
       </button>
@@ -2000,6 +1995,23 @@
 
 <header class="topbar">
   <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
+  <a class="vicki-mark vicki-mark-compact" href="#/overview" aria-label="Vicki Intelligence">
+    <span class="vicki-icon" aria-hidden="true">
+      <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="vickiGradTop" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#6d28d9"/>
+            <stop offset="50%" stop-color="#a855f7"/>
+            <stop offset="100%" stop-color="#ec4899"/>
+          </linearGradient>
+        </defs>
+        <path d="M16 2.5 L18.6 13.4 L29.5 16 L18.6 18.6 L16 29.5 L13.4 18.6 L2.5 16 L13.4 13.4 Z" fill="url(#vickiGradTop)"/>
+        <circle cx="24.5" cy="6" r="1.7" fill="#c4b5fd"/>
+      </svg>
+    </span>
+    <span class="vicki-text"><span class="vicki-name">Vicki</span><span class="vicki-rest">Intelligence</span></span>
+  </a>
+  <span class="topbar-divider" aria-hidden="true"></span>
   <div class="topbar-title" id="pageTitle">Overview</div>
   <div class="topbar-spacer"></div>
   <div class="brand-toggle">
@@ -6943,6 +6955,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Branding swap — Vicki in topbar, bigger Viatrading + LiquidateNow logos in sidebar',
+    tags: ['Polish'],
+    bullets: [
+      'Restored the Vicki Intelligence mark to the topbar (next to the page title) and removed the duplicate from the sidebar header.',
+      'Enlarged the Viatrading + LiquidateNow logos in the sidebar from 22px to 38px tall so the customer-facing brands lead in the sidebar instead of competing with Vicki for space.',
+      'Sidebar collapse chevron stays where it was — now alone in its row, right-aligned.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Removed the topbar Vicki Intelligence mark',

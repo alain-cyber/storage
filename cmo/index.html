@@ -1585,6 +1585,7 @@
     z-index: 5;
   }
   .side-brand {
+    position: relative;
     padding: 1rem 1.15rem 0.85rem;
     border-bottom: 1px solid var(--border);
   }
@@ -1768,14 +1769,10 @@
      Triggered by data-side-collapsed="1" on body. Sidebar narrows to
      icon-only width; titles, sub-text, footer copy, and per-link text
      hide. Tooltips on hover via the [title] attribute on .side-link. */
-  .side-brand-row {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.4rem;
-    margin-bottom: 0.6rem;
-  }
   .side-collapse-toggle {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
     background: transparent;
     border: 1px solid var(--border);
     color: var(--text3);
@@ -1791,8 +1788,11 @@
   body[data-side-collapsed="1"] {
     grid-template-columns: 64px 1fr;
   }
-  body[data-side-collapsed="1"] .side-brand { padding: 0.85rem 0.5rem 0.7rem; }
-  body[data-side-collapsed="1"] .side-brand-row { flex-direction: column; gap: 0.5rem; margin-bottom: 0; }
+  body[data-side-collapsed="1"] .side-brand { padding: 0.6rem 0.5rem 0.6rem; }
+  body[data-side-collapsed="1"] .side-collapse-toggle {
+    position: static;
+    margin: 0 auto;
+  }
   body[data-side-collapsed="1"] .vicki-text,
   body[data-side-collapsed="1"] .side-brand-logos,
   body[data-side-collapsed="1"] .side-brand-sub,
@@ -1947,16 +1947,14 @@
 
 <aside class="side" id="sideNav" aria-label="Channel navigation">
   <div class="side-brand">
-    <div class="side-brand-row">
-      <button type="button" class="side-collapse-toggle" id="sideCollapseToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
-      </button>
-    </div>
     <div class="side-brand-logos">
       <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="Viatrading" />
       <img class="side-brand-logo" data-brand-logo="liq" src="https://www.liquidatenow.com/wp-content/uploads/2015/07/liquidate-now-logo.png" alt="LiquidateNow" />
     </div>
     <div class="side-brand-sub">CMO dashboard</div>
+    <button type="button" class="side-collapse-toggle" id="sideCollapseToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
+    </button>
   </div>
   <nav class="side-nav">
     <a class="side-link is-active" data-route="overview" href="#/overview"><span class="side-link-text">Overview</span></a>
@@ -6955,6 +6953,14 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Sidebar logos pinned to top-left',
+    tags: ['Polish'],
+    bullets: [
+      'Removed the empty row that the collapse chevron was sitting in. The Viatrading + LiquidateNow logos now anchor at the very top-left of the sidebar with no leading whitespace. Collapse chevron floats absolutely in the top-right corner so it stays accessible without consuming a row.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Branding swap — Vicki in topbar, bigger Viatrading + LiquidateNow logos in sidebar',

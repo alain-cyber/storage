@@ -1080,23 +1080,22 @@
     border-bottom: 1px solid var(--border);
   }
   .side-brand-logos {
-    display: flex; align-items: center; gap: 0.55rem;
-    margin-bottom: 0.45rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+    margin-bottom: 0.65rem;
   }
   .side-brand-logo {
-    width: 28px; height: 28px;
-    border-radius: 6px;
+    height: 22px;
+    width: auto;
+    max-width: 100%;
     object-fit: contain;
-    background: #fff;
-    border: 1px solid var(--border);
-    padding: 3px;
-    transition: opacity 0.2s;
-  }
-  .side-brand-divider {
-    width: 1px; height: 16px; background: var(--border);
+    object-position: left center;
+    transition: opacity 0.2s, filter 0.2s;
   }
   body[data-brand="via"] .side-brand-logo[data-brand-logo="liq"],
-  body[data-brand="liq"] .side-brand-logo[data-brand-logo="via"] { opacity: 0.35; }
+  body[data-brand="liq"] .side-brand-logo[data-brand-logo="via"] {
+    opacity: 0.3;
+    filter: grayscale(0.6);
+  }
   .side-brand-sub {
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.72rem;
@@ -1299,9 +1298,8 @@
 <aside class="side" id="sideNav" aria-label="Channel navigation">
   <div class="side-brand">
     <div class="side-brand-logos">
-      <img class="side-brand-logo" data-brand-logo="via" src="https://www.google.com/s2/favicons?domain=viatrading.com&sz=64" alt="Viatrading" /><!-- TODO: swap to official logo URL -->
-      <span class="side-brand-divider"></span>
-      <img class="side-brand-logo" data-brand-logo="liq" src="https://www.google.com/s2/favicons?domain=liquidatenow.com&sz=64" alt="Liquidatenow" /><!-- TODO: swap to official logo URL -->
+      <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="Viatrading" />
+      <img class="side-brand-logo" data-brand-logo="liq" src="https://www.liquidatenow.com/wp-content/uploads/2015/07/liquidate-now-logo.png" alt="Liquidatenow" />
     </div>
     <div class="side-brand-sub">CMO dashboard</div>
   </div>

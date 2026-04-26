@@ -2401,7 +2401,7 @@
       <div class="section-meta">LLM-reasoned actions over the same data — independent of the rule thresholds</div>
     </div>
     <div class="claude-key-row">
-      <input type="password" id="claudeKey" class="claude-key-input" placeholder="sk-ant-…  Anthropic API key (stored locally)" autocomplete="off" />
+      <input type="password" id="claudeKey" class="claude-key-input" placeholder="sk-ant-…  Anthropic API key (stored locally)" autocomplete="off" name="" spellcheck="false" data-form-type="other" data-1p-ignore="true" data-lpignore="true" data-bwignore />
       <button type="button" class="rec-btn" id="claudeKeySave">Save key</button>
       <button type="button" class="rec-btn" id="claudeKeyClear">Clear</button>
       <button type="button" class="rec-btn rec-btn-primary" id="claudeGenerate">Generate decisions</button>
@@ -2418,7 +2418,7 @@
       <div class="section-meta">Same data, second opinion — OpenAI gpt-4o-mini reasoning over the dashboard summaries</div>
     </div>
     <div class="claude-key-row">
-      <input type="password" id="gptKey" class="claude-key-input" placeholder="sk-…  OpenAI API key (stored locally)" autocomplete="off" />
+      <input type="password" id="gptKey" class="claude-key-input" placeholder="sk-…  OpenAI API key (stored locally)" autocomplete="off" name="" spellcheck="false" data-form-type="other" data-1p-ignore="true" data-lpignore="true" data-bwignore />
       <button type="button" class="rec-btn" id="gptKeySave">Save key</button>
       <button type="button" class="rec-btn" id="gptKeyClear">Clear</button>
       <button type="button" class="rec-btn rec-btn-primary" id="gptGenerate">Generate decisions</button>
@@ -5803,6 +5803,45 @@ const CHAT_STORAGE = 'cmoChat_v1';
 const CHAT_HISTORY_LIMIT = 30;
 const CHAT_CONTEXT_TURNS = 6;
 
+/* Mask an API key for display so we can echo "what got saved" without
+   leaking the secret on screen. Real Anthropic / OpenAI keys are 50+
+   chars; this trims to first-8 + last-4 with an ellipsis. */
+function maskApiKey(key) {
+  const k = String(key || '').trim();
+  if (!k) return '';
+  if (k.length <= 12) return k.slice(0, 4) + '…';
+  return k.slice(0, 8) + '…' + k.slice(-4);
+}
+
+/* Sanity-check the key prefix before save. Catches the iCloud Keychain /
+   strong-password autofill bug on iPad Safari where the user pastes
+   sk-ant-... or sk-... but the field gets overwritten with a generated
+   password (which is what triggered the OpenAI 401 with "VUcDRx4h…UC4A"
+   in the wild). Anthropic keys must start with sk-ant-, OpenAI keys
+   must start with sk- (covers sk-proj- and legacy sk-). */
+function validateApiKey(provider, key) {
+  const k = String(key || '').trim();
+  if (!k) return { ok: true, key: '' };
+  const wantedPrefix = provider === 'anthropic' ? 'sk-ant-' : 'sk-';
+  const friendlyName = provider === 'anthropic' ? 'an Anthropic' : 'an OpenAI';
+  if (!k.startsWith(wantedPrefix)) {
+    return {
+      ok: false,
+      key: k,
+      error: `That doesn\'t look like ${friendlyName} key — got "${maskApiKey(k)}", expected to start with "${wantedPrefix}…". This usually happens when password-manager autofill replaces your paste on iPad Safari. Try Clear, then long-press the field and pick "Paste" (skip any autofill suggestion that pops up).`,
+    };
+  }
+  if (k.length < 30) {
+    const realName = provider === 'anthropic' ? 'Anthropic' : 'OpenAI';
+    return {
+      ok: false,
+      key: k,
+      error: `Key looks too short (${k.length} chars). A real ${realName} key is usually 50+ characters — your paste may have been truncated.`,
+    };
+  }
+  return { ok: true, key: k };
+}
+
 function compactSummariesForLLM(summaries) {
   /* Trim sums to the shape an LLM needs — keep only what drives decisions.
      Floor large arrays so the prompt stays small. Used by Claude, GPT, and
@@ -6671,6 +6710,17 @@ function renderLowHanging(scoped) {
 const APP_HISTORY = [
   {
     date: 'Apr 26, 2026',
+    title: 'API key save now validates prefix + shows masked preview',
+    tags: ['Fix', 'Polish'],
+    bullets: [
+      'Diagnosed the OpenAI 401 ("Incorrect API key provided: VUcDRx4h…UC4A") — the input field was getting overwritten by iCloud Keychain / Safari\'s strong-password autofill, so the user pasted a real key but a generated password got saved. Same root cause hit the Anthropic key.',
+      'Save now validates the key prefix before storing — Anthropic must start with "sk-ant-", OpenAI must start with "sk-" (covers both sk-proj- and legacy sk-). Rejects with a clear inline error explaining the autofill bug, no save until a valid key is pasted.',
+      'After a successful save, the status line echoes a masked preview of what was saved (e.g. "API key saved · sk-ant-ap…X4z9") so you can verify the value persisted correctly without re-revealing the full key.',
+      'Hardened the input fields against password-manager autofill: removed the name attribute, added data-1p-ignore / data-lpignore / data-bwignore / data-form-type="other" / spellcheck="false". Safari + 1Password + LastPass + Bitwarden all skip these fields now.',
+    ],
+  },
+  {
+    date: 'Apr 26, 2026',
     title: '"Powered by Vicki Intelligence" branding in the topbar',
     tags: ['Polish'],
     bullets: [
@@ -7511,13 +7561,18 @@ function initClaude() {
   const save = document.getElementById('claudeKeySave');
   if (save) save.addEventListener('click', () => {
     const v = (input && input.value || '').trim();
-    state.anthropicKey = v;
+    const check = validateApiKey('anthropic', v);
+    if (!check.ok) {
+      setClaudeStatus(check.error, 'error');
+      return;
+    }
+    state.anthropicKey = check.key;
     try {
-      if (v) localStorage.setItem(CLAUDE_KEY_STORAGE, v);
+      if (check.key) localStorage.setItem(CLAUDE_KEY_STORAGE, check.key);
       else localStorage.removeItem(CLAUDE_KEY_STORAGE);
     } catch {}
-    setClaudeStatus(v ? 'API key saved locally.' : 'API key cleared.', 'ok');
-    if (v) flashSavedButton('claudeKeySave');
+    setClaudeStatus(check.key ? `API key saved · ${maskApiKey(check.key)}` : 'API key cleared.', 'ok');
+    if (check.key) flashSavedButton('claudeKeySave');
   });
   const clear = document.getElementById('claudeKeyClear');
   if (clear) clear.addEventListener('click', () => {
@@ -7551,13 +7606,18 @@ function initGpt() {
   const save = document.getElementById('gptKeySave');
   if (save) save.addEventListener('click', () => {
     const v = (input && input.value || '').trim();
-    state.openaiKey = v;
+    const check = validateApiKey('openai', v);
+    if (!check.ok) {
+      setGptStatus(check.error, 'error');
+      return;
+    }
+    state.openaiKey = check.key;
     try {
-      if (v) localStorage.setItem(OPENAI_KEY_STORAGE, v);
+      if (check.key) localStorage.setItem(OPENAI_KEY_STORAGE, check.key);
       else localStorage.removeItem(OPENAI_KEY_STORAGE);
     } catch {}
-    setGptStatus(v ? 'API key saved locally.' : 'API key cleared.', 'ok');
-    if (v) flashSavedButton('gptKeySave');
+    setGptStatus(check.key ? `API key saved · ${maskApiKey(check.key)}` : 'API key cleared.', 'ok');
+    if (check.key) flashSavedButton('gptKeySave');
   });
   const clear = document.getElementById('gptKeyClear');
   if (clear) clear.addEventListener('click', () => {

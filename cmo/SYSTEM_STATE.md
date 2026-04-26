@@ -113,6 +113,30 @@ The dashboard never *writes* to any sheet. It is a read-only view.
 | Refresh cadence | **TBD** — depends on the populating script |
 | Notes | Auto-detects unit conventions: LCP/FCP normalized to **seconds**, INP/TBT to **ms**, Perf Score to 0–100. CWV thresholds (LCP 2.5s, CLS 0.1, INP 200ms, perf 50) feed the rule engine and live in the Thresholds editor. |
 
+### 8. SemRush · Keywords
+
+| Field | Value |
+| --- | --- |
+| Spreadsheet ID | `1gGFtFMEWL1iqXVn1OVwqPdbrE9tMwg93-i0tbBDkHe8` |
+| Tabs | `kw_via` (Viatrading), `kw_lnow` (Liquidatenow) |
+| Headers row | 1 (no Coefficient banner — direct SemRush export) |
+| Source system | SemRush organic keyword export (one row per keyword per day) |
+| Columns | `date, keyword, position, url, search_volume, difficulty, position_delta` |
+| Refresh cadence | **TBD** — confirm whether scheduled via a SemRush integration, Apps Script pull, or manual paste |
+| Notes | Position-delta convention: **negative = improved** (moved up toward #1). The SemRush page surfaces top keywords by volume + biggest gainers/losers. Decisions tag with `source: 'semrush_kw'`. |
+
+### 9. SemRush · Backlinks
+
+| Field | Value |
+| --- | --- |
+| Spreadsheet ID | `17vtH6XeDzd3O9i3qjNFAL5XESxSYfi15WrszCgq-xeo` |
+| Tabs | `bl_via` (Viatrading), `bl_lnow` (Liquidatenow) |
+| Headers row | 1 (no Coefficient banner — direct SemRush export) |
+| Source system | SemRush backlink authority snapshot (one row per brand per day) |
+| Columns | `date, referring_domains, new_domains, lost_domains, total_backlinks, top_linking_domain_authority` |
+| Refresh cadence | **TBD** — confirm the populator and schedule |
+| Notes | The dashboard takes the latest row in the active range per brand and compares to the earliest to surface the Δ in referring domains. Decisions tag with `source: 'semrush_bl'`. |
+
 ---
 
 ## End-to-end data flow
@@ -151,12 +175,15 @@ The only thing in this repo is the read-side: `cmo/index.html`.
 | Ads | `ads` | |
 | Keywords | `keywords` | |
 | SEO | `gsc` | |
+| SemRush | `semrush_kw` + `semrush_bl` | One page, two stacked sections (Keywords table + Backlinks KPIs/trend) |
 | Web | `ga` | |
 | Page Speed | `pagespeed` | |
 | Calls | `aircall` | PT-pinned daily bucket |
 | Social | `social` | |
+| Chat | Claude or GPT (model toggle) | Reuses keys saved on the Decisions pages; injects scoped summary as context |
 | Decisions from Filters | All summaries → rule engine (`generateActionsFromSummaries`) | Numeric thresholds tunable per brand |
 | Decisions from Claude | Same summaries → Anthropic API (browser-stored key) | Cached in localStorage by hash |
+| Decisions from GPT | Same summaries → OpenAI Chat Completions (gpt-4o-mini, JSON mode) | Independent cache; same payload as Claude page |
 | Thresholds | per-brand editor for every numeric cutoff | Persists to `cmoThresholds_v1` |
 | Data Sources | per-connector LIVE / DEMO / FAIL status | First port of call when something looks off |
 

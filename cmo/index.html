@@ -624,6 +624,20 @@
     padding: 2px 6px;
     border-radius: 4px;
   }
+  .src-tab-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.74rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    margin-right: 4px;
+    border: 1px solid var(--border);
+  }
+  .src-tab-mark { font-weight: 700; }
+  .src-tab-live { background: var(--green-dim); color: var(--green); border-color: var(--green-dim); }
+  .src-tab-fail { background: var(--red-dim);   color: var(--red);   border-color: var(--red-dim); }
   .src-reason {
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.78rem;
@@ -3207,18 +3221,14 @@ function renderBriefing({ narrative, brand }) {
     }
   }
   const rangeLabel = (state.timeRange && state.timeRange.label) || 'Last 30 days';
-  /* Reflect the actual connector count rather than a hardcoded "5 channels"
-     — every Data Sources tab is its own source. Show "X of Y data sources"
-     when some are failing so the discrepancy with the headline narrative
-     is visible at a glance. */
-  const total = SOURCE_DETAIL_REPORT.length;
-  let liveCount = total;
-  if (state.raw) {
-    liveCount = SOURCE_DETAIL_REPORT.reduce((n, s) => n + ((state.raw[s.prop] || {}).source === 'live' ? 1 : 0), 0);
-  }
-  const sourcesLabel = liveCount === total
-    ? `${total} data sources`
-    : `${liveCount} of ${total} data sources`;
+  /* Each gviz tab is its own data source (e.g. raw_ads_via + raw_ads_lnow
+     count as two), so use the tab-level health summary rather than the
+     channel-level rollup. "16 of 17 data sources" reads accurately even
+     when one brand tab has fallen over inside an otherwise-live channel. */
+  const health = summarizeSourceHealth(state.raw);
+  const sourcesLabel = health.fail === 0
+    ? `${health.total} data sources`
+    : `${health.live} of ${health.total} data sources`;
   document.getElementById('aiBriefSub').textContent =
     `Generated ${new Date().toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})} · ${rangeLabel} · ${sourcesLabel}`;
   document.getElementById('aiBriefText').textContent = narrative;
@@ -4529,15 +4539,39 @@ function dateRangeFromRows(rows) {
   return { min: f(min), max: f(max) };
 }
 
-function summarizeSourceHealth(raw) {
-  const counts = { live: 0, fail: 0 };
-  if (!raw) return counts;
+/* Each Google Sheet tab is its own data source — Ads alone has two
+   (raw_ads_via + raw_ads_lnow). Walk every SHEETS entry and emit one
+   {label, tab, brand, live, source} record per tab, so the Overview
+   counters and the Data Sources page can reconcile down to the actual
+   gviz fetches behind the scenes. */
+function tabHealth(raw) {
+  const out = [];
   SOURCE_DETAIL_REPORT.forEach(s => {
-    const ch = raw[s.prop];
-    if (ch && ch.source === 'live') counts.live++;
-    else counts.fail++;
+    const sheet = SHEETS[s.key] || {};
+    const ch = (raw && raw[s.prop]) || {};
+    if (sheet.brandTabs) {
+      Object.entries(sheet.brandTabs).forEach(([brand, tab]) => {
+        /* A brand-tabs channel reports one combined source: 'live' even if
+           only one of its two brand fetches actually returned rows.
+           Per-tab liveness is recoverable from the rows: a tab is live
+           iff the channel is live AND there are rows tagged with that
+           brand. */
+        const live = ch.source === 'live' && (ch.rows || []).some(r => r && r.brand === brand);
+        out.push({ source: s.key, brand, tab, label: s.label, live });
+      });
+    } else {
+      const tab = sheet.sheetName || (sheet.gid != null ? `gid=${sheet.gid}` : 'default tab');
+      out.push({ source: s.key, brand: null, tab, label: s.label, live: ch.source === 'live' });
+    }
   });
-  return counts;
+  return out;
+}
+
+function summarizeSourceHealth(raw) {
+  const tabs = tabHealth(raw);
+  let live = 0, fail = 0;
+  tabs.forEach(t => { if (t.live) live++; else fail++; });
+  return { live, fail, total: tabs.length };
 }
 
 function brandSplit(rows) {
@@ -4562,22 +4596,24 @@ function renderDataSources(raw) {
     return { ...s, channel: ch };
   });
 
-  let live = 0, fail = 0, totalRows = 0;
-  rows.forEach(r => {
-    totalRows += r.channel.rows.length;
-    if (r.channel.source === 'live') live++;
-    else fail++;
-  });
+  let totalRows = 0;
+  rows.forEach(r => { totalRows += r.channel.rows.length; });
+  /* Tab-level health: each Google Sheet tab is its own data source, so
+     "Sources connected" reflects the actual gviz fetch count, not the
+     consolidated channel count. */
+  const tabs = tabHealth(raw);
+  const tabLive = tabs.filter(t => t.live).length;
+  const tabFail = tabs.length - tabLive;
 
   summary.innerHTML = `
-    <div class="src-counter"><div class="src-counter-label">Sources connected</div><div class="src-counter-value live">${live} / ${rows.length}</div></div>
-    <div class="src-counter"><div class="src-counter-label">Failed</div><div class="src-counter-value fail">${fail}</div></div>
+    <div class="src-counter"><div class="src-counter-label">Sources connected</div><div class="src-counter-value live">${tabLive} / ${tabs.length}</div></div>
+    <div class="src-counter"><div class="src-counter-label">Failed</div><div class="src-counter-value fail">${tabFail}</div></div>
     <div class="src-counter"><div class="src-counter-label">Total rows pulled</div><div class="src-counter-value">${fmt(totalRows)}</div></div>
   `;
 
   if (sidePill) {
-    sidePill.textContent = fail ? String(fail) : '';
-    sidePill.classList.toggle('warn', fail > 0);
+    sidePill.textContent = tabFail ? String(tabFail) : '';
+    sidePill.classList.toggle('warn', tabFail > 0);
   }
 
   grid.innerHTML = rows.map(r => {
@@ -4587,9 +4623,15 @@ function renderDataSources(raw) {
     const statusLabel = status === 'live' ? 'LIVE' : 'FAIL';
     const range = dateRangeFromRows(ch.rows);
     const split = brandSplit(ch.rows);
-    const tabs = sheet.brandTabs
-      ? Object.entries(sheet.brandTabs).map(([b, t]) => `${b}: ${t}`).join(' · ')
-      : (sheet.sheetName || (sheet.gid != null ? `gid=${sheet.gid}` : 'default tab'));
+    /* Each tab gets an explicit ✓ / ✗ badge so the user can see exactly
+       which gviz fetches succeeded — splitting a brand-tabs card into
+       cards-per-tab would balloon the page, but a tab badge is compact. */
+    const cardTabs = tabs.filter(t => t.source === r.key);
+    const tabs_html = cardTabs.map(t => {
+      const cls = t.live ? 'src-tab-live' : 'src-tab-fail';
+      const mark = t.live ? '✓' : '✗';
+      return `<span class="src-tab-chip ${cls}"><span class="src-tab-mark">${mark}</span>${escapeHtml(t.tab)}</span>`;
+    }).join(' ');
     const sheetLink = sheet.id
       ? `<a href="https://docs.google.com/spreadsheets/d/${sheet.id}/edit" target="_blank" rel="noopener">${sheet.id.slice(0, 8)}…${sheet.id.slice(-4)}</a>`
       : '<span class="src-stat-value dim">—</span>';
@@ -4631,7 +4673,7 @@ function renderDataSources(raw) {
         </div>
         <div class="src-meta">
           <div><strong>Sheet</strong> ${sheetLink}</div>
-          <div><strong>Tabs</strong> ${escapeHtml(tabs)}</div>
+          <div><strong>Tabs</strong> ${tabs_html}</div>
         </div>
         ${cols ? `<div class="src-cols">${cols}${colsExtra}</div>` : ''}
         ${reasonBlock}
@@ -6422,6 +6464,15 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Data-source counts now reflect tabs, not channels',
+    tags: ['Polish'],
+    bullets: [
+      'Each Google Sheet tab is its own gviz fetch and its own data source — Google Ads alone pulls two (raw_ads_via + raw_ads_lnow). The Copilot sub-line, the refresh-strip "Data sources" tile, the Data Sources page summary, and the sidebar pill all now count tabs (17 total today) instead of consolidated channels (10), so an outage on one brand tab inside an otherwise-LIVE channel actually shows up.',
+      'The Data Sources page now renders a per-tab ✓ / ✗ chip on each card next to the Tabs label — at a glance you can see which specific gviz fetches succeeded and which failed, instead of inferring it from the brand-row split.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Metricool Analytics tab connected — Followers, Growth, Growth Rate KPIs',

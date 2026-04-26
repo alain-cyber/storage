@@ -2428,6 +2428,14 @@ const SHEETS = {
   },
   aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall', headers: 2 },
   social:  { id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk', gid: 1914162846, label: 'Metricool · Posts' },
+  /* Metricool Analytics tab — daily follower / impression / engagement
+     snapshot per network. Schema: network, metric, date, value. Lives in
+     the same workbook as the Posts tab but a different sheet. */
+  social_analytics: {
+    id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk',
+    sheetName: 'Analytics',
+    label: 'Metricool · Analytics', headers: 1,
+  },
   /* Keyword-grain Ads data — split out of the Google Ads sheet when it hit the
      10M cell cap. Same Coefficient banner-on-row-1 quirk → headers: 2. */
   keywords: {
@@ -2821,6 +2829,10 @@ const COLUMN_ALIASES = {
     Date:         ['Day', 'Report date'],
     CTR:          ['Ctr', 'ctr'],
   },
+  /* Metricool Analytics tab. Schema: network, metric, date, value. */
+  social_analytics: {
+    Date: ['date', 'Day'],
+  },
 };
 
 /* Case/space/underscore-insensitive column match. `Campaign name` / `CAMPAIGN_NAME`
@@ -2859,6 +2871,7 @@ function applyAliases(key, rows, cols) {
 function normalizeByKey(key, rows, cols) {
   if (key === 'aircall') return normalizeAircallRows(rows, cols);
   if (key === 'social') return normalizeSocialRows(rows, cols);
+  if (key === 'social_analytics') return normalizeSocialAnalyticsRows(rows, cols);
   if (key === 'pagespeed') return normalizePagespeedRows(rows, cols);
   return rows;
 }
@@ -2868,6 +2881,24 @@ function normalizeByKey(key, rows, cols) {
    renderer reads `r.network`, `r.reach`, `r.post_type` directly, but `byDay`
    and the source-health card key on `r.Date` (capital D). Promote it here so
    downstream code finds a canonical Date. Also coerce `reach` to Number. */
+/* Metricool's Analytics tab is one row per (network, metric, date) — each
+   metric ("followers", "impressions", "engagement") on its own row. We
+   only need to canonicalize Date and coerce value to a number. */
+function normalizeSocialAnalyticsRows(rows, _cols) {
+  if (!rows || !rows.length) return rows;
+  return rows.map(r => {
+    const out = { ...r };
+    const iso = toISODate(out.Date) || toISODate(out.date);
+    if (iso) out.Date = iso;
+    if (out.value != null && typeof out.value !== 'number') {
+      const n = Number(out.value);
+      if (!isNaN(n)) out.value = n;
+    }
+    if (typeof out.metric === 'string') out.metric = out.metric.toLowerCase();
+    return out;
+  });
+}
+
 function normalizeSocialRows(rows, _cols) {
   if (!rows || !rows.length) return rows;
   /* Metricool's Posts export drops the timestamp into the `date` column as
@@ -3053,6 +3084,9 @@ const GLOSSARY = {
   /* Social */
   'Avg Reach / Post': { what: 'Total reach divided by number of posts.',                                                     why: 'Strips out posting frequency, so you can tell whether each individual post is landing.' },
   'Best Network': { what: 'The social network with the highest average reach per post in this period.',                      why: 'Says where to lean in. Spending equal effort on a low-reach network = diminishing returns.' },
+  'Followers':  { what: 'Total followers across all connected networks, latest snapshot in the active range.',               why: 'The cumulative audience you can reach without paying. Slow-and-steady growth is healthier than a spike followed by a plateau.' },
+  'Followers Growth': { what: 'Net followers gained (or lost) between the earliest and latest snapshot in the active range.',why: 'The absolute number tells you whether the audience is actually growing — engagement rates are noise without it.' },
+  'Growth Rate': { what: 'Followers gained divided by followers at the start of the period, expressed as a percent.',         why: 'Normalizes growth across networks of different sizes. 1% / week is a healthy social baseline.' },
   /* Calls */
   'Aircall':    { what: 'Cloud phone system the team uses for inbound and outbound sales calls.',                            why: 'Source of all call data here — line, agent, status, duration, miss reason.' },
   'Miss Rate':  { what: 'Missed inbound calls divided by total inbound calls.',                                              why: 'Above 10% in business hours = staffing or routing problem. After-hours misses usually need voicemail / SMS catch.' },
@@ -3766,6 +3800,52 @@ function summarizeGa(rows) {
   return { channels, totalSessions };
 }
 
+/* Metricool Analytics tab: each row is (network, metric, date, value).
+   We pluck `metric === 'followers'`, take the earliest + latest snapshot in
+   the active range per network, sum across networks for a portfolio total,
+   and surface absolute + percent growth — that's what the Social page
+   "Followers / Growth / Growth Rate" KPIs report. */
+function summarizeSocialAnalytics(rows) {
+  const empty = { followers: { total: 0, byNetwork: [], growth: 0, growthPct: null, earliestDate: null, latestDate: null } };
+  if (!rows || !rows.length) return empty;
+  const followerRows = rows.filter(r => String(r.metric || '').toLowerCase() === 'followers');
+  if (!followerRows.length) return empty;
+  const byNet = {};
+  followerRows.forEach(r => {
+    const n = r.network || '—';
+    const v = Number(r.value);
+    const d = typeof r.Date === 'string' ? r.Date.slice(0, 10) : '';
+    if (!d || isNaN(v)) return;
+    (byNet[n] || (byNet[n] = [])).push({ d, v });
+  });
+  const networks = Object.entries(byNet).map(([name, arr]) => {
+    const sorted = arr.sort((a, b) => a.d.localeCompare(b.d));
+    const earliest = sorted[0], latest = sorted[sorted.length - 1];
+    const growth = latest.v - earliest.v;
+    return {
+      name,
+      latest: latest.v,
+      earliest: earliest.v,
+      latestDate: latest.d,
+      earliestDate: earliest.d,
+      growth,
+      growthPct: earliest.v ? growth / earliest.v : null,
+    };
+  }).sort((a, b) => b.latest - a.latest);
+  const total = networks.reduce((a, n) => a + n.latest, 0);
+  const totalEarliest = networks.reduce((a, n) => a + n.earliest, 0);
+  const growth = total - totalEarliest;
+  const growthPct = totalEarliest ? growth / totalEarliest : null;
+  const allDates = followerRows.map(r => typeof r.Date === 'string' ? r.Date.slice(0, 10) : '').filter(Boolean).sort();
+  return {
+    followers: {
+      total, byNetwork: networks, growth, growthPct,
+      earliestDate: allDates[0] || null,
+      latestDate:   allDates[allDates.length - 1] || null,
+    },
+  };
+}
+
 function summarizeSocial(rows) {
   const map = {};
   rows.forEach(r => {
@@ -4401,6 +4481,8 @@ const REQUIRED_COLS = {
   aircall: [],
   /* Social: Metricool export — one row per post */
   social:  ['network'],
+  /* Social Analytics: Metricool Analytics tab — one row per (network, metric, date). */
+  social_analytics: ['metric', 'value'],
   /* Keywords: keyword-grain ads export — Spend + Clicks are enough to drive
      KILL/NEGATE/SCALE rules. Impressions checked too because NEGATE keys on it. */
   keywords:['Spend', 'Clicks'],
@@ -4426,7 +4508,8 @@ const SOURCE_DETAIL_REPORT = [
   { key: 'ga',          prop: 'ga',          label: 'Google Analytics 4',      bucket: 'Web Analytics' },
   { key: 'pagespeed',   prop: 'pagespeed',   label: 'Page Speed (Lighthouse)', bucket: 'Page Speed' },
   { key: 'aircall',     prop: 'ac',          label: 'Aircall',                 bucket: 'Calls' },
-  { key: 'social',      prop: 'social',      label: 'Metricool · Social',      bucket: 'Social' },
+  { key: 'social',           prop: 'social',           label: 'Metricool · Posts',     bucket: 'Social' },
+  { key: 'social_analytics', prop: 'social_analytics', label: 'Metricool · Analytics', bucket: 'Social' },
 ];
 
 function dateRangeFromRows(rows) {
@@ -4595,7 +4678,9 @@ function paint(ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrus
   state.lastRefreshAt = new Date();
   /* Cache the scoped channel rows for the drill-down modal + Top 5 + Low
      Hanging Fruit so they don't have to recompute scoping. */
-  state._lastScoped = { ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl };
+  state._lastScoped = { ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl,
+    social_analytics: state.raw && state.raw.social_analytics ? scopeChannel(scopeByRange(state.raw.social_analytics, state.timeRange), state.brand) : { rows: [], cols: [], source: 'fail', reason: 'no channel' }
+  };
   renderRefreshStrip();
   const insights = generateInsights({ ads, gsc, ga, ac, social, keywords, pagespeed }, state.brand);
   /* Hydrate generated actions with persisted status overrides, then
@@ -4625,7 +4710,7 @@ function paint(ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrus
 
 function repaint() {
   if (!state.raw) return;
-  const { ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl } = state.raw;
+  const { ads, gsc, ga, ac, social, social_analytics, keywords, pagespeed, semrush_kw, semrush_bl } = state.raw;
   const range = state.timeRange;
   const scoped = {
     ads:        scopeChannel(scopeByRange(ads,        range), state.brand),
@@ -4633,6 +4718,7 @@ function repaint() {
     ga:         scopeChannel(scopeByRange(ga,         range), state.brand),
     ac:         scopeChannel(scopeByRange(ac,         range), state.brand),
     social:     scopeChannel(scopeByRange(social,     range), state.brand),
+    social_analytics: scopeChannel(scopeByRange(social_analytics, range), state.brand),
     keywords:   scopeChannel(scopeByRange(keywords,   range), state.brand),
     pagespeed:  scopeChannel(scopeByRange(pagespeed,  range), state.brand),
     semrush_kw: scopeChannel(scopeByRange(semrush_kw, range), state.brand),
@@ -4645,7 +4731,7 @@ function repaint() {
   const pending = document.getElementById('brandPending');
   if (pending) {
     const needsBrand = state.brand !== 'all';
-    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social', keywords: 'keywords', pagespeed: 'pagespeed', semrush_kw: 'semrush kw', semrush_bl: 'semrush bl' };
+    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social', social_analytics: 'social analytics', keywords: 'keywords', pagespeed: 'pagespeed', semrush_kw: 'semrush kw', semrush_bl: 'semrush bl' };
     const unsliceable = Object.entries(state.raw)
       .filter(([, c]) => c && c.source === 'live' && c.rows.length && !c.rows.some(r => r && r.brand))
       .map(([k]) => NAME[k] || k);
@@ -4694,12 +4780,13 @@ function stopLoadingHype() {
 
 async function render() {
   try {
-    const [ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl] = await Promise.all([
+    const [ads, gsc, ga, ac, social, social_analytics, keywords, pagespeed, semrush_kw, semrush_bl] = await Promise.all([
       loadChannel('ads', REQUIRED_COLS.ads),
       loadChannel('gsc', REQUIRED_COLS.gsc),
       loadChannel('ga', REQUIRED_COLS.ga),
       loadChannel('aircall', REQUIRED_COLS.aircall),
       loadChannel('social', REQUIRED_COLS.social),
+      loadChannel('social_analytics', REQUIRED_COLS.social_analytics),
       loadChannel('keywords', REQUIRED_COLS.keywords),
       loadChannel('pagespeed', REQUIRED_COLS.pagespeed),
       loadChannel('semrush_kw', REQUIRED_COLS.semrush_kw),
@@ -4712,13 +4799,14 @@ async function render() {
       { channel: 'ga',         source: ga.source,         rows: ga.rows.length,         reason: ga.reason || '',         cols: ga.cols.join(', ') },
       { channel: 'aircall',    source: ac.source,         rows: ac.rows.length,         reason: ac.reason || '',         cols: ac.cols.join(', ') },
       { channel: 'social',     source: social.source,     rows: social.rows.length,     reason: social.reason || '',     cols: social.cols.join(', ') },
+      { channel: 'social_analytics', source: social_analytics.source, rows: social_analytics.rows.length, reason: social_analytics.reason || '', cols: social_analytics.cols.join(', ') },
       { channel: 'keywords',   source: keywords.source,   rows: keywords.rows.length,   reason: keywords.reason || '',   cols: keywords.cols.join(', ') },
       { channel: 'pagespeed',  source: pagespeed.source,  rows: pagespeed.rows.length,  reason: pagespeed.reason || '',  cols: pagespeed.cols.join(', ') },
       { channel: 'semrush_kw', source: semrush_kw.source, rows: semrush_kw.rows.length, reason: semrush_kw.reason || '', cols: semrush_kw.cols.join(', ') },
       { channel: 'semrush_bl', source: semrush_bl.source, rows: semrush_bl.rows.length, reason: semrush_bl.reason || '', cols: semrush_bl.cols.join(', ') },
     ]);
 
-    state.raw = { ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl };
+    state.raw = { ads, gsc, ga, ac, social, social_analytics, keywords, pagespeed, semrush_kw, semrush_bl };
     repaint();
   } catch (err) {
     console.error('CMO render failed:', err);
@@ -4729,7 +4817,7 @@ async function render() {
     const reason = `render error: ${err && err.message || err}`;
     const failCh = () => ({ rows: [], cols: [], source: 'fail', reason });
     state.raw = {
-      ads: failCh(), gsc: failCh(), ga: failCh(), ac: failCh(), social: failCh(),
+      ads: failCh(), gsc: failCh(), ga: failCh(), ac: failCh(), social: failCh(), social_analytics: failCh(),
       keywords: failCh(), pagespeed: failCh(), semrush_kw: failCh(), semrush_bl: failCh(),
     };
     repaint();
@@ -5076,12 +5164,26 @@ function renderSocial({ rows, source, reason }, insight) {
   })).sort((a, b) => b.reachPer - a.reachPer);
   const bestNet = netArr[0];
 
+  /* Pull the Analytics-tab follower snapshots, scoped to the same range
+     the Posts data uses. byNetwork is sorted desc by latest follower count. */
+  const analytics = (state._lastScoped && state._lastScoped.social_analytics) || { rows: [] };
+  const aSum = summarizeSocialAnalytics(analytics.rows);
+  const f = aSum.followers;
+  const growthSign = f.growth > 0 ? '+' : f.growth < 0 ? '−' : '';
+  const growthPctSign = f.growthPct != null && f.growthPct > 0 ? '+' : f.growthPct != null && f.growthPct < 0 ? '−' : '';
+  const growthPctVal = f.growthPct != null ? `${growthPctSign}${Math.abs(f.growthPct * 100).toFixed(2)}%` : '—';
+  const growthDeltaCls = f.growth > 0 ? 'delta-up' : f.growth < 0 ? 'delta-down' : 'delta-neutral';
+  const followersDeltaText = f.byNetwork.length
+    ? `${f.byNetwork.length} network${f.byNetwork.length === 1 ? '' : 's'}`
+    : '';
+
   renderKpis('socialKpis', [
     { label: `Posts (${rangeSuffix()})`, value: fmt(totalPosts) },
     { label: 'Total Reach', value: fmt(totalReach) },
     { label: 'Avg Reach / Post', value: fmt(Math.round(avgReach)) },
-    { label: 'Best Network', value: bestNet ? bestNet.name : '—', delta: bestNet ? `${fmt(Math.round(bestNet.reachPer))} avg` : '' },
-    { label: 'Networks Active', value: fmt(netArr.length) },
+    { label: 'Followers', value: f.total ? fmt(f.total) : '—', delta: followersDeltaText },
+    { label: 'Followers Growth', value: f.total ? `${growthSign}${fmt(Math.abs(f.growth))}` : '—', delta: f.earliestDate && f.latestDate ? `since ${f.earliestDate.slice(5)}` : '', deltaClass: growthDeltaCls },
+    { label: 'Growth Rate', value: growthPctVal, delta: '', deltaClass: growthDeltaCls },
   ]);
   document.getElementById('socialReach').textContent = fmt(totalReach);
 
@@ -6320,6 +6422,17 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Metricool Analytics tab connected — Followers, Growth, Growth Rate KPIs',
+    tags: ['Feature'],
+    bullets: [
+      'The Metricool workbook has two tabs (Posts + Analytics) and we were only pulling Posts. Wired up the Analytics tab as its own data source ("Metricool · Analytics") — so the Data Sources page now shows a full set of 10 connectors instead of 9, and the Posts card was relabeled "Metricool · Posts" so the two are clearly differentiated.',
+      'Added three Followers KPIs to the Social page: latest follower count summed across networks, absolute Followers Growth (latest − earliest in the active range), and Growth Rate (% change over the same window). Earliest/latest snapshot dates show below the growth tile so it\'s obvious what window the change spans.',
+      'Glossary covers the new terms — tap "Followers", "Followers Growth", or "Growth Rate" on the KPI strip for a plain-English definition + why it matters.',
+      'Audit of the other 8 sheets: configured tabs match what the docs describe (raw_ads_via/lnow, raw_gsc_via/lnow, raw_ga4_via/lnow, raw_ads_via_kw/lnow_kw, perf_via/lnow, kw_via/lnow, bl_via/lnow, plus Aircall\'s single tab). If any of those workbooks contain extra tabs you\'d like surfaced (e.g. a Summary or Pivot tab), shout and I\'ll add them.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'CMO Copilot sub-line shows real data-source count, not "5 channels"',

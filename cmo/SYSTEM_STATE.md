@@ -100,16 +100,28 @@ The dashboard never *writes* to any sheet. It is a read-only view.
 | Timezone | Aircall reports timestamps in UTC. The dashboard pins the **daily bucket** (`row.Date`) to Pacific Time so a 5pm-PT call doesn't roll into the next UTC day. Hour-of-day and weekday logic still uses the raw UTC timestamp — TODO if the workday breakdown looks off. |
 | Refresh cadence | Coefficient — TBD: confirm schedule |
 
-### 6. Metricool (social posts)
+### 6. Metricool · Posts (per-post data)
 
 | Field | Value |
 | --- | --- |
 | Spreadsheet ID | `1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk` |
-| Tab / gid | gid = `1914162846` (single tab, shared across brands) |
+| Tab / gid | gid = `1914162846` (named "Posts" in the workbook) |
 | Headers row | default (1) |
-| Source system | **Metricool** export — one row per post (network, post_type, date, url, text, reach) |
+| Source system | **Metricool** export — one row per post (`network, post_type, date, url, text, reach, impressions, engagement, likes, comments, shares, …`) |
+| Date format quirk | Metricool drops the timestamp into `date` as a serialized struct, e.g. `{timezone=Europe/Madrid, dateTime=2026-04-21T23:53:57, date=2026-04-21, dayOfMonth=21}`. `normalizeSocialRows` extracts the inner `dateTime` / `date` substring before normalizing. |
 | Refresh cadence | Metricool's Sheets export — TBD: confirm whether scheduled or manual |
 | Brand mapping | Currently shared across brands (no per-brand split). When the user toggles to via/liq, the brand-pending banner shows because rows aren't tagged. |
+
+### 6b. Metricool · Analytics (daily snapshots)
+
+| Field | Value |
+| --- | --- |
+| Spreadsheet ID | `1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk` (same workbook as Posts) |
+| Tab | `Analytics` (resolved by sheet name, not gid) |
+| Headers row | 1 |
+| Source system | Metricool export — one row per `(network, metric, date)` with a `value` column. `metric` is `followers` (and possibly `impressions` / `engagement`). |
+| Used for | "Followers", "Followers Growth", "Growth Rate" KPIs on the Social page. Earliest + latest snapshot per network within the active range = absolute and percent growth. |
+| Brand mapping | Single tab, no per-brand split. |
 
 ### 7. Page Speed (Lighthouse / Core Web Vitals)
 

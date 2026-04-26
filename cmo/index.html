@@ -707,6 +707,226 @@
   }
   .chat-input-row textarea:focus { outline: none; border-color: var(--accent); }
   .chat-clear-btn { background: transparent; }
+  .chat-msg-bot-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; max-width: 85%; align-self: flex-start; }
+  .chat-pin-btn {
+    align-self: flex-end;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .chat-pin-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .chat-pin-btn.is-pinned { color: var(--green); border-color: transparent; background: var(--green-dim); }
+
+  /* Decision drill-down modal */
+  .cmo-modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9000;
+    padding: 1.5rem;
+  }
+  .cmo-modal[hidden] { display: none; }
+  .cmo-modal-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: min(720px, 100%);
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    display: flex; flex-direction: column;
+  }
+  .cmo-modal-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 1rem 1.25rem 0.5rem;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .cmo-modal-title { font-family: 'Inter', system-ui, sans-serif; font-weight: 600; font-size: 1rem; color: var(--text); line-height: 1.35; }
+  .cmo-modal-sub { font-family: 'Inter', system-ui, sans-serif; font-size: 0.72rem; color: var(--text3); margin-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .cmo-modal-close {
+    background: transparent; border: 1px solid var(--border2);
+    border-radius: 6px; padding: 0.25rem 0.55rem;
+    color: var(--text3); cursor: pointer; font-size: 0.85rem;
+    line-height: 1;
+  }
+  .cmo-modal-close:hover { color: var(--text); border-color: var(--border2); }
+  .cmo-modal-body { padding: 0.85rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+  .cmo-modal-section-title { font-family: 'Inter', system-ui, sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 0.4rem; font-weight: 600; }
+  .cmo-modal-why {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .cmo-modal-why .trigger { color: var(--text2); margin-top: 0.4rem; font-size: 0.78rem; }
+  .cmo-kv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+  }
+  .cmo-kv {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+  }
+  .cmo-kv-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); }
+  .cmo-kv-value { font-family: 'Inter', system-ui, sans-serif; font-size: 0.95rem; font-weight: 600; color: var(--text); margin-top: 0.15rem; }
+  .cmo-modal-empty { color: var(--text3); font-style: italic; font-size: 0.78rem; }
+  .cmo-modal table.data-table { font-size: 0.75rem; }
+
+  /* rec-card hover (telegraph clickability) */
+  .rec-card { cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .rec-card:hover { border-color: var(--accent); background: var(--surface); }
+  .rec-card .rec-actions button { cursor: pointer; }
+
+  /* Severity dot icon — small inline indicator next to HIGH/MEDIUM/LOW */
+  .rec-sev::before {
+    content: '';
+    display: inline-block;
+    width: 0.55rem; height: 0.55rem;
+    border-radius: 50%;
+    margin-right: 0.4rem;
+    background: currentColor;
+    vertical-align: 0.05rem;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0); /* placeholder for the bg ring */
+  }
+
+  /* Show-all toggle on the Decisions pages */
+  .rec-source-toggle {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    font-size: 0.7rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    cursor: pointer;
+    margin-left: 0.5rem;
+  }
+  .rec-source-toggle:hover { color: var(--text); border-color: var(--accent); }
+
+  /* Top 5 grid on Overview */
+  .top5-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin: 0 2.5rem 1rem;
+  }
+  .top5-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+  }
+  .top5-card-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; }
+  .top5-card-icon { width: 16px; height: 16px; color: var(--accent); flex-shrink: 0; }
+  .top5-card-title { font-family: 'Inter', system-ui, sans-serif; font-weight: 600; font-size: 0.82rem; color: var(--text); flex: 1 1 auto; }
+  .top5-card-link { font-size: 0.7rem; color: var(--text3); text-decoration: none; }
+  .top5-card-link:hover { color: var(--accent); }
+  .top5-row {
+    display: grid;
+    grid-template-columns: 1.5rem 1fr auto;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.4rem 0.25rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .top5-row:last-child { border-bottom: 0; }
+  .top5-row:hover { background: var(--surface2); }
+  .top5-rank { font-size: 0.7rem; color: var(--text3); font-weight: 600; text-align: center; }
+  .top5-name { font-size: 0.78rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .top5-meta { font-size: 0.7rem; color: var(--text3); display: flex; gap: 0.35rem; align-items: center; flex-shrink: 0; }
+  .top5-meta strong { color: var(--text); font-weight: 600; }
+  .top5-empty { font-size: 0.75rem; color: var(--text3); font-style: italic; padding: 0.5rem 0.25rem; }
+  @media (max-width: 768px) {
+    .top5-grid { margin: 0 1.5rem 1rem; }
+  }
+
+  /* Low Hanging Fruit page */
+  .lhf-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0.85rem; }
+  .lhf-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.95rem 1.05rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .lhf-card:hover { border-color: var(--accent); background: var(--surface2); }
+  .lhf-card-head { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+  .lhf-effort {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--green); background: var(--green-dim);
+    padding: 0.12rem 0.5rem; border-radius: 999px; font-weight: 600;
+  }
+  .lhf-effort.is-medium { color: var(--amber); background: var(--amber-dim); }
+  .lhf-impact {
+    font-size: 0.62rem; color: var(--text3);
+    padding: 0.12rem 0.5rem; border: 1px solid var(--border2); border-radius: 999px;
+  }
+  .lhf-title { font-family: 'Inter', system-ui, sans-serif; font-weight: 600; font-size: 0.88rem; color: var(--text); line-height: 1.35; }
+  .lhf-why { color: var(--text2); font-size: 0.78rem; line-height: 1.5; }
+  .lhf-numbers { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .lhf-num-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.7rem;
+    color: var(--text);
+  }
+  .lhf-num-chip strong { display: block; font-size: 0.62rem; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.1rem; }
+  .lhf-empty { color: var(--text3); font-style: italic; font-size: 0.85rem; padding: 2rem 0; text-align: center; }
+
+  /* Pinned page */
+  .pinned-list { display: flex; flex-direction: column; gap: 0.85rem; }
+  .pinned-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.95rem 1.05rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .pinned-q { font-family: 'Inter', system-ui, sans-serif; font-weight: 600; font-size: 0.85rem; color: var(--text); line-height: 1.4; }
+  .pinned-a { color: var(--text2); font-size: 0.82rem; line-height: 1.55; white-space: pre-wrap; }
+  .pinned-meta { display: flex; gap: 0.5rem; align-items: center; font-size: 0.66rem; color: var(--text3); }
+  .pinned-model {
+    background: var(--accent-dim); color: var(--accent);
+    padding: 0.1rem 0.5rem; border-radius: 999px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .pinned-actions { display: flex; gap: 0.4rem; align-self: flex-end; }
+  .pinned-empty {
+    color: var(--text3); font-style: italic; font-size: 0.9rem;
+    padding: 3rem 1rem; text-align: center;
+  }
+
+  /* Shared empty state */
+  .cmo-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text3);
+    font-size: 0.9rem;
+  }
+  .cmo-empty-icon {
+    width: 36px; height: 36px;
+    margin: 0 auto 0.75rem;
+    opacity: 0.4;
+    color: var(--text3);
+    display: block;
+  }
 
   /* Thresholds page */
   .threshold-bar {
@@ -1193,6 +1413,16 @@
     background: var(--accent-dim);
     border-left-color: var(--accent);
   }
+  .side-link-text { flex: 1 1 auto; min-width: 0; }
+  .side-link-icon {
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+    margin-right: 0.6rem;
+    opacity: 0.85;
+    color: var(--text3);
+  }
+  .side-link:hover .side-link-icon { color: var(--text2); opacity: 1; }
+  .side-link.is-active .side-link-icon { color: var(--accent); opacity: 1; }
   .side-sep { height: 1px; background: var(--border); margin: 0.5rem 1.15rem; }
   .side-foot {
     margin-top: auto;
@@ -1378,24 +1608,26 @@
     <div class="side-brand-sub">CMO dashboard</div>
   </div>
   <nav class="side-nav">
-    <a class="side-link is-active" data-route="overview" href="#/overview">Overview</a>
-    <a class="side-link" data-route="ads"      href="#/ads">Ads</a>
-    <a class="side-link" data-route="keywords" href="#/keywords">Keywords</a>
-    <a class="side-link" data-route="seo"      href="#/seo">SEO</a>
-    <a class="side-link" data-route="semrush"  href="#/semrush">SemRush</a>
-    <a class="side-link" data-route="web"      href="#/web">Web</a>
-    <a class="side-link" data-route="pagespeed" href="#/pagespeed">Page Speed</a>
-    <a class="side-link" data-route="calls"    href="#/calls">Calls</a>
-    <a class="side-link" data-route="social"   href="#/social">Social</a>
-    <a class="side-link" data-route="content"  href="#/content">Content</a>
-    <a class="side-link" data-route="email"    href="#/email">Email</a>
+    <a class="side-link is-active" data-route="overview" href="#/overview"><span class="side-link-text">Overview</span></a>
+    <a class="side-link" data-route="ads"      href="#/ads"><span class="side-link-text">Ads</span></a>
+    <a class="side-link" data-route="keywords" href="#/keywords"><span class="side-link-text">Keywords</span></a>
+    <a class="side-link" data-route="seo"      href="#/seo"><span class="side-link-text">SEO</span></a>
+    <a class="side-link" data-route="semrush"  href="#/semrush"><span class="side-link-text">SemRush</span></a>
+    <a class="side-link" data-route="web"      href="#/web"><span class="side-link-text">Web</span></a>
+    <a class="side-link" data-route="pagespeed" href="#/pagespeed"><span class="side-link-text">Page Speed</span></a>
+    <a class="side-link" data-route="calls"    href="#/calls"><span class="side-link-text">Calls</span></a>
+    <a class="side-link" data-route="social"   href="#/social"><span class="side-link-text">Social</span></a>
+    <a class="side-link" data-route="content"  href="#/content"><span class="side-link-text">Content</span></a>
+    <a class="side-link" data-route="email"    href="#/email"><span class="side-link-text">Email</span></a>
     <div class="side-sep"></div>
-    <a class="side-link" data-route="chat"              href="#/chat">Chat</a>
-    <a class="side-link" data-route="decisions_filters" href="#/decisions_filters">Decisions from Filters <span class="pill" id="sideDecisionsCount"></span></a>
-    <a class="side-link" data-route="decisions_claude"  href="#/decisions_claude">Decisions from Claude</a>
-    <a class="side-link" data-route="decisions_gpt"     href="#/decisions_gpt">Decisions from GPT</a>
-    <a class="side-link" data-route="thresholds" href="#/thresholds">Thresholds</a>
-    <a class="side-link" data-route="sources"   href="#/sources">Data Sources <span class="pill" id="sideSourcesPill"></span></a>
+    <a class="side-link" data-route="chat"              href="#/chat"><span class="side-link-text">Chat</span></a>
+    <a class="side-link" data-route="pinned"            href="#/pinned"><span class="side-link-text">Pinned</span> <span class="pill" id="sidePinnedCount"></span></a>
+    <a class="side-link" data-route="lowhanging"        href="#/lowhanging"><span class="side-link-text">Low Hanging Fruit</span> <span class="pill" id="sideLowHangingCount"></span></a>
+    <a class="side-link" data-route="decisions_filters" href="#/decisions_filters"><span class="side-link-text">Decisions from Filters</span> <span class="pill" id="sideDecisionsCount"></span></a>
+    <a class="side-link" data-route="decisions_claude"  href="#/decisions_claude"><span class="side-link-text">Decisions from Claude</span></a>
+    <a class="side-link" data-route="decisions_gpt"     href="#/decisions_gpt"><span class="side-link-text">Decisions from GPT</span></a>
+    <a class="side-link" data-route="thresholds" href="#/thresholds"><span class="side-link-text">Thresholds</span></a>
+    <a class="side-link" data-route="sources"   href="#/sources"><span class="side-link-text">Data Sources</span> <span class="pill" id="sideSourcesPill"></span></a>
   </nav>
   <div class="side-foot">
     <span class="side-foot-powered">Powered by</span>
@@ -1460,6 +1692,8 @@
   </div>
   <div class="metrics-grid" id="overviewGrid"></div>
 </section>
+
+  <div class="top5-grid" id="overviewTop5"></div>
 
   <section class="section" id="overviewTopActions">
     <div class="section-head">
@@ -1962,6 +2196,26 @@
   </section>
 </section>
 
+<section class="page" data-page="lowhanging" hidden>
+  <section class="section" id="lowHangingSection">
+    <div class="section-head">
+      <div class="section-title">Low Hanging Fruit</div>
+      <div class="section-meta">Easiest wins from the data right now — high impact, low effort. Click any card for the underlying numbers.</div>
+    </div>
+    <div class="lhf-list" id="lowHangingList"></div>
+  </section>
+</section>
+
+<section class="page" data-page="pinned" hidden>
+  <section class="section" id="pinnedSection">
+    <div class="section-head">
+      <div class="section-title">Pinned</div>
+      <div class="section-meta">Chat answers you've pinned for later. Pin from the Chat page.</div>
+    </div>
+    <div class="pinned-list" id="pinnedList"></div>
+  </section>
+</section>
+
 <section class="page" data-page="thresholds" hidden>
   <section class="section" id="thresholdsSection">
     <div class="section-head">
@@ -2003,6 +2257,19 @@
   <span class="footer-powered">Powered by</span>
   <span class="footer-vicki">Vicki Intelligence</span>
 </footer>
+
+<div id="decisionModal" class="cmo-modal" hidden>
+  <div class="cmo-modal-box" role="dialog" aria-modal="true" aria-labelledby="decisionModalTitle">
+    <div class="cmo-modal-head">
+      <div>
+        <div class="cmo-modal-title" id="decisionModalTitle">Decision</div>
+        <div class="cmo-modal-sub" id="decisionModalSub"></div>
+      </div>
+      <button type="button" class="cmo-modal-close" id="decisionModalClose" aria-label="Close">×</button>
+    </div>
+    <div class="cmo-modal-body" id="decisionModalBody"></div>
+  </div>
+</div>
 
 <script id="appScript">
 /* Each sheet with per-brand tabs lists them under `brandTabs`. loadChannel
@@ -2761,8 +3028,20 @@ function renderActionCardHtml(a) {
   const trigger = a.metric_trigger ? `<div class="rec-trigger">${escapeHtml(a.metric_trigger)}</div>` : '';
   const metaBits = [`<span>${a.grain}</span>`];
   if (a.brand && a.brand !== 'all') metaBits.push(`<span>${a.brand === 'via' ? 'Viatrading' : a.brand === 'liq' ? 'Liquidatenow' : a.brand}</span>`);
+  metaBits.push('<span>click for numbers</span>');
+  const decisionPayload = encodeURIComponent(JSON.stringify({
+    kind: 'rule',
+    action_id: a.action_id,
+    source: a.source, grain: a.grain,
+    entity_id: a.entity_id, entity_name: a.entity_name,
+    brand: a.brand, priority: a.priority,
+    action_type: a.action_type, label,
+    reason: a.reason, metric_trigger: a.metric_trigger,
+    current_value: a.current_value, benchmark_value: a.benchmark_value,
+    status: a.status,
+  }));
   return `
-    <div class="rec-card status-${a.status}" data-action-id="${a.action_id}">
+    <div class="rec-card status-${a.status}" data-action-id="${a.action_id}" data-decision="${decisionPayload}">
       <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
         <span class="rec-sev rec-sev-${sev}">${a.priority}</span>
         <span class="rec-status-tag rec-status-${a.status}">${a.status.replace('_', ' ')}</span>
@@ -5264,7 +5543,7 @@ function saveCachedDecisions(storage, key, decisions, raw) {
   } catch {}
 }
 
-const LLM_DECISIONS_PROMPT = `You are a CMO copilot reviewing the marketing data summarized below for the period the user selected. Pick the 5–8 highest-leverage decisions for the team. Skip boilerplate ("monitor performance"); only return decisions backed by a number in the data. Output strict JSON: {"decisions":[{"title":"…","source":"ads|keywords|gsc|semrush_kw|semrush_bl|ga|pagespeed|social|aircall|cross","brand":"all|via|liq","priority":"HIGH|MEDIUM|LOW","entity":"…","reason":"…","metric_trigger":"…"}]}`;
+const LLM_DECISIONS_PROMPT = `You are a CMO copilot reviewing the marketing data summarized below for the period the user selected. Pick the 12–20 highest-leverage decisions for the team — diverse across sources, with at least one per source that has signal. Skip boilerplate ("monitor performance"); only return decisions backed by a number in the data. Output strict JSON: {"decisions":[{"title":"…","source":"ads|keywords|gsc|semrush_kw|semrush_bl|ga|pagespeed|social|aircall|cross","brand":"all|via|liq","priority":"HIGH|MEDIUM|LOW","entity":"…","reason":"…","metric_trigger":"…"}]}`;
 
 async function callClaudeAPI(payload, apiKey, opts = {}) {
   const userContent = opts.userContent || `${LLM_DECISIONS_PROMPT}\n\nDATA:\n${JSON.stringify(payload)}`;
@@ -5280,7 +5559,7 @@ async function callClaudeAPI(payload, apiKey, opts = {}) {
     },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: opts.maxTokens || 1500,
+      max_tokens: opts.maxTokens || 4000,
       ...(system ? { system } : {}),
       messages,
     }),
@@ -5302,7 +5581,7 @@ async function callOpenAIAPI(payload, apiKey, opts = {}) {
   ];
   const body = {
     model: OPENAI_MODEL,
-    max_tokens: opts.maxTokens || 1500,
+    max_tokens: opts.maxTokens || 4000,
     messages,
   };
   if (opts.jsonMode) body.response_format = { type: 'json_object' };
@@ -5367,6 +5646,9 @@ function flashSavedButton(btnId) {
 
 /* Shared renderer for Claude + GPT decisions. The badge label distinguishes
    which model produced the cards visually. */
+/* Track per-mount, per-source expanded state so toggling Show all on the
+   Claude page doesn't expand the GPT page's groups. */
+const llmExpanded = {};
 function renderLLMDecisions(list, mountId, badgeLabel) {
   const el = document.getElementById(mountId);
   if (!el) return;
@@ -5380,33 +5662,65 @@ function renderLLMDecisions(list, mountId, badgeLabel) {
   const visible = SOURCE_ORDER.filter(s => grouped[s] && grouped[s].length);
   /* Tail bucket for sources the LLM made up that aren't in our taxonomy. */
   const otherSources = Object.keys(grouped).filter(s => !SOURCE_ORDER.includes(s));
+  if (!llmExpanded[mountId]) llmExpanded[mountId] = {};
+  const expandedMap = llmExpanded[mountId];
+
+  const renderCard = d => {
+    const sev = (d.priority || 'MEDIUM').toLowerCase();
+    const brandLine = d.brand && d.brand !== 'all' ? ` · ${d.brand === 'via' ? 'Viatrading' : d.brand === 'liq' ? 'Liquidatenow' : d.brand}` : '';
+    const detail = SOURCE_DETAIL[d.source] || { label: d.source || '', hint: '' };
+    const decisionPayload = encodeURIComponent(JSON.stringify({
+      kind: 'llm',
+      provider: badgeLabel,
+      title: d.title, source: d.source, entity: d.entity,
+      brand: d.brand, priority: d.priority, reason: d.reason,
+      metric_trigger: d.metric_trigger,
+    }));
+    return `
+      <div class="rec-card status-OPEN" data-decision="${decisionPayload}">
+        <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+          <span class="rec-sev rec-sev-${sev}">${(d.priority || 'MEDIUM').toUpperCase()}</span>
+          <span class="rec-status-tag rec-status-OPEN">${escapeHtml(badgeLabel)}</span>
+        </div>
+        <div class="rec-title">${escapeHtml(d.title || 'Decision')} — ${escapeHtml(d.entity || '—')}</div>
+        <div class="rec-rationale">${escapeHtml(d.reason || '')}</div>
+        ${d.metric_trigger ? `<div class="rec-trigger">${escapeHtml(d.metric_trigger)}</div>` : ''}
+        <div class="rec-meta-row"><span>${escapeHtml(detail.label)}${escapeHtml(brandLine)} · click for numbers</span></div>
+      </div>`;
+  };
+
   el.innerHTML = [...visible, ...otherSources].map(src => {
     const detail = SOURCE_DETAIL[src] || { label: src, hint: '' };
-    const cards = grouped[src].map(d => {
-      const sev = (d.priority || 'MEDIUM').toLowerCase();
-      const brandLine = d.brand && d.brand !== 'all' ? ` · ${d.brand === 'via' ? 'Viatrading' : d.brand === 'liq' ? 'Liquidatenow' : d.brand}` : '';
-      return `
-        <div class="rec-card status-OPEN">
-          <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
-            <span class="rec-sev rec-sev-${sev}">${(d.priority || 'MEDIUM').toUpperCase()}</span>
-            <span class="rec-status-tag rec-status-OPEN">${escapeHtml(badgeLabel)}</span>
-          </div>
-          <div class="rec-title">${escapeHtml(d.title || 'Decision')} — ${escapeHtml(d.entity || '—')}</div>
-          <div class="rec-rationale">${escapeHtml(d.reason || '')}</div>
-          ${d.metric_trigger ? `<div class="rec-trigger">${escapeHtml(d.metric_trigger)}</div>` : ''}
-          <div class="rec-meta-row"><span>${escapeHtml(detail.label)}${escapeHtml(brandLine)}</span></div>
-        </div>`;
-    }).join('');
+    const all = grouped[src];
+    const expanded = !!expandedMap[src];
+    const visibleList = expanded ? all : all.slice(0, 5);
+    const more = all.length - visibleList.length;
+    const cards = visibleList.map(renderCard).join('');
+    const toggle = all.length > 5
+      ? `<button type="button" class="rec-source-toggle" data-llm-toggle="${src}">${expanded ? `Show top 5` : `Show all ${all.length}`}</button>`
+      : '';
     return `
       <section class="rec-source-group" data-source="${src}">
         <header class="rec-source-head">
           <h3 class="rec-source-title">${escapeHtml(detail.label)}</h3>
-          <span class="rec-source-count">${grouped[src].length}</span>
+          <span class="rec-source-count">${all.length}</span>
           <span class="rec-source-hint">${escapeHtml(detail.hint)}</span>
+          ${toggle}
         </header>
         <div class="rec-source-grid">${cards}</div>
+        ${!expanded && more > 0 ? `<div class="rec-source-hint" style="margin-top:0.4rem">+ ${more} more — click "Show all ${all.length}"</div>` : ''}
       </section>`;
   }).join('');
+
+  /* Wire toggle buttons. */
+  el.querySelectorAll('[data-llm-toggle]').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const src = btn.dataset.llmToggle;
+      expandedMap[src] = !expandedMap[src];
+      renderLLMDecisions(list, mountId, badgeLabel);
+    });
+  });
 }
 
 /* Back-compat: anything still calling renderClaudeDecisions keeps working. */
@@ -5496,6 +5810,90 @@ function loadChatHistory() {
 function saveChatHistory(history) {
   try { localStorage.setItem(CHAT_STORAGE, JSON.stringify(history.slice(-CHAT_HISTORY_LIMIT))); } catch {}
 }
+
+/* Pinned chat answers — stored separately from chat history so clearing
+   chat doesn't drop pins. Each pin records the question that produced it,
+   the answer, the model used, and a timestamp. */
+const CHAT_PINNED_STORAGE = 'cmoChatPinned_v1';
+function loadPinnedChat() {
+  try {
+    const raw = localStorage.getItem(CHAT_PINNED_STORAGE);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+function savePinnedChat(list) {
+  try { localStorage.setItem(CHAT_PINNED_STORAGE, JSON.stringify(list)); } catch {}
+}
+function pinChatAnswer(idx) {
+  const history = state.chat.history || [];
+  const msg = history[idx];
+  if (!msg || msg.role !== 'assistant' || msg.error) return;
+  /* The user's question is the closest preceding user message. */
+  let question = '';
+  for (let i = idx - 1; i >= 0; i--) {
+    if (history[i] && history[i].role === 'user') { question = history[i].content; break; }
+  }
+  const pin = {
+    id: 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+    at: msg.at || new Date().toISOString(),
+    model: state.chat.model === 'gpt' ? 'GPT' : 'Claude',
+    question,
+    answer: msg.content,
+  };
+  if (!state.chat.pinned) state.chat.pinned = loadPinnedChat();
+  /* Avoid duplicates: if the same answer text + question already pinned, skip. */
+  if (state.chat.pinned.some(p => p.question === question && p.answer === msg.content)) {
+    return { duplicate: true };
+  }
+  state.chat.pinned.unshift(pin);
+  savePinnedChat(state.chat.pinned);
+  renderPinned();
+  renderSidePinnedCount();
+  return { pinned: true };
+}
+function unpinChatAnswer(id) {
+  if (!state.chat.pinned) state.chat.pinned = loadPinnedChat();
+  state.chat.pinned = state.chat.pinned.filter(p => p.id !== id);
+  savePinnedChat(state.chat.pinned);
+  renderPinned();
+  renderSidePinnedCount();
+}
+function renderSidePinnedCount() {
+  const el = document.getElementById('sidePinnedCount');
+  if (!el) return;
+  const n = (state.chat.pinned || []).length;
+  el.textContent = n ? String(n) : '';
+}
+function renderPinned() {
+  const list = document.getElementById('pinnedList');
+  if (!list) return;
+  const pins = state.chat.pinned || [];
+  if (!pins.length) {
+    list.innerHTML = `<div class="pinned-empty">${cmoIcon('bookmark', 'cmo-empty-icon')}<div>No pinned answers yet.</div><div style="font-size:0.78rem;margin-top:0.4rem">Pin one from the Chat page using the 📌 button on any answer.</div></div>`;
+    return;
+  }
+  list.innerHTML = pins.map(p => {
+    const when = p.at ? new Date(p.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+    return `
+      <article class="pinned-card" data-pin="${escapeHtml(p.id)}">
+        <div class="pinned-q">${escapeHtml(p.question || '(no question recorded)')}</div>
+        <div class="pinned-a">${escapeHtml(p.answer || '')}</div>
+        <div class="pinned-meta">
+          <span class="pinned-model">${escapeHtml(p.model || '')}</span>
+          <span>${escapeHtml(when)}</span>
+        </div>
+        <div class="pinned-actions">
+          <button type="button" class="rec-btn rec-btn-dismiss" data-unpin="${escapeHtml(p.id)}">Unpin</button>
+        </div>
+      </article>`;
+  }).join('');
+  list.querySelectorAll('[data-unpin]').forEach(btn => {
+    btn.addEventListener('click', () => unpinChatAnswer(btn.dataset.unpin));
+  });
+}
+
 function renderChatLog() {
   const log = document.getElementById('chatLog');
   if (!log) return;
@@ -5504,10 +5902,32 @@ function renderChatLog() {
     log.innerHTML = `<div class="chat-empty">Ask anything about the current scope (brand + range). Examples: "Which campaigns waste the most spend?" · "What's our biggest organic ranking opportunity?"</div>`;
     return;
   }
-  log.innerHTML = history.map(m => {
-    const cls = m.role === 'user' ? 'chat-msg-user' : (m.error ? 'chat-msg-err' : 'chat-msg-bot');
-    return `<div class="chat-msg ${cls}">${escapeHtml(m.content)}</div>`;
+  log.innerHTML = history.map((m, i) => {
+    if (m.role === 'user') {
+      return `<div class="chat-msg chat-msg-user">${escapeHtml(m.content)}</div>`;
+    }
+    const cls = m.error ? 'chat-msg-err' : 'chat-msg-bot';
+    /* Only pin successful assistant replies (not error bubbles). */
+    const pinBtn = m.error ? '' : `<button type="button" class="chat-pin-btn" data-pin-idx="${i}" title="Pin this answer">📌 Pin</button>`;
+    return `<div class="chat-msg-bot-wrap">
+      <div class="chat-msg ${cls}">${escapeHtml(m.content)}</div>
+      ${pinBtn}
+    </div>`;
   }).join('');
+  /* Wire pin buttons. */
+  log.querySelectorAll('[data-pin-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const r = pinChatAnswer(Number(btn.dataset.pinIdx));
+      if (r && r.duplicate) {
+        btn.textContent = 'Already pinned';
+        btn.classList.add('is-pinned');
+      } else if (r && r.pinned) {
+        btn.textContent = '✅ Pinned';
+        btn.classList.add('is-pinned');
+        setTimeout(() => { btn.textContent = '📌 Pin'; btn.classList.remove('is-pinned'); }, 1500);
+      }
+    });
+  });
   /* Scroll to latest. */
   log.scrollTop = log.scrollHeight;
 }
@@ -5660,6 +6080,8 @@ const NAV_LABEL = {
   pagespeed: 'Page Speed',
   calls: 'Calls', social: 'Social', content: 'Content', email: 'Email',
   chat: 'Chat',
+  pinned: 'Pinned',
+  lowhanging: 'Low Hanging Fruit',
   decisions_filters: 'Decisions from Filters',
   decisions_claude: 'Decisions from Claude',
   decisions_gpt: 'Decisions from GPT',
@@ -5705,7 +6127,7 @@ const state = {
   gpt:    { result: null, status: 'idle', error: null, lastAt: null },
   anthropicKey: (typeof localStorage !== 'undefined' && localStorage.getItem('cmoAnthropicKey_v1')) || '',
   openaiKey:    (typeof localStorage !== 'undefined' && localStorage.getItem('cmoOpenAIKey_v1')) || '',
-  chat: { model: 'claude', history: [] /* loaded by initChat() once DOM is up */ },
+  chat: { model: 'claude', history: [], pinned: [] /* both loaded by initChat() once DOM is up */ },
   timeRange: resolveRange(
     (typeof localStorage !== 'undefined' && RANGE_KEYS.has(localStorage.getItem('cmoRange_v1')))
       ? localStorage.getItem('cmoRange_v1')
@@ -5891,6 +6313,9 @@ function initGpt() {
 
 function initChat() {
   state.chat.history = loadChatHistory();
+  state.chat.pinned = loadPinnedChat();
+  renderPinned();
+  renderSidePinnedCount();
   /* Model toggle. */
   const toggleBtns = document.querySelectorAll('.chat-model-toggle button[data-cmodel]');
   toggleBtns.forEach(btn => {

@@ -4,45 +4,67 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Viatrading + Liquidatenow — CMO Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   :root {
-    --bg: #0d0f0e;
-    --surface: #141714;
-    --surface2: #1a1d1a;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.12);
-    --text: #eef1ec;
-    --text2: #d4d9d1;
-    --text3: #b0b6ad;
-    --green: #4caf7d;
-    --green-dim: rgba(76,175,125,0.12);
-    --red: #e05a4e;
-    --red-dim: rgba(224,90,78,0.12);
-    --amber: #d4a843;
-    --amber-dim: rgba(212,168,67,0.12);
-    --blue: #5b9cf6;
-    --blue-dim: rgba(91,156,246,0.12);
-    --purple: #b57dd6;
-    --purple-dim: rgba(181,125,214,0.12);
+    /* Surfaces */
+    --bg:        #f5f6f8;
+    --surface:   #ffffff;
+    --surface2:  #f8fafc;
+
+    /* Lines */
+    --border:    #e6e8eb;
+    --border2:   #d6d9de;
+
+    /* Text */
+    --text:      #0f1419;
+    --text2:     #3c4452;
+    --text3:     #6b7280;
+
+    /* Accent — Semrush blue */
+    --accent:    #1f77ff;
+    --accent-dim:rgba(31,119,255,0.10);
+
+    /* Status hues — re-tuned for legibility on white */
+    --green:     #138a4a;
+    --green-dim: rgba(19,138,74,0.10);
+    --red:       #d4351c;
+    --red-dim:   rgba(212,53,28,0.10);
+    --amber:     #b45f06;
+    --amber-dim: rgba(180,95,6,0.12);
+    --blue:      #1f77ff;
+    --blue-dim:  rgba(31,119,255,0.10);
+    --purple:    #1f77ff;
+    --purple-dim:rgba(31,119,255,0.10);
+
+    /* Always-white chip for text/icons sitting on a colored fill */
+    --on-accent: #ffffff;
+
+    /* Subtle elevation for cards on the off-white page bg */
+    --shadow-card:       0 1px 2px rgba(15,20,25,0.04);
+    --shadow-card-hover: 0 2px 6px rgba(15,20,25,0.06);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
+    color: var(--text2);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
     overflow-x: hidden;
   }
 
-  .noise {
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-    opacity: 0.4;
-  }
+  /* Subtle SVG-grain belongs only on a dark theme */
+  .noise { display: none; }
 
   .header {
     padding: 2rem 2.5rem 1.5rem;
@@ -57,7 +79,7 @@
   }
 
   .header-left h1 {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 2rem;
     font-weight: 400;
     letter-spacing: -0.02em;
@@ -67,20 +89,18 @@
   .header-left p {
     font-size: 0.75rem;
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     margin-top: 0.4rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
   }
 
   .header-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 
   .nav { display: flex; gap: 0.75rem; }
   .nav a {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--text3);
     text-decoration: none;
     padding: 0.35rem 0.7rem;
@@ -93,41 +113,42 @@
 
   .brand-toggle { display: flex; align-items: center; gap: 0.5rem; }
   .brand-toggle .label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
   }
   .brand-toggle .group {
     display: inline-flex;
+    background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
+    border-radius: 7px;
+    padding: 2px;
+    gap: 2px;
   }
   .brand-toggle button {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
     color: var(--text3);
     background: transparent;
     border: 0;
-    padding: 0.35rem 0.7rem;
+    border-radius: 5px;
+    padding: 0.32rem 0.7rem;
     cursor: pointer;
-    transition: color 0.2s, background 0.2s;
+    transition: color 0.15s, background 0.15s, box-shadow 0.15s;
   }
-  .brand-toggle button + button { border-left: 1px solid var(--border); }
-  .brand-toggle button:hover { color: var(--text); }
+  .brand-toggle button:hover { color: var(--text2); }
   .brand-toggle button[aria-pressed="true"] {
     color: var(--text);
     background: var(--surface);
+    box-shadow: 0 1px 2px rgba(15,20,25,0.06);
   }
   .brand-pending {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--amber);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
   }
   .brand-pending.hidden { display: none; }
 
@@ -140,10 +161,10 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
   .last-updated {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
     color: var(--text3);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
   }
 
   .dashboard { padding: 2rem 2.5rem; position: relative; z-index: 1; }
@@ -156,15 +177,16 @@
     border-bottom: 1px solid var(--border);
   }
   .section-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.25rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
   }
   .section-meta {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--text3);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
     font-weight: 500;
   }
 
@@ -177,36 +199,39 @@
   .metric-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem 1.5rem;
-    transition: border-color 0.2s;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    box-shadow: var(--shadow-card);
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .metric-card:hover { border-color: var(--border2); }
+  .metric-card:hover { border-color: var(--border2); box-shadow: var(--shadow-card-hover); }
   .metric-card.placeholder {
     background: repeating-linear-gradient(135deg, var(--surface) 0 12px, var(--surface2) 12px 24px);
-    opacity: 0.65;
+    opacity: 0.7;
   }
 
   .metric-label {
-    font-size: 0.65rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-size: 0.78rem;
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-weight: 500;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.45rem;
   }
 
   .metric-value {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.9rem;
-    line-height: 1;
-    margin-bottom: 0.4rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.015em;
+    font-feature-settings: "tnum" 1;
   }
 
   .metric-delta {
     font-size: 0.7rem;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
   }
   .delta-up { color: var(--green); }
   .delta-down { color: var(--red); }
@@ -221,8 +246,9 @@
   .chart-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.5rem;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-card);
   }
 
   .chart-header {
@@ -233,44 +259,46 @@
   }
 
   .chart-title {
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text3);
-    font-family: 'DM Mono', monospace;
-    font-weight: 500;
+    font-size: 0.82rem;
+    color: var(--text2);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.005em;
   }
 
   .chart-value {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.4rem;
-    line-height: 1;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
     margin-top: 0.25rem;
+    letter-spacing: -0.01em;
+    font-feature-settings: "tnum" 1;
   }
 
   .chart-badge {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     padding: 3px 8px;
     border-radius: 20px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
   }
   .badge-green { background: var(--green-dim); color: var(--green); }
   .badge-red { background: var(--red-dim); color: var(--red); }
   .badge-amber { background: var(--amber-dim); color: var(--amber); }
   .badge-blue { background: var(--blue-dim); color: var(--blue); }
-  .badge-purple { background: var(--purple-dim); color: var(--purple); }
-  .badge-ghost { background: rgba(255,255,255,0.05); color: var(--text3); border: 1px dashed var(--border2); }
-  .demo-reason { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--text3); margin-left: 6px; opacity: 0.85; }
+  .badge-purple { background: var(--accent-dim); color: var(--accent); }
+  .badge-ghost { background: var(--surface2); color: var(--text3); border: 1px dashed var(--border2); }
+  .demo-reason { font-family: 'Inter', system-ui, sans-serif; font-size: 0.74rem; color: var(--text3); margin-left: 6px; opacity: 0.85; }
 
   .chart-wrap { position: relative; }
 
   .data-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
   .data-table th {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
     padding: 0 0 0.75rem;
     text-align: left;
@@ -282,10 +310,10 @@
     color: var(--text2);
   }
   .data-table td:first-child { color: var(--text); font-weight: 600; }
-  .data-table td.num { font-family: 'DM Mono', monospace; text-align: right; }
+  .data-table td.num { font-family: 'Inter', system-ui, sans-serif; text-align: right; }
 
   .placeholder-hint {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
     color: var(--text3);
     margin-top: 0.75rem;
@@ -293,26 +321,33 @@
   }
 
   .footer {
-    text-align: center;
-    padding: 2rem;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 1.5rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
     color: var(--text3);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     border-top: 1px solid var(--border);
     position: relative;
     z-index: 1;
+  }
+  .footer-vicki {
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: -0.01em;
   }
 
   /* AI Briefing hero */
   .ai-briefing {
     margin: 1.5rem 2.5rem 0;
     padding: 1.5rem 1.75rem;
-    background: linear-gradient(180deg, rgba(181,125,214,0.06), transparent 60%), var(--surface);
-    border: 1px solid var(--border2);
-    border-left: 3px solid var(--purple);
-    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    box-shadow: var(--shadow-card);
     position: relative;
     z-index: 1;
   }
@@ -320,12 +355,12 @@
   .ai-avatar {
     width: 38px; height: 38px;
     border-radius: 10px;
-    background: var(--purple-dim);
-    color: var(--purple);
+    background: var(--accent-dim);
+    color: var(--accent);
     display: flex; align-items: center; justify-content: center;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.01em;
     position: relative;
   }
   .ai-avatar::after {
@@ -334,21 +369,20 @@
     right: -2px; top: -2px;
     width: 8px; height: 8px;
     border-radius: 50%;
-    background: var(--purple);
-    box-shadow: 0 0 8px var(--purple);
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
     animation: pulse 2s ease-in-out infinite;
   }
   .ai-brief-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1.15rem;
     line-height: 1.1;
   }
   .ai-brief-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
     color: var(--text2);
-    text-transform: uppercase;
     margin-top: 0.2rem;
     font-weight: 500;
   }
@@ -373,14 +407,14 @@
     border-bottom: 1px dashed var(--border);
   }
   .rec-source-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1rem;
     font-weight: 400;
   }
   .rec-source-count {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
     background: var(--surface);
     padding: 0.15rem 0.5rem;
@@ -389,11 +423,10 @@
   }
   .rec-source-count.empty { opacity: 0.55; }
   .rec-source-hint {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
     color: var(--text3);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     margin-left: auto;
   }
   .rec-source-grid {
@@ -404,7 +437,7 @@
   .rec-source-empty {
     grid-column: 1 / -1;
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
     font-style: italic;
     padding: 0.25rem 0 0.5rem;
@@ -424,14 +457,13 @@
     padding: 0.7rem 0.9rem;
   }
   .src-counter-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
   }
   .src-counter-value {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1.4rem;
     margin-top: 0.2rem;
   }
@@ -459,23 +491,22 @@
     display: flex; align-items: baseline; gap: 0.55rem; flex-wrap: wrap;
   }
   .src-card-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1.05rem;
   }
   .src-card-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--text3);
-    letter-spacing: 0.06em;
+    letter-spacing: 0.01em;
   }
   .src-status {
     display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     padding: 2px 8px;
     border-radius: 4px;
-    text-transform: uppercase;
     margin-left: auto;
   }
   .src-status.live { background: var(--green-dim); color: var(--green); }
@@ -485,20 +516,19 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.4rem 0.75rem;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.72rem;
   }
   .src-stat-label {
-    font-size: 0.58rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
   }
   .src-stat-value { color: var(--text); }
   .src-stat-value.dim { color: var(--text3); font-style: italic; }
   .src-meta {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--text3);
     line-height: 1.5;
     word-break: break-word;
@@ -511,8 +541,8 @@
   .src-meta a:hover { color: var(--text); }
   .src-cols {
     display: flex; flex-wrap: wrap; gap: 0.3rem;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
   }
   .src-col-chip {
     background: var(--surface2);
@@ -522,8 +552,8 @@
     border-radius: 4px;
   }
   .src-reason {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--amber);
     background: var(--amber-dim);
     padding: 0.45rem 0.6rem;
@@ -552,14 +582,13 @@
     gap: 0.2rem;
   }
   .refresh-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
   }
   .refresh-value {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.78rem;
     color: var(--text);
   }
@@ -589,13 +618,13 @@
     border: 1px solid var(--border2);
     border-radius: 6px;
     color: var(--text);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.78rem;
     padding: 0.5rem 0.75rem;
   }
-  .claude-key-input:focus { outline: none; border-color: var(--purple); }
+  .claude-key-input:focus { outline: none; border-color: var(--accent); }
   .claude-status {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.7rem;
     color: var(--text3);
     margin-bottom: 1rem;
@@ -616,38 +645,40 @@
   }
   .threshold-brand { display: flex; align-items: center; gap: 0.5rem; }
   .threshold-brand .label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
   }
   .threshold-brand .group {
     display: inline-flex;
+    background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
+    border-radius: 7px;
+    padding: 2px;
+    gap: 2px;
   }
   .threshold-brand button {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
     color: var(--text3);
     background: transparent;
     border: 0;
-    padding: 0.4rem 0.85rem;
+    border-radius: 5px;
+    padding: 0.32rem 0.85rem;
     cursor: pointer;
+    transition: color 0.15s, background 0.15s, box-shadow 0.15s;
   }
-  .threshold-brand button + button { border-left: 1px solid var(--border); }
   .threshold-brand button[aria-pressed="true"] {
     color: var(--text);
+    box-shadow: 0 1px 2px rgba(15,20,25,0.06);
     background: var(--surface);
   }
   .threshold-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
   .threshold-saved {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--green);
     transition: opacity 0.4s;
   }
@@ -664,15 +695,14 @@
     padding-bottom: 0.4rem;
   }
   .threshold-source-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1rem;
   }
   .threshold-source-hint {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
     color: var(--text3);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
   }
   .threshold-rows {
     display: grid;
@@ -693,7 +723,7 @@
     padding: 0.55rem 0.75rem;
   }
   .threshold-label {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.72rem;
     color: var(--text2);
     line-height: 1.3;
@@ -703,12 +733,12 @@
     border: 1px solid var(--border2);
     border-radius: 5px;
     color: var(--text);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.78rem;
     padding: 0.35rem 0.5rem;
     text-align: right;
   }
-  .threshold-input:focus { outline: none; border-color: var(--purple); }
+  .threshold-input:focus { outline: none; border-color: var(--accent); }
   .threshold-input.dirty { border-color: var(--amber); }
 
   .rec-card {
@@ -724,19 +754,18 @@
   .rec-card:hover { border-color: var(--border2); }
   .rec-sev {
     display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     padding: 2px 7px;
     border-radius: 4px;
-    text-transform: uppercase;
     align-self: flex-start;
   }
   .rec-sev-high { background: var(--red-dim); color: var(--red); }
   .rec-sev-medium { background: var(--amber-dim); color: var(--amber); }
   .rec-sev-low { background: var(--blue-dim); color: var(--blue); }
   .rec-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1rem;
     line-height: 1.25;
   }
@@ -747,10 +776,9 @@
   }
   .rec-actions { display: flex; gap: 0.4rem; margin-top: 0.25rem; }
   .rec-btn {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     padding: 0.35rem 0.7rem;
     border-radius: 5px;
     border: 1px solid var(--border2);
@@ -761,14 +789,14 @@
   }
   .rec-btn:hover { color: var(--text); border-color: var(--border2); }
   .rec-btn-primary {
-    background: var(--purple-dim);
-    color: var(--purple);
+    background: var(--accent-dim);
+    color: var(--accent);
     border-color: transparent;
   }
-  .rec-btn-primary:hover { color: var(--text); background: var(--purple); }
+  .rec-btn-primary:hover { color: var(--text); background: var(--accent); }
   .rec-empty {
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.75rem;
     font-style: italic;
   }
@@ -790,15 +818,14 @@
     margin-bottom: 0.9rem;
   }
   .todo-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1.05rem;
   }
   .todo-meta {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
   .todo-list { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; }
   .todo-item {
@@ -825,14 +852,14 @@
     margin-top: 2px;
     transition: background 0.15s, border-color 0.15s;
   }
-  .todo-check:hover { border-color: var(--purple); }
-  .todo-check:checked { background: var(--purple); border-color: var(--purple); }
+  .todo-check:hover { border-color: var(--accent); }
+  .todo-check:checked { background: var(--accent); border-color: var(--accent); }
   .todo-check:checked::after {
     content: '';
     position: absolute;
     left: 4px; top: 1px;
     width: 5px; height: 9px;
-    border: solid var(--bg);
+    border: solid var(--on-accent);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
@@ -843,18 +870,17 @@
     color: var(--text);
   }
   .todo-why {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.72rem;
     color: var(--text2);
     letter-spacing: 0.02em;
   }
   .todo-sev {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.55rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     padding: 2px 6px;
     border-radius: 3px;
-    text-transform: uppercase;
     align-self: flex-start;
     margin-top: 2px;
   }
@@ -863,7 +889,7 @@
   .todo-sev-low { background: var(--blue-dim); color: var(--blue); }
   .todo-empty {
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.75rem;
     font-style: italic;
     padding: 0.5rem 0;
@@ -893,7 +919,7 @@
     min-width: 66px;
   }
   .action-counter-value {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1.15rem;
     line-height: 1;
     color: var(--text);
@@ -902,11 +928,10 @@
   .action-counter-value.completed { color: var(--green); }
   .action-counter-value.dismissed { color: var(--text3); }
   .action-counter-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
   .action-filters {
     display: flex;
@@ -920,25 +945,27 @@
     gap: 0.4rem;
   }
   .action-filter label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
   .action-filter select {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    padding: 0.3rem 0.5rem;
-    border-radius: 5px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.8rem;
+    padding: 0.32rem 0.55rem;
+    border-radius: 6px;
     background: var(--surface);
     color: var(--text);
-    border: 1px solid var(--border2);
+    border: 1px solid var(--border);
     cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
+  .action-filter select:hover { border-color: var(--border2); }
+  .action-filter select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
   .action-empty {
     color: var(--text3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.75rem;
     font-style: italic;
     padding: 0.5rem 0;
@@ -947,16 +974,15 @@
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.06em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
-  .rec-meta-row span { background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px; }
+  .rec-meta-row span { background: var(--surface2); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
   .rec-trigger {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--text2);
     letter-spacing: 0.02em;
   }
@@ -964,45 +990,43 @@
   .rec-card.status-COMPLETED { opacity: 0.55; border-left: 3px solid var(--green); }
   .rec-card.status-DISMISSED { opacity: 0.35; border-left: 3px solid var(--text3); }
   .rec-btn-complete { background: var(--green-dim); color: var(--green); border-color: transparent; }
-  .rec-btn-complete:hover { background: var(--green); color: var(--bg); }
+  .rec-btn-complete:hover { background: var(--green); color: var(--on-accent); }
   .rec-btn-progress { background: var(--amber-dim); color: var(--amber); border-color: transparent; }
-  .rec-btn-progress:hover { background: var(--amber); color: var(--bg); }
+  .rec-btn-progress:hover { background: var(--amber); color: var(--on-accent); }
   .rec-btn-dismiss { background: transparent; color: var(--text3); }
   .rec-btn-dismiss:hover { color: var(--red); border-color: var(--red); }
   .rec-status-tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     padding: 2px 6px;
     border-radius: 4px;
     align-self: flex-start;
   }
-  .rec-status-OPEN { background: rgba(255,255,255,0.05); color: var(--text2); }
+  .rec-status-OPEN { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
   .rec-status-IN_PROGRESS { background: var(--amber-dim); color: var(--amber); }
   .rec-status-COMPLETED { background: var(--green-dim); color: var(--green); }
-  .rec-status-DISMISSED { background: rgba(255,255,255,0.04); color: var(--text3); }
+  .rec-status-DISMISSED { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
 
   /* Brand-scope hint on the briefing */
   .brand-scope {
     display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     padding: 2px 7px;
     border-radius: 4px;
-    text-transform: uppercase;
     margin-left: 0.5rem;
-    background: var(--purple-dim);
-    color: var(--purple);
+    background: var(--accent-dim);
+    color: var(--accent);
   }
 
   /* Per-section insight strip */
   .insight-strip {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.75rem;
-    color: var(--purple);
-    background: var(--purple-dim);
+    color: var(--accent);
+    background: var(--accent-dim);
     padding: 0.6rem 0.85rem;
     border-radius: 6px;
     margin-bottom: 1rem;
@@ -1011,11 +1035,10 @@
   }
   .insight-strip:empty { display: none; }
   .insight-strip strong {
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    font-size: 0.65rem;
+    letter-spacing: 0.01em;
+    font-size: 0.78rem;
     margin-right: 0.5rem;
-    color: var(--purple);
+    color: var(--accent);
     opacity: 0.85;
   }
 
@@ -1053,47 +1076,66 @@
     z-index: 5;
   }
   .side-brand {
-    padding: 1.1rem 1.15rem 0.9rem;
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.25rem;
-    line-height: 1;
-    letter-spacing: 0.01em;
+    padding: 1rem 1.15rem 0.85rem;
     border-bottom: 1px solid var(--border);
   }
+  .side-brand-logos {
+    display: flex; align-items: center; gap: 0.55rem;
+    margin-bottom: 0.45rem;
+  }
+  .side-brand-logo {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    object-fit: contain;
+    background: #fff;
+    border: 1px solid var(--border);
+    padding: 3px;
+    transition: opacity 0.2s;
+  }
+  .side-brand-divider {
+    width: 1px; height: 16px; background: var(--border);
+  }
+  body[data-brand="via"] .side-brand-logo[data-brand-logo="liq"],
+  body[data-brand="liq"] .side-brand-logo[data-brand-logo="via"] { opacity: 0.35; }
   .side-brand-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.14em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
     color: var(--text3);
-    text-transform: uppercase;
-    margin-top: 0.25rem;
+    font-weight: 500;
   }
   .side-nav { display: flex; flex-direction: column; padding: 0.5rem 0; gap: 1px; }
   .side-link {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0.55rem 1.15rem;
+    padding: 0.5rem 1.15rem;
     color: var(--text2);
-    font-size: 0.85rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     text-decoration: none;
     border-left: 3px solid transparent;
     transition: color 0.15s, background 0.15s, border-color 0.15s;
   }
-  .side-link:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .side-link:hover { color: var(--text); background: var(--surface); }
   .side-link.is-active {
-    color: var(--text);
-    background: var(--purple-dim);
-    border-left-color: var(--purple);
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-left-color: var(--accent);
   }
   .side-sep { height: 1px; background: var(--border); margin: 0.5rem 1.15rem; }
   .side-foot {
     margin-top: auto;
-    padding: 0.9rem 1.15rem 1rem;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
+    padding: 0.85rem 1.15rem 1rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
     color: var(--text3);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .side-foot-vicki {
+    color: var(--text);
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
   .pill {
     display: inline-flex; align-items: center; justify-content: center;
@@ -1102,9 +1144,9 @@
     border-radius: 10px;
     background: var(--red-dim);
     color: var(--red);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.05em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
   }
   .pill:empty { display: none; }
 
@@ -1112,15 +1154,18 @@
     grid-area: top;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 0 rgba(15,20,25,0.02);
     display: flex; align-items: center; gap: 0.9rem;
     padding: 0 1.25rem;
     position: sticky; top: 0;
     z-index: 4;
   }
   .topbar-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.1rem;
-    letter-spacing: 0.01em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.005em;
   }
   .topbar-spacer { flex: 1; }
   .nav-toggle {
@@ -1138,42 +1183,42 @@
     display: flex; align-items: center; gap: 0.4rem;
   }
   .range-picker label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
   .range-picker select {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    padding: 0.35rem 0.5rem;
-    border-radius: 5px;
-    background: var(--surface2);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.8rem;
+    padding: 0.36rem 0.55rem;
+    border-radius: 6px;
+    background: var(--surface);
     color: var(--text);
-    border: 1px solid var(--border2);
+    border: 1px solid var(--border);
     cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
+  .range-picker select:hover { border-color: var(--border2); }
+  .range-picker select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
   .topbar .brand-toggle {
     gap: 0.5rem;
   }
   .topbar .brand-toggle .label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
   .topbar .brand-toggle .group button {
     padding: 0.28rem 0.55rem;
-    font-size: 0.68rem;
+    font-size: 0.78rem;
   }
   .topbar .last-updated {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
     color: var(--text3);
-    text-transform: uppercase;
   }
 
   .main {
@@ -1188,12 +1233,11 @@
   .page > .todo-panel { margin-left: 0; margin-right: 0; }
 
   .section-link {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
-    color: var(--purple);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
+    color: var(--accent);
     text-decoration: none;
-    text-transform: uppercase;
   }
   .section-link:hover { color: var(--text); }
 
@@ -1212,7 +1256,7 @@
     border-radius: 8px;
   }
   .overview-action-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.92rem;
     line-height: 1.25;
   }
@@ -1253,7 +1297,14 @@
 <div class="noise"></div>
 
 <aside class="side" id="sideNav" aria-label="Channel navigation">
-  <div class="side-brand">CMO<div class="side-brand-sub">Copilot</div></div>
+  <div class="side-brand">
+    <div class="side-brand-logos">
+      <img class="side-brand-logo" data-brand-logo="via" src="https://www.google.com/s2/favicons?domain=viatrading.com&sz=64" alt="Viatrading" /><!-- TODO: swap to official logo URL -->
+      <span class="side-brand-divider"></span>
+      <img class="side-brand-logo" data-brand-logo="liq" src="https://www.google.com/s2/favicons?domain=liquidatenow.com&sz=64" alt="Liquidatenow" /><!-- TODO: swap to official logo URL -->
+    </div>
+    <div class="side-brand-sub">CMO dashboard</div>
+  </div>
   <nav class="side-nav">
     <a class="side-link is-active" data-route="overview" href="#/overview">Overview</a>
     <a class="side-link" data-route="ads"      href="#/ads">Ads</a>
@@ -1271,7 +1322,10 @@
     <a class="side-link" data-route="thresholds" href="#/thresholds">Thresholds</a>
     <a class="side-link" data-route="sources"   href="#/sources">Data Sources <span class="pill" id="sideSourcesPill"></span></a>
   </nav>
-  <div class="side-foot">Viatrading &amp; Liquidatenow</div>
+  <div class="side-foot">
+    <span class="side-foot-powered">Powered by</span>
+    <span class="side-foot-vicki">Vicki Intelligence</span>
+  </div>
 </aside>
 
 <header class="topbar">
@@ -1805,7 +1859,8 @@
 </main>
 
 <footer class="footer">
-  CMO POC · Data may be partial · Connect missing sources to replace placeholders
+  <span class="footer-powered">Powered by</span>
+  <span class="footer-vicki">Vicki Intelligence</span>
 </footer>
 
 <script id="appScript">
@@ -1850,16 +1905,17 @@ const SHEETS = {
   },
 };
 
-const GREEN = '#4caf7d';
-const RED = '#e05a4e';
-const AMBER = '#d4a843';
-const BLUE = '#5b9cf6';
-const PURPLE = '#b57dd6';
-const TEXT2 = '#d4d9d1';
+const GREEN  = '#138a4a';
+const RED    = '#d4351c';
+const AMBER  = '#b45f06';
+const BLUE   = '#1f77ff';
+const PURPLE = '#1f77ff';
+const TEXT2  = '#3c4452';
+const GRID   = 'rgba(15,20,25,0.06)';
 
 Chart.defaults.color = TEXT2;
-Chart.defaults.font.family = "'DM Mono', monospace";
-Chart.defaults.font.size = 11;
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
 
 const fmt = (n, p='', s='') => (n==null||isNaN(n)) ? '—' : p + Number(n).toLocaleString(undefined,{maximumFractionDigits:1}) + s;
 const fmtCur = n => (n==null||isNaN(n)) ? '—' : '$' + Math.round(n).toLocaleString();
@@ -2304,7 +2360,7 @@ function makeChart(id, type, labels, datasets, opts={}) {
       plugins: { legend: opts.legend || { display: false } },
       scales: type === 'doughnut' ? {} : {
         x: { grid: { display: false }, ticks: { maxRotation: 45, ...opts.xTicks } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ...opts.yScale },
+        y: { grid: { color: GRID }, ...opts.yScale },
       },
       ...opts.extra,
     },
@@ -4066,7 +4122,7 @@ function renderAds({ rows, source, reason }, insight) {
   makeChart('adsChart', 'line', daily.map(([k]) => k.slice(5)), [{
     data: daily.map(([,v]) => +v.toFixed(2)),
     borderColor: BLUE,
-    backgroundColor: 'rgba(91,156,246,0.1)',
+    backgroundColor: 'rgba(31,119,255,0.12)',
     fill: true, tension: 0.35, pointRadius: 2, pointBackgroundColor: BLUE,
   }], { yScale: { ticks: { callback: v => '$'+v } }, xTicks: { maxTicksLimit: 8 } });
 
@@ -4122,13 +4178,13 @@ function renderSeo({ rows, source, reason }, insight) {
   const c = byDay(rows, 'Clicks');
   const i = byDay(rows, 'Impressions');
   makeChart('seoChart', 'line', c.map(([k]) => k.slice(5)), [
-    { data: c.map(([,v]) => v), borderColor: GREEN, backgroundColor:'rgba(76,175,125,0.1)', fill:true, tension: 0.35, pointRadius: 2, yAxisID:'y', label:'Clicks' },
+    { data: c.map(([,v]) => v), borderColor: GREEN, backgroundColor:'rgba(19,138,74,0.12)', fill:true, tension: 0.35, pointRadius: 2, yAxisID:'y', label:'Clicks' },
     { data: i.map(([,v]) => v), borderColor: AMBER, borderDash:[4,4], pointRadius: 0, tension: 0.35, yAxisID:'y1', label:'Impressions' },
   ], {
     legend: { display: true, labels: { color: TEXT2, boxWidth: 10, padding: 12 } },
     extra: { scales: {
       x: { grid: { display:false } },
-      y: { grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { grid: { color: GRID } },
       y1:{ position: 'right', grid: { display: false } },
     } },
   });
@@ -4190,14 +4246,14 @@ function renderGa({ rows, source, reason }, insight) {
   makeChart('gaChart', 'line', daily.map(([k]) => k.slice(5)), [{
     data: daily.map(([,v]) => v),
     borderColor: AMBER,
-    backgroundColor: 'rgba(212,168,67,0.1)',
+    backgroundColor: 'rgba(180,95,6,0.12)',
     fill: true, tension: 0.35, pointRadius: 2, pointBackgroundColor: AMBER,
   }], { xTicks: { maxTicksLimit: 8 } });
 
   const channels = topN(rows, 'Channel', 'Sessions', 6);
   makeChart('gaChannelChart', 'doughnut', channels.map(c => c.name), [{
     data: channels.map(c => c.Sessions),
-    backgroundColor: [GREEN, BLUE, AMBER, PURPLE, RED, 'rgba(255,255,255,0.15)'],
+    backgroundColor: [GREEN, BLUE, AMBER, PURPLE, RED, 'rgba(15,20,25,0.12)'],
     borderWidth: 0,
   }], { extra: { cutout: '60%', plugins: { legend: { display:true, position:'right', labels:{ color: TEXT2, boxWidth:10, padding:10, font:{ size:10 } } } } } });
 
@@ -4290,7 +4346,7 @@ function renderCalls({ rows, source, reason }, insight) {
   const daily = byDay(rows, 'Total Calls');
   makeChart('callsChart', 'bar', daily.map(([k]) => k.slice(5)), [{
     data: daily.map(([,v]) => v),
-    backgroundColor: 'rgba(91,156,246,0.55)', borderRadius: 3,
+    backgroundColor: 'rgba(31,119,255,0.55)', borderRadius: 3,
   }], { xTicks: { maxTicksLimit: 10 } });
 
   makeChart('callsDonut', 'doughnut', ['Answered','Missed'], [{
@@ -4376,7 +4432,7 @@ function renderSocial({ rows, source, reason }, insight) {
   makeChart('socialChart', 'line', daily.map(([k]) => k.slice(5)), [{
     data: daily.map(([,v]) => v),
     borderColor: PURPLE,
-    backgroundColor: 'rgba(181,125,214,0.12)',
+    backgroundColor: 'rgba(31,119,255,0.12)',
     fill: true, tension: 0.35, pointRadius: 2, pointBackgroundColor: PURPLE,
   }], { xTicks: { maxTicksLimit: 8 } });
 
@@ -4933,14 +4989,21 @@ const state = {
   ),
 };
 
+function syncBodyBrandAttr(brand) {
+  if (brand === 'via' || brand === 'liq') document.body.setAttribute('data-brand', brand);
+  else document.body.removeAttribute('data-brand');
+}
+
 function initBrandToggle() {
   const buttons = document.querySelectorAll('.brand-toggle button[data-brand]');
+  syncBodyBrandAttr(state.brand);
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
       const next = btn.dataset.brand;
       if (state.brand === next) return;
       state.brand = next;
       state.filters.brand = next;
+      syncBodyBrandAttr(next);
       buttons.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
       repaint();
     });

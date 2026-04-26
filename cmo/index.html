@@ -422,7 +422,27 @@
   .rec-source-title {
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 1rem;
-    font-weight: 400;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--src-color, var(--text));
+  }
+  .rec-source-icon {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    background: var(--src-color-dim, var(--accent-dim));
+    color: var(--src-color, var(--accent));
+    flex-shrink: 0;
+  }
+  .rec-source-icon svg { width: 16px; height: 16px; }
+  .rec-source-head {
+    border-bottom-color: var(--src-color-dim, var(--border));
   }
   .rec-source-count {
     font-family: 'Inter', system-ui, sans-serif;
@@ -2991,6 +3011,40 @@ const SOURCE_DETAIL = {
   aircall:    { label: 'Calls',              hint: 'Aircall lines & volume' },
   cross:      { label: 'Cross-Channel',      hint: 'Multi-source signals' },
 };
+/* Per-source icon + accent color for the Decisions section headers. Picks a
+   distinct hue per channel so "Ads" / "Keywords" / "SEO" are scannable at a
+   glance instead of a wall of identical grey titles. */
+const SOURCE_ICONS = {
+  ads: 'megaphone', keywords: 'key', gsc: 'search',
+  semrush_kw: 'trendup', semrush_bl: 'bar', ga: 'bar',
+  pagespeed: 'gauge', social: 'share', aircall: 'phone', cross: 'sparkles',
+};
+const SOURCE_COLORS = {
+  ads:        '#1f77ff', /* blue */
+  keywords:   '#7c3aed', /* violet */
+  gsc:        '#138a4a', /* green */
+  semrush_kw: '#b45f06', /* amber */
+  semrush_bl: '#a16207', /* deeper amber */
+  ga:         '#0891b2', /* teal */
+  pagespeed:  '#d4351c', /* red */
+  social:     '#db2777', /* pink */
+  aircall:    '#059669', /* emerald */
+  cross:      '#6366f1', /* indigo */
+};
+function sourceHeaderHtml(src, count, label, hint, opts = {}) {
+  const color = SOURCE_COLORS[src] || 'var(--text)';
+  const iconName = SOURCE_ICONS[src];
+  const icon = iconName ? `<span class="rec-source-icon">${cmoIcon(iconName, '')}</span>` : '';
+  const empty = opts.empty ? ' empty' : '';
+  const extra = opts.extraHtml || '';
+  return `
+    <header class="rec-source-head" style="--src-color:${color};--src-color-dim:${color}1f">
+      <h3 class="rec-source-title">${icon}<span>${escapeHtml(label)}</span></h3>
+      <span class="rec-source-count${empty}">${count}</span>
+      <span class="rec-source-hint">${escapeHtml(hint || '')}</span>
+      ${extra}
+    </header>`;
+}
 
 const ACTION_LOG_KEY = 'cmoActionLog_v1';
 function loadActionLog() {
@@ -3175,11 +3229,7 @@ function renderActionCards(actionsByDataset, filters) {
       : `<div class="rec-source-empty">No ${detail.label.toLowerCase()} decisions match the current filters.</div>`;
     return `
       <section class="rec-source-group" data-source="${src}">
-        <header class="rec-source-head">
-          <h3 class="rec-source-title">${detail.label}</h3>
-          <span class="rec-source-count${list.length ? '' : ' empty'}">${list.length}</span>
-          <span class="rec-source-hint">${detail.hint}</span>
-        </header>
+        ${sourceHeaderHtml(src, list.length, detail.label, detail.hint, { empty: !list.length })}
         <div class="rec-source-grid">${cards}</div>
       </section>
     `;
@@ -5431,12 +5481,7 @@ function renderLLMDecisions(list, mountId, badgeLabel) {
       : '';
     return `
       <section class="rec-source-group" data-source="${src}">
-        <header class="rec-source-head">
-          <h3 class="rec-source-title">${escapeHtml(detail.label)}</h3>
-          <span class="rec-source-count">${all.length}</span>
-          <span class="rec-source-hint">${escapeHtml(detail.hint)}</span>
-          ${toggle}
-        </header>
+        ${sourceHeaderHtml(src, all.length, detail.label, detail.hint, { extraHtml: toggle })}
         <div class="rec-source-grid">${cards}</div>
         ${!expanded && more > 0 ? `<div class="rec-source-hint" style="margin-top:0.4rem">+ ${more} more — click "Show all ${all.length}"</div>` : ''}
       </section>`;
@@ -6051,6 +6096,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 26, 2026',
+    title: 'Metricool fix + colorful Decisions section headers',
+    tags: ['Fix', 'Polish'],
+    bullets: [
+      'Fixed the Metricool / Social channel showing "normalizeSocialRows is not defined" on the Data Sources page — the function was missing, so every Metricool fetch failed and the Social page rendered empty. Now the channel pulls live again and the Data Sources card shows real row counts + date range.',
+      'Decisions section headers (Ads, Keywords, SEO / Search, GA4, Page Speed, Social, Calls, Cross-Channel) now show a per-channel icon and use the channel\'s accent color so each section is scannable at a glance instead of a wall of identical grey titles.',
+      'Section titles are bold and the divider underline picks up the section\'s color too.',
+    ],
+  },
   {
     date: 'Apr 26, 2026',
     title: 'Drill-downs, sidebar icons, Low Hanging Fruit, Top 5 cards',

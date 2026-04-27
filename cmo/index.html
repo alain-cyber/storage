@@ -351,6 +351,19 @@
     font-feature-settings: "tnum" 1;
   }
 
+  /* Plain-English explanation under each chart-card header. Same dim
+     small-text treatment as Playbook rule hints — always visible so a
+     non-technical reader can scan a section and know what they're
+     looking at and why it matters. */
+  .chart-help {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    color: var(--text3);
+    line-height: 1.45;
+    margin-top: 0.45rem;
+    max-width: 38rem;
+  }
+
   .chart-badge {
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.78rem;
@@ -2198,6 +2211,7 @@
         <div>
           <div class="chart-title">Spend trend</div>
           <div class="chart-value" id="adsSpend">—</div>
+          <div class="chart-help">Daily ad spend across the active range. Spike-then-flat usually means a campaign hit its budget cap; steady drift up means the algorithm is finding more inventory to serve into.</div>
         </div>
         <span class="chart-badge badge-blue">Daily</span>
       </div>
@@ -2208,6 +2222,7 @@
         <div>
           <div class="chart-title">Top campaigns</div>
           <div class="chart-value">By spend</div>
+          <div class="chart-help">Where most of your ad budget is going right now. Compare against conversions on each — high spend with low conversions is the first place to cut.</div>
         </div>
         <span class="chart-badge badge-green">Top 5</span>
       </div>
@@ -2222,6 +2237,7 @@
       <div>
         <div class="chart-title">Worst campaigns (dead spend)</div>
         <div class="chart-value">By wasted spend</div>
+        <div class="chart-help">Campaigns that spent the most without producing a single tracked conversion. These are KILL candidates — pause them and reallocate the budget to your top performers.</div>
       </div>
       <span class="chart-badge badge-red">Action needed</span>
     </div>
@@ -2247,6 +2263,7 @@
         <div>
           <div class="chart-title">Clicks vs impressions</div>
           <div class="chart-value" id="seoClicks">—</div>
+          <div class="chart-help">Daily organic clicks alongside how many times Google showed you in results. Impressions up but clicks flat means your titles aren't winning the click — a FIX_TITLE rule trigger.</div>
         </div>
         <span class="chart-badge badge-green">Trend</span>
       </div>
@@ -2257,6 +2274,7 @@
         <div>
           <div class="chart-title">Top queries</div>
           <div class="chart-value">By clicks</div>
+          <div class="chart-help">Search terms sending you the most organic traffic. Defending these is more valuable than chasing new ones — a 10% rank slip on a top-traffic query costs more than winning a new long-tail one.</div>
         </div>
       </div>
       <table class="data-table">
@@ -2270,6 +2288,7 @@
       <div>
         <div class="chart-title">Opportunity queries</div>
         <div class="chart-value">High impressions, page 2</div>
+        <div class="chart-help">Queries Google shows you for many searches but where you rank position 11-20 (page 2). A title rewrite or one or two new internal links typically pushes these into the top 10 where the clicks live.</div>
       </div>
       <span class="chart-badge badge-amber">Potential</span>
     </div>
@@ -2295,6 +2314,7 @@
         <div>
           <div class="chart-title">Sessions trend</div>
           <div class="chart-value" id="gaSessions">—</div>
+          <div class="chart-help">Daily web sessions across all channels. Watch for sustained drops — one bad day is noise, three in a row is signal worth investigating.</div>
         </div>
         <span class="chart-badge badge-amber">Daily</span>
       </div>
@@ -2305,6 +2325,7 @@
         <div>
           <div class="chart-title">Channel mix</div>
           <div class="chart-value">Sessions</div>
+          <div class="chart-help">Where your traffic comes from — Direct, Organic, Paid, Referral, etc. A healthy mix has no single channel above ~60%; over-reliance on paid is a margin risk because the moment you stop paying, the traffic stops.</div>
         </div>
       </div>
       <div class="chart-wrap" style="height:200px"><canvas id="gaChannelChart"></canvas></div>
@@ -2315,6 +2336,7 @@
       <div>
         <div class="chart-title">Channels by engagement</div>
         <div class="chart-value">Best &amp; worst</div>
+        <div class="chart-help">Which channels actually keep visitors engaged once they arrive. High traffic + low engagement is the worst combination — you're paying for landings that bounce.</div>
       </div>
       <span class="chart-badge badge-purple">Quality</span>
     </div>
@@ -2340,6 +2362,7 @@
           <div>
             <div class="chart-title">Worst LCP pages</div>
             <div class="chart-value">Largest Contentful Paint (s)</div>
+            <div class="chart-help">Pages where the biggest visible element takes the longest to paint. Above 2.5s Google calls it slow and ranking starts taking a hit. Compress images, defer offscreen JS, lean on a CDN.</div>
           </div>
           <span class="chart-badge badge-red">CWV</span>
         </div>
@@ -2353,6 +2376,7 @@
           <div>
             <div class="chart-title">Worst CLS pages</div>
             <div class="chart-value">Cumulative Layout Shift</div>
+            <div class="chart-help">Pages where elements jump around the most while loading. Users tap the wrong thing; Google penalizes anything above 0.1. Usually fixed by reserving space for images and ads with explicit width/height.</div>
           </div>
           <span class="chart-badge badge-amber">Stability</span>
         </div>
@@ -2367,6 +2391,7 @@
         <div>
           <div class="chart-title">Slowest INP pages</div>
           <div class="chart-value">Interaction to Next Paint (ms)</div>
+          <div class="chart-help">Pages with the longest delay between a user tap and the page actually reacting. Under 200ms feels instant; above 500ms feels broken. Usually a too-heavy main-thread JS problem.</div>
         </div>
         <span class="chart-badge badge-purple">Responsiveness</span>
       </div>
@@ -2392,6 +2417,7 @@
         <div>
           <div class="chart-title">Calls per day</div>
           <div class="chart-value" id="callsTotal">—</div>
+          <div class="chart-help">Daily inbound call volume. Sudden spike often means a campaign or page is converting unusually well — check what changed that day so you can replicate it.</div>
         </div>
         <span class="chart-badge badge-blue">Volume</span>
       </div>
@@ -2402,6 +2428,7 @@
         <div>
           <div class="chart-title">Answered vs missed</div>
           <div class="chart-value" id="callsAnsweredPct">—</div>
+          <div class="chart-help">Share of calls your team picked up. Below 90% during business hours means routing or staffing needs attention — every missed call is a paid lead that may not call back.</div>
         </div>
       </div>
       <div class="chart-wrap" style="height:200px"><canvas id="callsDonut"></canvas></div>
@@ -2412,6 +2439,7 @@
       <div>
         <div class="chart-title">Worst days (miss rate)</div>
         <div class="chart-value">Coverage gaps</div>
+        <div class="chart-help">Days with the highest share of missed calls. Group these by day of week — if Mondays always miss most, the schedule is the problem, not the team.</div>
       </div>
       <span class="chart-badge badge-red">Routing</span>
     </div>
@@ -2437,6 +2465,7 @@
         <div>
           <div class="chart-title">Reach by day</div>
           <div class="chart-value" id="socialReach">—</div>
+          <div class="chart-help">Unique people who saw your posts each day, summed across networks. Smooth gradual decline is normal; cliff drops mean the algorithm just changed how it weights you.</div>
         </div>
         <span class="chart-badge badge-purple">Daily</span>
       </div>
@@ -2447,6 +2476,7 @@
         <div>
           <div class="chart-title">Top posts</div>
           <div class="chart-value">By reach</div>
+          <div class="chart-help">Best-performing individual posts. The patterns here — format, time of day, topic — are your replicate-this template; the algorithm has told you what works.</div>
         </div>
         <span class="chart-badge badge-green">Top 5</span>
       </div>
@@ -2461,6 +2491,7 @@
       <div>
         <div class="chart-title">Per-network performance</div>
         <div class="chart-value">Followers · reach · engagement · best format</div>
+        <div class="chart-help">How each social network is doing on followers, reach, engagement, and which post format is winning. Lean into the network with the highest reach efficiency — it's where your effort compounds fastest.</div>
       </div>
       <span class="chart-badge badge-blue">Detail</span>
     </div>
@@ -2557,6 +2588,7 @@
           <div>
             <div class="chart-title">Top spenders</div>
             <div class="chart-value">By spend</div>
+            <div class="chart-help">Keywords burning the most ad spend. High spend is fine if conversions justify it — sort by CPA to see which ones are actually paying back vs draining budget.</div>
           </div>
           <span class="chart-badge badge-blue">Top 8</span>
         </div>
@@ -2570,6 +2602,7 @@
           <div>
             <div class="chart-title">Wasters</div>
             <div class="chart-value">Spend, zero conversions</div>
+            <div class="chart-help">Keywords that spent money but never converted. These are NEGATE candidates — add them as negative match types in Google Ads so they stop matching searches you don't want to pay for.</div>
           </div>
           <span class="chart-badge badge-red">Negate</span>
         </div>
@@ -2784,7 +2817,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · date filter on every sheet · LN logo swap · built 2026-04-27 r7', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · plain-English help text on every chart · built 2026-04-27 r8', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -7590,6 +7623,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Plain-English help text under every chart',
+    tags: ['Polish'],
+    bullets: [
+      'Added a one-line explanation under every chart-card header across the dashboard — Ads (Spend trend, Top campaigns, Worst campaigns), SEO (Clicks vs impressions, Top queries, Opportunity queries), GA (Sessions trend, Channel mix, Channels by engagement), Page Speed (Worst LCP / CLS / INP), Calls (Calls per day, Answered vs missed, Worst days), Social (Reach by day, Top posts, Per-network), Keywords (Top spenders, Wasters). 20 sections in total.',
+      'Each line answers two questions: what is this view, and what should I do with it. Same dim small-text style as the Playbook rule hints — always visible, no tap, no jargon. A non-technical reader can scan a page and know what they\'re looking at within a few seconds.',
+      'Build tag bumped to r8.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Date filter applied to every sheet that has a clean date column · new LN logo',

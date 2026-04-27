@@ -2990,51 +2990,55 @@ async function fetchSheet(id, opts = {}) {
   else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
   if (opts.headers != null) params.push(`headers=${encodeURIComponent(opts.headers)}`);
   const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?${params.join('&')}`;
-  /* Timed-out gviz fetches (cold sheets, big tabs like GSC + GA4) used to
-     surface as the cryptic "signal is aborted without reason". We now allow
-     60s per attempt and silently retry once after a 2s backoff before
-     giving up — covers the common case where the first request is slow but
-     the second succeeds. */
+  /* gviz fetches fail in a few different ways on iPad Safari:
+       - 60s timeout on big sheets (GSC, GA4, Keywords) — AbortError
+       - Connection-pool starvation when too many fire in parallel — Safari
+         throws a bare `TypeError: Load failed` once the abort fires on a
+         still-queued request
+       - Transient network rejects (DNS hiccup, TLS, content blockers)
+     All three usually clear on the next attempt. Retry up to 3 times on
+     ANY thrown error from fetchOnce with exponential backoff (2s, 5s).
+     `cache: 'no-store'` prevents iPad Safari from serving a cached failure
+     for the rest of the session once a single request fails. */
   const PER_ATTEMPT_MS = 60000;
+  const MAX_ATTEMPTS = 3;
+  const BACKOFFS_MS = [2000, 5000];
   const fetchOnce = async () => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), PER_ATTEMPT_MS);
     try {
-      const res = await fetch(url, { signal: controller.signal });
+      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
       if (!res.ok) throw new Error(`gviz ${res.status}`);
       /* Last-Modified is in the CORS-safelisted response headers, so we can
-         read it cross-origin without Access-Control-Expose-Headers. gviz
-         returns the underlying spreadsheet's modifiedTime here, which is
-         exactly what the Data Sources "Last pulled" cell wants. */
+         read it cross-origin without Access-Control-Expose-Headers. */
       const lm = res.headers.get('last-modified');
       return { text: await res.text(), lastModified: lm || null };
     } finally {
       clearTimeout(timer);
     }
   };
-  /* Safari surfaces network rejects (DNS, TLS, blocked, content blockers,
-     iCloud Private Relay) as a bare `TypeError: Load failed` which lands on
-     the Data Sources card with no hint about how to investigate. Catch the
-     TypeError shape and rewrite to something actionable. */
   const friendlyFetchError = (e) => {
     const msg = (e && e.message) || String(e);
     const isTypeError = e && (e.name === 'TypeError' || /^Load failed$|^Failed to fetch$/i.test(msg));
     if (isTypeError) return 'fetch rejected (network/sharing/Private Relay) — open sheet to verify';
     return msg;
   };
-  let fetched;
-  try {
-    fetched = await fetchOnce();
-  } catch (e) {
-    const isAbort = (e && (e.name === 'AbortError' || /abort/i.test(e.message || '')));
-    if (!isAbort) throw new Error(friendlyFetchError(e));
-    await new Promise(r => setTimeout(r, 2000));
+  let fetched, lastError;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
       fetched = await fetchOnce();
-    } catch (e2) {
-      const isAbort2 = (e2 && (e2.name === 'AbortError' || /abort/i.test(e2.message || '')));
-      throw new Error(isAbort2 ? 'Timed out after retry — sheet shared as Viewer?' : friendlyFetchError(e2));
+      lastError = null;
+      break;
+    } catch (e) {
+      lastError = e;
+      const remaining = MAX_ATTEMPTS - attempt - 1;
+      if (remaining <= 0) break;
+      await new Promise(r => setTimeout(r, BACKOFFS_MS[attempt] || 5000));
     }
+  }
+  if (lastError) {
+    const isAbort = (lastError.name === 'AbortError' || /abort/i.test(lastError.message || ''));
+    throw new Error(isAbort ? 'Timed out after retries — sheet shared as Viewer?' : friendlyFetchError(lastError));
   }
   const { text, lastModified } = fetched;
   const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
@@ -5430,18 +5434,42 @@ async function render(opts = {}) {
     }
   }
   try {
-    const [ads, gsc, ga, ac, social, social_analytics, keywords, pagespeed, semrush_kw, semrush_bl] = await Promise.all([
-      loadChannel('ads', REQUIRED_COLS.ads),
-      loadChannel('gsc', REQUIRED_COLS.gsc),
-      loadChannel('ga', REQUIRED_COLS.ga),
-      loadChannel('aircall', REQUIRED_COLS.aircall),
-      loadChannel('social', REQUIRED_COLS.social),
-      loadChannel('social_analytics', REQUIRED_COLS.social_analytics),
-      loadChannel('keywords', REQUIRED_COLS.keywords),
-      loadChannel('pagespeed', REQUIRED_COLS.pagespeed),
-      loadChannel('semrush_kw', REQUIRED_COLS.semrush_kw),
-      loadChannel('semrush_bl', REQUIRED_COLS.semrush_bl),
+    /* Chunk the 10 channels into 3 sequential batches. Firing all 10 at
+       once meant ~17 simultaneous fetches to docs.google.com (brandTabs
+       sources fire 2 each), and iPad Safari's per-host connection cap of
+       ~6 means everything beyond that queues. Queued requests that wait
+       longer than the 60s AbortController fire as "Load failed" rather
+       than AbortError — exactly the failure mode we kept seeing on GSC,
+       GA4, Keywords, and the via tab of Ads. Batches keep the pool busy
+       without overflowing it. Slow sheets are isolated in batch 3 so they
+       don't starve faster ones. */
+    const runBatch = async (entries) => {
+      const settled = await Promise.allSettled(entries.map(([key, req]) => loadChannel(key, req)));
+      return Object.fromEntries(entries.map(([key], i) => {
+        const r = settled[i];
+        return [key, r.status === 'fulfilled' ? r.value : { rows: [], cols: [], source: 'fail', reason: (r.reason && r.reason.message) || 'unknown', lastModified: null, tabLastModified: null }];
+      }));
+    };
+    const batch1 = await runBatch([
+      ['aircall', REQUIRED_COLS.aircall],
+      ['social', REQUIRED_COLS.social],
+      ['social_analytics', REQUIRED_COLS.social_analytics],
+      ['semrush_bl', REQUIRED_COLS.semrush_bl],
     ]);
+    const batch2 = await runBatch([
+      ['ads', REQUIRED_COLS.ads],
+      ['semrush_kw', REQUIRED_COLS.semrush_kw],
+      ['pagespeed', REQUIRED_COLS.pagespeed],
+    ]);
+    const batch3 = await runBatch([
+      ['gsc', REQUIRED_COLS.gsc],
+      ['ga', REQUIRED_COLS.ga],
+      ['keywords', REQUIRED_COLS.keywords],
+    ]);
+    const ads = batch2.ads, gsc = batch3.gsc, ga = batch3.ga, ac = batch1.aircall;
+    const social = batch1.social, social_analytics = batch1.social_analytics;
+    const keywords = batch3.keywords, pagespeed = batch2.pagespeed;
+    const semrush_kw = batch2.semrush_kw, semrush_bl = batch1.semrush_bl;
 
     console.table([
       { channel: 'ads',        source: ads.source,        rows: ads.rows.length,        reason: ads.reason || '',        cols: ads.cols.join(', ') },
@@ -7212,6 +7240,17 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Data pulls retry harder and stop overrunning Safari\'s connection pool',
+    tags: ['Fix'],
+    bullets: [
+      'GSC, GA4, Google Ads · Keywords, and the ViaTrading half of Google Ads were persistently failing on iPad with "Load failed" — Safari\'s bare network-reject error. Two real causes were combining: the fetcher only retried on AbortError so a transient reject got no second chance, and render() fired all 10 channels concurrently which meant ~17 simultaneous fetches to docs.google.com — well past iPad Safari\'s ~6 connection-per-host cap. Queued requests then aborted before their turn and surfaced as "Load failed" rather than AbortError.',
+      'fetchSheet now retries up to 3 attempts on ANY thrown error with exponential backoff (2s, 5s) before giving up. Final-attempt error message still distinguishes a true timeout ("Timed out after retries — sheet shared as Viewer?") from a network reject ("fetch rejected — open sheet to verify").',
+      'render() chunks the 10 loadChannel calls into 3 sequential Promise.allSettled batches: small/fast first (Aircall · Metricool Posts · Metricool Analytics · SemRush Backlinks), then medium (Google Ads · SemRush KW · Page Speed), then the big slow ones isolated together (GSC · GA4 · Keywords). Each batch resolves before the next starts — connection pool stays busy without overflowing.',
+      'Added `cache: "no-store"` so iPad Safari can\'t serve a cached failed response for the rest of the session once one request fails. Combined with the retry, this prevents a "stuck failure" within a single page load.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Date range no longer shifts a day back in PT / ET',

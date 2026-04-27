@@ -4902,7 +4902,12 @@ function dateRangeFromRows(rows) {
     if (max == null || t > max) max = t;
   }
   if (min == null) return null;
-  const f = ms => new Date(ms).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  /* Format in UTC. Sheet date-only strings ("2026-04-25") parse as UTC
+     midnight, so without timeZone:'UTC' the toLocaleDateString shifts them
+     back one day in any negative-UTC viewer timezone (PT, ET, etc.) — which
+     was making the Data Sources Date range read "Apr 24" when the sheet
+     genuinely had Apr 25 rows. */
+  const f = ms => new Date(ms).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric', timeZone: 'UTC' });
   return { min: f(min), max: f(max) };
 }
 
@@ -5144,10 +5149,12 @@ function renderDataSources(raw) {
         const inner = `<span class="src-tab-mark">${mark}</span>${escapeHtml(t.tab)}`;
         /* Failed chips deep-link to the gviz URL so a single tap reveals
            the actual response — JSON = sharing fine (iPad-side block);
-           sign-in HTML = sharing revoked; 404 = tab renamed. */
+           sign-in HTML = sharing revoked; 404 = tab renamed. Opens in the
+           same tab (no target="_blank") so iPad Safari's pop-up blocker
+           doesn't silently swallow the click. */
         return t.live
           ? `<span class="src-tab-chip ${cls}">${inner}</span>`
-          : `<a class="src-tab-chip ${cls}" href="${t.url}" target="_blank" rel="noopener" title="Open the gviz response in a new tab to verify what's wrong">${inner}</a>`;
+          : `<a class="src-tab-chip ${cls}" href="${t.url}" rel="noopener" title="Open the gviz response to verify what's wrong">${inner}</a>`;
       }).join(' ');
       const subKeys = g.constituents.map(c => c.key).join(' + ');
       const reasons = g.constituents
@@ -7205,6 +7212,23 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Date range no longer shifts a day back in PT / ET',
+    tags: ['Fix'],
+    bullets: [
+      'On the Data Sources page, the Date range readout was capping a day earlier than the sheet actually had — "Apr 24, 2026" when the sheet had rows for Apr 25, etc. Root cause: dateRangeFromRows parses date-only strings ("2026-04-25") as UTC midnight, then formatted via toLocaleDateString in the iPad\'s local timezone (PDT, UTC-7), which shifted every date back one calendar day.',
+      'Now formats with `timeZone: "UTC"` so the sheet\'s date stays the same regardless of viewer timezone. Aircall is unaffected (it bucketed to PT before reaching dateRangeFromRows), but Ads, GSC, GA4, Page Speed, Metricool, SemRush all now read the correct day.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
+    title: 'Tap on a red ✗ tab chip now actually opens the gviz URL',
+    tags: ['Fix'],
+    bullets: [
+      'The deep-link on failed tab chips wasn\'t firing on iPad — `target="_blank"` was being silently swallowed by Safari\'s pop-up blocker. Dropped target so the link opens in the same tab; the back button returns to the dashboard (cache hydrate is instant on the way back).',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Failed tab chips deep-link to the gviz URL · Metricool · Posts named correctly',

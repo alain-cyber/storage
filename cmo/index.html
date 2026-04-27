@@ -2990,7 +2990,12 @@ async function fetchSheet(id, opts = {}) {
     try {
       const res = await fetch(url, { signal: controller.signal });
       if (!res.ok) throw new Error(`gviz ${res.status}`);
-      return await res.text();
+      /* Last-Modified is in the CORS-safelisted response headers, so we can
+         read it cross-origin without Access-Control-Expose-Headers. gviz
+         returns the underlying spreadsheet's modifiedTime here, which is
+         exactly what the Data Sources "Last pulled" cell wants. */
+      const lm = res.headers.get('last-modified');
+      return { text: await res.text(), lastModified: lm || null };
     } finally {
       clearTimeout(timer);
     }
@@ -3005,38 +3010,29 @@ async function fetchSheet(id, opts = {}) {
     if (isTypeError) return 'fetch rejected (network/sharing/Private Relay) — open sheet to verify';
     return msg;
   };
-  let text;
+  let fetched;
   try {
-    text = await fetchOnce();
+    fetched = await fetchOnce();
   } catch (e) {
     const isAbort = (e && (e.name === 'AbortError' || /abort/i.test(e.message || '')));
     if (!isAbort) throw new Error(friendlyFetchError(e));
     await new Promise(r => setTimeout(r, 2000));
     try {
-      text = await fetchOnce();
+      fetched = await fetchOnce();
     } catch (e2) {
       const isAbort2 = (e2 && (e2.name === 'AbortError' || /abort/i.test(e2.message || '')));
       throw new Error(isAbort2 ? 'Timed out after retry — sheet shared as Viewer?' : friendlyFetchError(e2));
     }
   }
+  const { text, lastModified } = fetched;
   const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
-  /* Coefficient sheets have a "Last updated X ago" phrase concatenated into
-     the row-1 banner. stripCoefficientBanner discards it for the column
-     name; capture it here once so the Data Sources card can show upstream
-     freshness per tab. */
-  let banner = null;
-  for (const c of json.table.cols) {
-    const raw = c.label || c.id || '';
-    const m = typeof raw === 'string' && raw.match(/Last updated\s.+?\bago\b/i);
-    if (m) { banner = m[0]; break; }
-  }
   const cols = json.table.cols.map(c => stripCoefficientBanner(c.label || c.id));
   const rows = json.table.rows.map(r => {
     const o = {};
     r.c.forEach((cell,i) => { o[cols[i]] = cell ? coerceCell(cell.v) : null; });
     return o;
   });
-  return { rows, cols, banner };
+  return { rows, cols, lastModified };
 }
 
 const COLUMN_ALIASES = {
@@ -3258,7 +3254,7 @@ function normalizePagespeedRows(rows, _cols) {
 async function loadChannel(key, requiredCols = []) {
   try {
     const sheet = SHEETS[key];
-    let rawRows, rawCols, banner = null, tabBanners = null;
+    let rawRows, rawCols, lastModified = null, tabLastModified = null;
     if (sheet.brandTabs) {
       /* Fetch both brand tabs in parallel; tag each row with its brand so
          scopeChannel() can slice locally without re-fetching. A failure on
@@ -3270,13 +3266,13 @@ async function loadChannel(key, requiredCols = []) {
       const colsSet = new Set();
       const allRows = [];
       const problems = [];
-      tabBanners = {};
+      tabLastModified = {};
       results.forEach((r, i) => {
         const [brand, tab] = entries[i];
         if (r.status === 'fulfilled' && r.value.rows && r.value.rows.length) {
           r.value.cols.forEach(c => colsSet.add(c));
           r.value.rows.forEach(row => allRows.push({ ...row, brand }));
-          if (r.value.banner) tabBanners[brand] = r.value.banner;
+          if (r.value.lastModified) tabLastModified[brand] = r.value.lastModified;
         } else {
           problems.push(`${tab}: ${r.status === 'rejected' ? (r.reason && r.reason.message) : 'empty'}`);
         }
@@ -3289,17 +3285,17 @@ async function loadChannel(key, requiredCols = []) {
       if (!fetched.rows || !fetched.rows.length) throw new Error('empty');
       rawRows = fetched.rows;
       rawCols = fetched.cols;
-      banner = fetched.banner || null;
+      lastModified = fetched.lastModified || null;
     }
     const { rows, cols } = applyAliases(key, rawRows, rawCols);
     const missing = requiredCols.filter(c => !cols.includes(c));
     if (missing.length) throw new Error(`missing cols: ${missing.join(', ')} — found: ${cols.join(', ')}`);
     const normalized = normalizeByKey(key, rows, cols);
-    return { rows: normalized, source: 'live', cols, banner, tabBanners };
+    return { rows: normalized, source: 'live', cols, lastModified, tabLastModified };
   } catch (e) {
     /* No more silent demo fallback — leave rows empty and let the UI render
        a FAIL tag with the reason. */
-    return { rows: [], source: 'fail', cols: [], reason: e.message, banner: null, tabBanners: null };
+    return { rows: [], source: 'fail', cols: [], reason: e.message, lastModified: null, tabLastModified: null };
   }
 }
 
@@ -4898,29 +4894,51 @@ function dateRangeFromRows(rows) {
   return { min: f(min), max: f(max) };
 }
 
-/* Per-card "Last pulled" readout. Coefficient sheets surface a "Last updated
-   X ago" banner in row 1 — that's the upstream freshness, more useful than
-   the dashboard's own fetch time. brandTabs sources can have two different
-   pull schedules per tab; show both when they differ. Non-Coefficient sheets
-   fall back to the dashboard fetch time so every card has something. */
-function formatLastPulled(banner, tabBanners, fallbackDate) {
-  const phrase = b => String(b || '').replace(/^Last updated\s+/i, '').trim();
-  if (tabBanners) {
+/* Per-card "Last pulled" readout. Source of truth is the spreadsheet's
+   actual modifiedTime — gviz returns it in the Last-Modified response
+   header, which Last-Modified being CORS-safelisted lets us read cross-
+   origin without setup. brandTabs sources keep their own per-tab times so
+   a half-stale workbook (one tab fresh, one tab not) is obvious. */
+function relativeAgo(d) {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return null;
+  const ageSec = Math.max(0, Math.round((Date.now() - d.getTime()) / 1000));
+  const ageMin = Math.round(ageSec / 60);
+  const ageHr  = Math.round(ageMin / 60);
+  const ageDay = Math.round(ageHr / 24);
+  if (ageSec < 45)  return 'just now';
+  if (ageMin < 60)  return `${ageMin} minute${ageMin === 1 ? '' : 's'} ago`;
+  if (ageHr  < 24)  return `${ageHr} hour${ageHr === 1 ? '' : 's'} ago`;
+  return `${ageDay} day${ageDay === 1 ? '' : 's'} ago`;
+}
+function parseHttpDate(s) {
+  if (!s) return null;
+  const t = Date.parse(s);
+  return isNaN(t) ? null : new Date(t);
+}
+function formatLastPulled(lastModified, tabLastModified, fallbackDate) {
+  const fmtAbs = d => d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const phrase = d => {
+    const rel = relativeAgo(d);
+    return rel ? `${rel} <span class="src-stat-value dim">· ${escapeHtml(fmtAbs(d))}</span>` : escapeHtml(fmtAbs(d));
+  };
+  if (tabLastModified) {
     const got = ['via', 'liq']
-      .filter(k => tabBanners[k])
-      .map(k => ({ k, p: phrase(tabBanners[k]) }));
+      .filter(k => tabLastModified[k])
+      .map(k => ({ k, d: parseHttpDate(tabLastModified[k]) }))
+      .filter(x => x.d);
     if (got.length === 2) {
-      if (got[0].p === got[1].p) return `<span class="src-stat-value">${escapeHtml(got[0].p)}</span>`;
-      return `<span class="src-stat-value">${escapeHtml(got[0].p)} <span class="src-stat-value dim">(via)</span> · ${escapeHtml(got[1].p)} <span class="src-stat-value dim">(liq)</span></span>`;
+      const sameMin = Math.abs(got[0].d.getTime() - got[1].d.getTime()) < 60_000;
+      if (sameMin) return `<span class="src-stat-value">${phrase(got[0].d)}</span>`;
+      return `<span class="src-stat-value">${relativeAgo(got[0].d)} <span class="src-stat-value dim">(via)</span> · ${relativeAgo(got[1].d)} <span class="src-stat-value dim">(liq)</span></span>`;
     }
     if (got.length === 1) {
-      return `<span class="src-stat-value">${escapeHtml(got[0].p)} <span class="src-stat-value dim">(${got[0].k})</span></span>`;
+      return `<span class="src-stat-value">${phrase(got[0].d)} <span class="src-stat-value dim">(${got[0].k} only)</span></span>`;
     }
   }
-  if (banner) return `<span class="src-stat-value">${escapeHtml(phrase(banner))}</span>`;
+  const d = parseHttpDate(lastModified);
+  if (d) return `<span class="src-stat-value">${phrase(d)}</span>`;
   if (fallbackDate instanceof Date) {
-    const f = fallbackDate.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-    return `<span class="src-stat-value dim">Refreshed ${escapeHtml(f)}</span>`;
+    return `<span class="src-stat-value dim">Refreshed ${escapeHtml(fmtAbs(fallbackDate))}</span>`;
   }
   return `<span class="src-stat-value dim">—</span>`;
 }
@@ -5055,7 +5073,7 @@ function renderDataSources(raw) {
        it's missing the most recent day for evening calls that are next-day
        UTC. Tag the readout so the bucketing isn't invisible. */
     const ptSuffix = r.key === 'aircall' ? ' <span class="src-stat-value dim">(PT)</span>' : '';
-    const lastPulled = formatLastPulled(ch.banner, ch.tabBanners, state.lastRefreshAt);
+    const lastPulled = formatLastPulled(ch.lastModified, ch.tabLastModified, state.lastRefreshAt);
     return `
       ${head}
       <div class="src-stats">
@@ -7111,6 +7129,15 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: '"Last pulled" now reads the sheet\'s actual modifiedTime',
+    tags: ['Polish'],
+    bullets: [
+      'Earlier today the new "Last pulled" cell on each Data Sources card was reading the Coefficient banner phrase ("Last updated 17 hours ago") for Coefficient sheets and the dashboard\'s own fetch time for everything else. Now it reads the spreadsheet\'s actual modifiedTime — pulled from the gviz response\'s Last-Modified header (which is CORS-safelisted, so we can read it cross-origin without setup).',
+      'Display format: a relative phrase ("3 hours ago") with the absolute timestamp dimmed beside it ("· Apr 27, 2:14 PM"). brandTabs sources still keep the per-tab times so a half-stale workbook (one tab fresh, one tab not) reads as "(via) · (liq)" with both relative phrases. Dashboard fetch time stays as the final fallback when no Last-Modified header is present.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Topbar timestamp auto-refreshes when the cached data is stale',

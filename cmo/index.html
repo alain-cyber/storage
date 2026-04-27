@@ -2817,7 +2817,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · plain-English help text on every chart · built 2026-04-27 r8', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r9', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -3223,7 +3223,14 @@ function gvizDateCutoff(daysBack = 120) {
 }
 function buildTqDateFilter(dateCol, dateType = 'date') {
   if (!dateCol) return null;
-  const cutoff = gvizDateCutoff(120);
+  /* 60-day window. Tighter than the original 120 because iPad logs proved
+     even 120 days was returning HTML error pages (caught as window.error
+     "Script error.") on raw_ads_via, raw_ga4_via, raw_ga4_lnow,
+     raw_ads_via_kw — gviz refuses to serve responses past some payload
+     ceiling. 60 days covers Last 30, MTD, Last 7, today, yesterday,
+     lastMonth + 30-day WoW/MoM buffer. The "Last 90 days" range gets
+     truncated; we revisit if anyone actually picks it daily. */
+  const cutoff = gvizDateCutoff(60);
   /* gviz Query Language: `date 'YYYY-MM-DD'` for date columns; `datetime
      'YYYY-MM-DD HH:MM:SS'` for timestamp columns (Aircall's Started At,
      Metricool Analytics' date is also datetime sometimes). Mismatching
@@ -7623,6 +7630,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Tightened gviz date filter from 120 days to 60 days',
+    tags: ['Fix'],
+    bullets: [
+      'Diagnostics feed showed even 120 days was triggering HTML-error responses from gviz on raw_ads_via, raw_ga4_via, raw_ga4_lnow, raw_ads_via_kw — caught in the log as "[window.error] Script error." once per fetch attempt, paired 1:1 with the eventual 45s AbortError. The browser was loading the script, hitting a SyntaxError on what was actually an HTML "too many rows" response, and our JSONP callback never fired.',
+      'Shrunk the cutoff to 60 days. Covers Last 30 / MTD / Last 7 / today / yesterday / lastMonth ranges plus 30-day WoW & MoM buffer for the rule engine. The "Last 90 days" range will show truncated data — we revisit if you actually pick it daily.',
+      'Build tag bumped to r9.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Plain-English help text under every chart',

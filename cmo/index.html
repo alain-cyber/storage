@@ -2784,7 +2784,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 45s timeout · two-stage paint · built 2026-04-27 r4', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 45s timeout · sequential brand-tabs · built 2026-04-27 r5', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -3449,13 +3449,27 @@ async function loadChannel(key, requiredCols = []) {
     const sheet = SHEETS[key];
     let rawRows, rawCols, lastModified = null, tabLastModified = null;
     if (sheet.brandTabs) {
-      /* Fetch both brand tabs in parallel; tag each row with its brand so
-         scopeChannel() can slice locally without re-fetching. A failure on
-         one brand falls back to whatever the other returned. */
+      /* Sequentially fetch both brand tabs from the same workbook. Parallel
+         fetches against one Google Sheet ID hit gviz's per-spreadsheet
+         read lock — the loser of the race gets back an HTML error page
+         that loads as a script (no script.onerror), parses as JS, throws
+         "Script error.", and our JSONP callback never fires. That's been
+         the persistent failure mode on raw_*_via and raw_ga4_lnow
+         despite their lnow siblings working fine. Sequential per-workbook
+         eliminates the race; cross-workbook fetches still parallelize via
+         the bigBatch grouping in render(). Wall-clock cost: ~doubles for
+         a single channel's two-tab load (e.g. 5s → 10s) — acceptable
+         trade for actually getting the data. */
       const entries = Object.entries(sheet.brandTabs); /* [['via','raw_..._via'], ['liq','raw_..._lnow']] */
-      const results = await Promise.allSettled(entries.map(([, tab]) =>
-        fetchSheet(sheet.id, { sheetName: tab, headers: sheet.headers })
-      ));
+      const results = [];
+      for (const [, tab] of entries) {
+        try {
+          const value = await fetchSheet(sheet.id, { sheetName: tab, headers: sheet.headers });
+          results.push({ status: 'fulfilled', value });
+        } catch (reason) {
+          results.push({ status: 'rejected', reason });
+        }
+      }
       const colsSet = new Set();
       const allRows = [];
       const problems = [];
@@ -7528,6 +7542,17 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Sequential brand-tab fetches — eliminates gviz lock race',
+    tags: ['Fix'],
+    bullets: [
+      'Real root cause of the all-day Google failures (raw_ads_via, raw_gsc_via, raw_ga4_via, raw_ga4_lnow, raw_ads_via_kw): loadChannel was firing both brand tabs in PARALLEL against the same Google Sheet ID. gviz holds a per-spreadsheet read lock — when two requests hit the same workbook simultaneously, the loser gets an HTML error page back that loads as a script (no script.onerror), parses as JS, throws SyntaxError, and our JSONP callback never fires. That maps exactly to the "[window.error] Script error." entries we kept seeing in the diagnostics feed right before the affected tabs aborted at the 45s timer.',
+      'Fix: changed Promise.allSettled to a sequential for-loop inside loadChannel for brandTabs sources. The two tabs from one workbook (e.g. raw_ads_via then raw_ads_lnow) now load one at a time — no race, no lock contention. Cross-workbook fetches still parallelize via the bigBatch grouping in render(), so total dashboard refresh time barely changes (the slowest single channel still bounds the wall-clock).',
+      'Special thanks to a fresh Plan-agent read on the problem that spotted this. After hours of patching transports and timeouts, the actual fix was four lines.',
+      'Build tag bumped to r5.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Dashboard paints in two stages so loading text stops in 5s, not 95s',

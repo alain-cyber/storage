@@ -668,7 +668,9 @@
     font-family: 'Inter', system-ui, sans-serif;
     margin-right: 4px;
     border: 1px solid var(--border);
+    text-decoration: none;
   }
+  a.src-tab-chip:hover { filter: brightness(0.95); }
   .src-tab-mark { font-weight: 700; }
   .src-tab-live { background: var(--green-dim); color: var(--green); border-color: var(--green-dim); }
   .src-tab-fail { background: var(--red-dim);   color: var(--red);   border-color: var(--red-dim); }
@@ -4958,6 +4960,21 @@ function formatLastPulled(lastModified, tabLastModified, fallbackDate) {
    {label, tab, brand, live, source} record per tab, so the Overview
    counters and the Data Sources page can reconcile down to the actual
    gviz fetches behind the scenes. */
+/* Reproduce the gviz URL fetchSheet builds, given a SHEETS entry and the
+   tab identifier. Used by tabHealth so a failed ✗ chip on the Data Sources
+   page can deep-link to the gviz response — JSON in the browser means
+   sharing's fine and the iPad is what's blocked (Private Relay, content
+   blocker); a sign-in HTML page means sharing was revoked; a 404 means
+   the tab was renamed. */
+function gvizUrl(sheet, opts = {}) {
+  if (!sheet || !sheet.id) return '#';
+  const params = ['tqx=out:json'];
+  if (opts.gid != null) params.push(`gid=${encodeURIComponent(opts.gid)}`);
+  else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
+  if (sheet.headers != null) params.push(`headers=${encodeURIComponent(sheet.headers)}`);
+  return `https://docs.google.com/spreadsheets/d/${sheet.id}/gviz/tq?${params.join('&')}`;
+}
+
 function tabHealth(raw) {
   const out = [];
   SOURCE_DETAIL_REPORT.forEach(s => {
@@ -4971,11 +4988,21 @@ function tabHealth(raw) {
            iff the channel is live AND there are rows tagged with that
            brand. */
         const live = ch.source === 'live' && (ch.rows || []).some(r => r && r.brand === brand);
-        out.push({ source: s.key, brand, tab, label: s.label, live });
+        const url = gvizUrl(sheet, { sheetName: tab });
+        out.push({ source: s.key, brand, tab, label: s.label, live, url });
       });
     } else {
-      const tab = sheet.sheetName || (sheet.gid != null ? `gid=${sheet.gid}` : 'default tab');
-      out.push({ source: s.key, brand: null, tab, label: s.label, live: ch.source === 'live' });
+      /* When a sheet uses a numeric `gid` instead of a `sheetName`
+         (Metricool · Posts), the tab chip used to render as
+         "gid=1914162846" — useful as URL query but not as a UI label.
+         If the source label has a "Name · Sub" form, surface "Sub" as
+         the chip name instead. */
+      const labelSub = (sheet.label || '').includes('·')
+        ? sheet.label.split('·').slice(1).join('·').trim()
+        : null;
+      const tab = sheet.sheetName || labelSub || (sheet.gid != null ? `gid=${sheet.gid}` : 'default tab');
+      const url = gvizUrl(sheet, { gid: sheet.gid, sheetName: sheet.sheetName });
+      out.push({ source: s.key, brand: null, tab, label: s.label, live: ch.source === 'live', url });
     }
   });
   return out;
@@ -5114,7 +5141,13 @@ function renderDataSources(raw) {
       const tabs_html = cardTabs.map(t => {
         const cls = t.live ? 'src-tab-live' : 'src-tab-fail';
         const mark = t.live ? '✓' : '✗';
-        return `<span class="src-tab-chip ${cls}"><span class="src-tab-mark">${mark}</span>${escapeHtml(t.tab)}</span>`;
+        const inner = `<span class="src-tab-mark">${mark}</span>${escapeHtml(t.tab)}`;
+        /* Failed chips deep-link to the gviz URL so a single tap reveals
+           the actual response — JSON = sharing fine (iPad-side block);
+           sign-in HTML = sharing revoked; 404 = tab renamed. */
+        return t.live
+          ? `<span class="src-tab-chip ${cls}">${inner}</span>`
+          : `<a class="src-tab-chip ${cls}" href="${t.url}" target="_blank" rel="noopener" title="Open the gviz response in a new tab to verify what's wrong">${inner}</a>`;
       }).join(' ');
       const subKeys = g.constituents.map(c => c.key).join(' + ');
       const reasons = g.constituents
@@ -7172,6 +7205,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Failed tab chips deep-link to the gviz URL · Metricool · Posts named correctly',
+    tags: ['Fix', 'Polish'],
+    bullets: [
+      'When a tab fails on the Data Sources page, the red ✗ chip is now a tappable link straight to the gviz URL of that tab. The response in the browser tells you the cause in one tap: JSON means the sheet is fine and something on this device is blocking the request (iCloud Private Relay, content blocker, per-site permission); a Google sign-in HTML page means sharing was revoked; a 404 means the tab was renamed.',
+      'Fixed Metricool · Posts showing as "gid=1914162846" on the Data Sources card. The social tab uses gid for fetching (not sheetName), so the chip label fell back to the URL query string. tabHealth now extracts "Posts" from the source label\'s "Metricool · Posts" suffix when no sheetName is configured.',
+      'No change to the fetch path — pure UI / labelling.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Thresholds page renamed to Playbook with per-rule "why" explanations',

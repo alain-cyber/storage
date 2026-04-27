@@ -2627,7 +2627,9 @@
         <div class="group" role="group" aria-label="Playbook brand">
           <button type="button" data-tbrand="via" aria-pressed="true">ViaTrading</button>
           <button type="button" data-tbrand="liq" aria-pressed="false">LiquidateNow</button>
+          <button type="button" data-tbrand="both" aria-pressed="false">Both</button>
         </div>
+        <span class="threshold-source-hint" id="thresholdsBothHint" hidden>Saving applies to ViaTrading and LiquidateNow · blank inputs mean the brands diverge and stay independent</span>
       </div>
       <div class="threshold-actions">
         <button type="button" class="rec-btn rec-btn-primary" id="thresholdsSave">Save</button>
@@ -6273,17 +6275,32 @@ function renderThresholds() {
   const grid = document.getElementById('thresholdsGrid');
   if (!grid) return;
   const brand = state.thresholdBrand;
-  const tbl = state.thresholds[brand] || THRESHOLD_DEFAULTS;
+  const isBoth = brand === 'both';
+  const viaTbl = state.thresholds.via || {};
+  const liqTbl = state.thresholds.liq || {};
+  const singleTbl = isBoth ? null : (state.thresholds[brand] || THRESHOLD_DEFAULTS);
+  /* In Both mode, show the value when the two brands agree; show blank when
+     they diverge so the user knows typing here will overwrite both brands. */
+  const valueFor = (key) => {
+    if (isBoth) {
+      const v = viaTbl[key] != null ? viaTbl[key] : THRESHOLD_DEFAULTS[key];
+      const lv = liqTbl[key] != null ? liqTbl[key] : THRESHOLD_DEFAULTS[key];
+      if (Number(v) === Number(lv)) return v;
+      return '';
+    }
+    return singleTbl[key] != null ? singleTbl[key] : THRESHOLD_DEFAULTS[key];
+  };
   grid.innerHTML = THRESHOLD_SECTIONS.map(src => {
     const detail = SOURCE_DETAIL[src] || { label: src, hint: '' };
     const items = THRESHOLD_META[src] || [];
     const rowsHtml = items.map(item => {
-      const v = tbl[item.key] != null ? tbl[item.key] : THRESHOLD_DEFAULTS[item.key];
+      const v = valueFor(item.key);
+      const placeholder = isBoth && v === '' ? 'differs · type to overwrite both' : '';
       const why = item.why ? `<span class="threshold-why">${escapeHtml(item.why)}</span>` : '';
       return `
         <label class="threshold-row" data-key="${item.key}">
           <span class="threshold-label">${escapeHtml(item.label)}</span>
-          <input class="threshold-input" type="number" step="${item.step}" value="${v}" data-tkey="${item.key}" data-ttype="${item.type}" />
+          <input class="threshold-input" type="number" step="${item.step}" value="${v}" placeholder="${placeholder}" data-tkey="${item.key}" data-ttype="${item.type}" data-initial="${v}" />
           ${why}
         </label>`;
     }).join('');
@@ -6300,25 +6317,37 @@ function renderThresholds() {
   document.querySelectorAll('.threshold-brand button[data-tbrand]').forEach(b => {
     b.setAttribute('aria-pressed', b.dataset.tbrand === brand ? 'true' : 'false');
   });
-  /* Mark dirty when user changes a value vs. saved state */
+  /* Surface a small hint when Both is active so the user knows what's
+     happening. The hint lives in the brand bar next to the toggle. */
+  const hint = document.getElementById('thresholdsBothHint');
+  if (hint) hint.hidden = !isBoth;
+  /* Mark dirty when user changes a value vs. what was rendered. */
   grid.querySelectorAll('input.threshold-input').forEach(input => {
     input.addEventListener('input', () => {
-      const saved = (state.thresholds[brand] || {})[input.dataset.tkey];
-      input.classList.toggle('dirty', Number(input.value) !== Number(saved));
+      input.classList.toggle('dirty', String(input.value) !== String(input.dataset.initial || ''));
     });
   });
 }
 
 function commitThresholdInputs() {
   const brand = state.thresholdBrand;
-  const target = state.thresholds[brand] = { ...THRESHOLD_DEFAULTS, ...(state.thresholds[brand] || {}) };
-  document.querySelectorAll('#thresholdsGrid input.threshold-input').forEach(input => {
-    const v = Number(input.value);
-    if (!isNaN(v)) target[input.dataset.tkey] = v;
+  const targets = brand === 'both' ? ['via', 'liq'] : [brand];
+  targets.forEach(b => {
+    const target = state.thresholds[b] = { ...THRESHOLD_DEFAULTS, ...(state.thresholds[b] || {}) };
+    document.querySelectorAll('#thresholdsGrid input.threshold-input').forEach(input => {
+      /* In Both mode, blank inputs mean "values diverge — leave them" so we
+         don't clobber per-brand differences the user didn't intend to flatten. */
+      if (input.value === '') return;
+      const v = Number(input.value);
+      if (!isNaN(v)) target[input.dataset.tkey] = v;
+    });
   });
   saveThresholds();
   /* Clear dirty markers */
-  document.querySelectorAll('#thresholdsGrid input.threshold-input').forEach(i => i.classList.remove('dirty'));
+  document.querySelectorAll('#thresholdsGrid input.threshold-input').forEach(i => {
+    i.classList.remove('dirty');
+    i.dataset.initial = i.value;
+  });
 }
 
 /* ── Decisions from Claude / GPT + Chat ─────────────────────────
@@ -7240,6 +7269,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Playbook brand toggle gains a "Both" option',
+    tags: ['Feature'],
+    bullets: [
+      'New Both button on the Playbook brand toggle. When active, edits to any rule are written to BOTH ViaTrading and LiquidateNow on Save — saves the round-trip when you want a setting to apply across brands.',
+      'Render behavior in Both mode: if the two brands already share a value for a rule, that value shows in the input. If they diverge, the input renders blank with a placeholder ("differs · type to overwrite both") so you know typing here will flatten the divergence. Leaving it blank preserves each brand\'s independent value.',
+      'Reset to defaults in Both mode resets both brands. Reset confirm dialog updates accordingly.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Data pulls retry harder and stop overrunning Safari\'s connection pool',
@@ -8337,8 +8376,11 @@ function initThresholds() {
   });
   const reset = document.getElementById('thresholdsReset');
   if (reset) reset.addEventListener('click', () => {
-    if (!confirm('Reset playbook to defaults for ' + (state.thresholdBrand === 'via' ? 'ViaTrading' : 'LiquidateNow') + '?')) return;
-    state.thresholds[state.thresholdBrand] = { ...THRESHOLD_DEFAULTS };
+    const b = state.thresholdBrand;
+    const scope = b === 'via' ? 'ViaTrading' : b === 'liq' ? 'LiquidateNow' : 'both ViaTrading and LiquidateNow';
+    if (!confirm('Reset playbook to defaults for ' + scope + '?')) return;
+    const targets = b === 'both' ? ['via', 'liq'] : [b];
+    targets.forEach(t => { state.thresholds[t] = { ...THRESHOLD_DEFAULTS }; });
     saveThresholds();
     renderThresholds();
     if (state.raw) repaint();

@@ -3005,43 +3005,76 @@ function stripCoefficientBanner(name) {
   return m ? m[1].trim() : name;
 }
 
+/* Transport: JSONP via <script> tag injection.
+
+   The dashboard used to call gviz via fetch(). On iPad Safari, requests for
+   GSC / GA4 / Keywords / raw_ads_via were getting silently rejected at the
+   network layer (TypeError: Load failed) — likely iCloud Private Relay,
+   ITP, or a per-site content blocker classifying gviz cross-origin XHR as
+   trackable subresources. <script> tags are not subject to CORS and don't
+   travel through the same blocking layers; gviz natively supports JSONP
+   via `tqx=out:json;responseHandler:NAME`, returning the same JSON shape
+   wrapped in a call to our callback. Wire bytes are identical — only the
+   transport changes. */
+function fetchSheetJSONP(url, perAttemptMs) {
+  return new Promise((resolve, reject) => {
+    const cbName = `_cmoGviz_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const script = document.createElement('script');
+    let timer = null;
+    let settled = false;
+    const cleanup = () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+      try { delete window[cbName]; } catch { window[cbName] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+    window[cbName] = (data) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(data);
+    };
+    script.onerror = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      const err = new TypeError('script load failed');
+      reject(err);
+    };
+    timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      const err = new Error('aborted: per-attempt timeout');
+      err.name = 'AbortError';
+      reject(err);
+    }, perAttemptMs);
+    /* gviz expects responseHandler chained inside tqx via semicolon. */
+    script.src = url.replace('tqx=out:json', `tqx=out:json;responseHandler:${cbName}`);
+    document.head.appendChild(script);
+  });
+}
+
 async function fetchSheet(id, opts = {}) {
   const params = ['tqx=out:json'];
   if (opts.gid != null) params.push(`gid=${encodeURIComponent(opts.gid)}`);
   else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
   if (opts.headers != null) params.push(`headers=${encodeURIComponent(opts.headers)}`);
   const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?${params.join('&')}`;
-  /* gviz fetches fail in a few different ways on iPad Safari:
-       - 60s timeout on big sheets (GSC, GA4, Keywords) — AbortError
-       - Connection-pool starvation when too many fire in parallel — Safari
-         throws a bare `TypeError: Load failed` once the abort fires on a
-         still-queued request
-       - Transient network rejects (DNS hiccup, TLS, content blockers)
-     All three usually clear on the next attempt. Retry up to 3 times on
-     ANY thrown error from fetchOnce with exponential backoff (2s, 5s).
-     `cache: 'no-store'` prevents iPad Safari from serving a cached failure
-     for the rest of the session once a single request fails. */
+  /* Retry up to 3 times on any thrown error with exponential backoff (2s, 5s).
+     A monster payload that genuinely won't complete bounces via the
+     setTimeout in fetchSheetJSONP — that rejects with name='AbortError' so
+     the existing retry-then-give-up path still recognizes it. */
   const PER_ATTEMPT_MS = 60000;
   const MAX_ATTEMPTS = 3;
   const BACKOFFS_MS = [2000, 5000];
   const fetchOnce = async () => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), PER_ATTEMPT_MS);
-    try {
-      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
-      if (!res.ok) throw new Error(`gviz ${res.status}`);
-      /* Last-Modified is in the CORS-safelisted response headers, so we can
-         read it cross-origin without Access-Control-Expose-Headers. */
-      const lm = res.headers.get('last-modified');
-      return { text: await res.text(), lastModified: lm || null };
-    } finally {
-      clearTimeout(timer);
-    }
+    const data = await fetchSheetJSONP(url, PER_ATTEMPT_MS);
+    return { data, lastModified: null };
   };
   const friendlyFetchError = (e) => {
     const msg = (e && e.message) || String(e);
-    const isTypeError = e && (e.name === 'TypeError' || /^Load failed$|^Failed to fetch$/i.test(msg));
-    if (isTypeError) return 'fetch rejected (network/sharing/Private Relay) — open sheet to verify';
+    const isTypeError = e && (e.name === 'TypeError' || /^Load failed$|^Failed to fetch$|script load failed/i.test(msg));
+    if (isTypeError) return 'script load rejected — sharing revoked, tab renamed, or device blocking docs.google.com';
     return msg;
   };
   let fetched, lastError;
@@ -3072,12 +3105,12 @@ async function fetchSheet(id, opts = {}) {
     wrapped.gvizUrl = url;
     throw wrapped;
   }
-  const { text, lastModified } = fetched;
-  const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
+  const { data: json, lastModified } = fetched;
+  if (!json || !json.table) throw new Error('gviz response missing .table — sheet may be empty or sharing revoked');
   const cols = json.table.cols.map(c => stripCoefficientBanner(c.label || c.id));
   const rows = json.table.rows.map(r => {
     const o = {};
-    r.c.forEach((cell,i) => { o[cols[i]] = cell ? coerceCell(cell.v) : null; });
+    r.c.forEach((cell, i) => { o[cols[i]] = cell ? coerceCell(cell.v) : null; });
     return o;
   });
   return { rows, cols, lastModified };
@@ -7335,6 +7368,17 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Switched gviz transport from fetch() to JSONP script-tag — fixes the all-day Google failures',
+    tags: ['Fix'],
+    bullets: [
+      'GSC, GA4, Google Ads · Keywords, and the via half of Google Ads had been persistently failing on iPad with "Load failed" for 6+ hours of refreshes. Four prior commits worth of fetch-side patches (alias fix, retry on any error, parallel batching, cache: no-store, error diagnostics) targeted symptoms under the assumption that fetch() was the right transport. It wasn\'t.',
+      'Switched the transport: instead of a cross-origin fetch() call, the dashboard now injects a <script> tag pointing at gviz with a unique JSONP callback. gviz natively supports this via tqx=out:json;responseHandler:NAME — wire bytes are identical, only the transport differs. <script> tags aren\'t subject to CORS and don\'t travel through whatever was rejecting the fetch (likely iCloud Private Relay, ITP, or a per-site content blocker classifying gviz cross-origin XHR as trackable subresources).',
+      'Retry, batching, AbortController-equivalent timeout, and diagnostic surfacing all stay — they wrap the new transport unchanged. The 60s per-attempt timeout still bounces a monster payload into the retry path. The text-stripping JSON.parse step is gone (JSONP hands us the parsed object directly).',
+      'One temporary regression: the "Last pulled" cell on Coefficient cards no longer shows the spreadsheet\'s Last-Modified header (that header is only readable on a fetch() response, not a script-tag load). The cell falls back to the dashboard\'s own fetch time — same fallback already in use for non-Coefficient sheets. Restoring upstream Last-Modified would need a separate Drive API metadata call; out of scope for this fix.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Failed Data Sources cards now show the actual error + gviz URL',

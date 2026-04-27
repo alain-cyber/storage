@@ -2711,6 +2711,13 @@
    Social is shared across brands). Coefficient-imported sheets put a banner
    on row 1, so they need headers: 2 to label correctly via gviz. The Page
    Speed sheet is hand-managed with no banner, so it uses headers: 1. */
+
+/* Build tag — bumped each time the gviz transport or other low-level
+   plumbing changes. Surface in the console on every page load so we can
+   tell at a glance whether iPad Safari is running cached old code or the
+   latest deploy. */
+console.log('[CMO build] gviz transport: JSONP script-tag · built 2026-04-27');
+
 const SHEETS = {
   ads: {
     id: '1oR4yEYbOYkzQcOyyMliKe__4KErtKFZyCnGDnjKI_JE',
@@ -3619,8 +3626,9 @@ function renderBriefing({ narrative, brand }) {
   const sourcesLabel = health.fail === 0
     ? `${health.total} data sources`
     : `${health.live} of ${health.total} data sources`;
+  const ts = state.lastRefreshAt instanceof Date ? state.lastRefreshAt : new Date();
   document.getElementById('aiBriefSub').textContent =
-    `Generated ${new Date().toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})} · ${rangeLabel} · ${sourcesLabel}`;
+    `Generated ${ts.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})} · ${rangeLabel} · ${sourcesLabel}`;
   document.getElementById('aiBriefText').textContent = narrative;
 }
 

@@ -3060,13 +3060,17 @@ async function fetchSheet(id, opts = {}) {
   else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
   if (opts.headers != null) params.push(`headers=${encodeURIComponent(opts.headers)}`);
   const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?${params.join('&')}`;
-  /* Retry up to 3 times on any thrown error with exponential backoff (2s, 5s).
-     A monster payload that genuinely won't complete bounces via the
-     setTimeout in fetchSheetJSONP — that rejects with name='AbortError' so
-     the existing retry-then-give-up path still recognizes it. */
-  const PER_ATTEMPT_MS = 60000;
-  const MAX_ATTEMPTS = 3;
-  const BACKOFFS_MS = [2000, 5000];
+  /* JSONP failures are typically permanent within a single page load
+     (sharing revoked, tab renamed, blocking layer rejecting script-tag
+     loads from docs.google.com). 15s per attempt × 2 attempts means worst
+     case ~30s per failing tab — vs the 3+ minutes the prior 60s × 3
+     config burned waiting on requests that were never coming back.
+     LIVE sheets respond in 1-5s so the tighter window doesn't false-fail
+     them; gviz cold starts on the BIG sheets occasionally take 8-12s, and
+     15s leaves enough headroom for that case. */
+  const PER_ATTEMPT_MS = 15000;
+  const MAX_ATTEMPTS = 2;
+  const BACKOFFS_MS = [1000];
   const fetchOnce = async () => {
     const data = await fetchSheetJSONP(url, PER_ATTEMPT_MS);
     return { data, lastModified: null };
@@ -5535,42 +5539,34 @@ async function render(opts = {}) {
     }
   }
   try {
-    /* Chunk the 10 channels into 3 sequential batches. Firing all 10 at
-       once meant ~17 simultaneous fetches to docs.google.com (brandTabs
-       sources fire 2 each), and iPad Safari's per-host connection cap of
-       ~6 means everything beyond that queues. Queued requests that wait
-       longer than the 60s AbortController fire as "Load failed" rather
-       than AbortError — exactly the failure mode we kept seeing on GSC,
-       GA4, Keywords, and the via tab of Ads. Batches keep the pool busy
-       without overflowing it. Slow sheets are isolated in batch 3 so they
-       don't starve faster ones. */
-    const runBatch = async (entries) => {
-      const settled = await Promise.allSettled(entries.map(([key, req]) => loadChannel(key, req)));
-      return Object.fromEntries(entries.map(([key], i) => {
-        const r = settled[i];
-        return [key, r.status === 'fulfilled' ? r.value : { rows: [], cols: [], source: 'fail', reason: (r.reason && r.reason.message) || 'unknown', lastModified: null, tabLastModified: null }];
-      }));
-    };
-    const batch1 = await runBatch([
+    /* All 10 channels fire in parallel via Promise.allSettled. The previous
+       3-sequential-batches design existed to dodge iPad Safari's
+       ~6-connection-per-host cap on cross-origin fetch(); now that the
+       transport is <script>-tag JSONP, that cap doesn't apply (browsers
+       are leaner with script-tag loads, and gviz cold-starts in parallel
+       just fine). Wall-clock drops from 3 batches × slowest-in-batch to
+       single max-of-all. */
+    const channels = [
+      ['ads', REQUIRED_COLS.ads],
+      ['gsc', REQUIRED_COLS.gsc],
+      ['ga', REQUIRED_COLS.ga],
       ['aircall', REQUIRED_COLS.aircall],
       ['social', REQUIRED_COLS.social],
       ['social_analytics', REQUIRED_COLS.social_analytics],
-      ['semrush_bl', REQUIRED_COLS.semrush_bl],
-    ]);
-    const batch2 = await runBatch([
-      ['ads', REQUIRED_COLS.ads],
-      ['semrush_kw', REQUIRED_COLS.semrush_kw],
-      ['pagespeed', REQUIRED_COLS.pagespeed],
-    ]);
-    const batch3 = await runBatch([
-      ['gsc', REQUIRED_COLS.gsc],
-      ['ga', REQUIRED_COLS.ga],
       ['keywords', REQUIRED_COLS.keywords],
-    ]);
-    const ads = batch2.ads, gsc = batch3.gsc, ga = batch3.ga, ac = batch1.aircall;
-    const social = batch1.social, social_analytics = batch1.social_analytics;
-    const keywords = batch3.keywords, pagespeed = batch2.pagespeed;
-    const semrush_kw = batch2.semrush_kw, semrush_bl = batch1.semrush_bl;
+      ['pagespeed', REQUIRED_COLS.pagespeed],
+      ['semrush_kw', REQUIRED_COLS.semrush_kw],
+      ['semrush_bl', REQUIRED_COLS.semrush_bl],
+    ];
+    const settled = await Promise.allSettled(channels.map(([key, req]) => loadChannel(key, req)));
+    const result = Object.fromEntries(channels.map(([key], i) => {
+      const r = settled[i];
+      return [key, r.status === 'fulfilled' ? r.value : { rows: [], cols: [], source: 'fail', reason: (r.reason && r.reason.message) || 'unknown', lastModified: null, tabLastModified: null }];
+    }));
+    const ads = result.ads, gsc = result.gsc, ga = result.ga, ac = result.aircall;
+    const social = result.social, social_analytics = result.social_analytics;
+    const keywords = result.keywords, pagespeed = result.pagespeed;
+    const semrush_kw = result.semrush_kw, semrush_bl = result.semrush_bl;
 
     console.table([
       { channel: 'ads',        source: ads.source,        rows: ads.rows.length,        reason: ads.reason || '',        cols: ads.cols.join(', ') },

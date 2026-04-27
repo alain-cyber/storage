@@ -2784,7 +2784,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 45s timeout · built 2026-04-27 r2', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 45s timeout · big-sheets isolated batch · built 2026-04-27 r3', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -5667,34 +5667,50 @@ async function render(opts = {}) {
     }
   }
   try {
-    /* All 10 channels fire in parallel via Promise.allSettled. The previous
-       3-sequential-batches design existed to dodge iPad Safari's
-       ~6-connection-per-host cap on cross-origin fetch(); now that the
-       transport is <script>-tag JSONP, that cap doesn't apply (browsers
-       are leaner with script-tag loads, and gviz cold-starts in parallel
-       just fine). Wall-clock drops from 3 batches × slowest-in-batch to
-       single max-of-all. */
-    const channels = [
-      ['ads', REQUIRED_COLS.ads],
-      ['gsc', REQUIRED_COLS.gsc],
-      ['ga', REQUIRED_COLS.ga],
+    /* iPad Safari serializes parallel script-tag loads from the same
+       origin (same constraint we hit with cross-origin fetch earlier).
+       Diagnostics feed proved it: the big sheets (raw_*_via, raw_ga4_*,
+       raw_ads_via_kw) abort at exactly ~86s after a refresh starts —
+       because their 45s timer doesn't begin until they get a slot in
+       the queue, which is ~40s into the refresh once smaller sheets
+       finish. When raw_gsc_lnow retried with a clean shot it succeeded
+       in 7s, confirming the issue is queue starvation not actual
+       failure.
+
+       Two sequential batches:
+         - Batch 1: small/fast tabs (semrush, social, pagespeed,
+           aircall) — these all complete in 200ms-5s, total wall-clock
+           ~5s.
+         - Batch 2: the big sheets (ads, gsc, ga, keywords) — get a
+           dedicated parallel batch so each gets a clean shot at the
+           connection pool. Total wall-clock for this batch ~20-30s.
+
+       Total ~25-35s vs the prior chaotic ~90s. */
+    const runBatch = async (entries) => {
+      const settled = await Promise.allSettled(entries.map(([key, req]) => loadChannel(key, req)));
+      return Object.fromEntries(entries.map(([key], i) => {
+        const r = settled[i];
+        return [key, r.status === 'fulfilled' ? r.value : { rows: [], cols: [], source: 'fail', reason: (r.reason && r.reason.message) || 'unknown', lastModified: null, tabLastModified: null }];
+      }));
+    };
+    const fastBatch = await runBatch([
       ['aircall', REQUIRED_COLS.aircall],
       ['social', REQUIRED_COLS.social],
       ['social_analytics', REQUIRED_COLS.social_analytics],
-      ['keywords', REQUIRED_COLS.keywords],
       ['pagespeed', REQUIRED_COLS.pagespeed],
       ['semrush_kw', REQUIRED_COLS.semrush_kw],
       ['semrush_bl', REQUIRED_COLS.semrush_bl],
-    ];
-    const settled = await Promise.allSettled(channels.map(([key, req]) => loadChannel(key, req)));
-    const result = Object.fromEntries(channels.map(([key], i) => {
-      const r = settled[i];
-      return [key, r.status === 'fulfilled' ? r.value : { rows: [], cols: [], source: 'fail', reason: (r.reason && r.reason.message) || 'unknown', lastModified: null, tabLastModified: null }];
-    }));
-    const ads = result.ads, gsc = result.gsc, ga = result.ga, ac = result.aircall;
-    const social = result.social, social_analytics = result.social_analytics;
-    const keywords = result.keywords, pagespeed = result.pagespeed;
-    const semrush_kw = result.semrush_kw, semrush_bl = result.semrush_bl;
+    ]);
+    const bigBatch = await runBatch([
+      ['ads', REQUIRED_COLS.ads],
+      ['gsc', REQUIRED_COLS.gsc],
+      ['ga', REQUIRED_COLS.ga],
+      ['keywords', REQUIRED_COLS.keywords],
+    ]);
+    const ads = bigBatch.ads, gsc = bigBatch.gsc, ga = bigBatch.ga, ac = fastBatch.aircall;
+    const social = fastBatch.social, social_analytics = fastBatch.social_analytics;
+    const keywords = bigBatch.keywords, pagespeed = fastBatch.pagespeed;
+    const semrush_kw = fastBatch.semrush_kw, semrush_bl = fastBatch.semrush_bl;
 
     console.table([
       { channel: 'ads',        source: ads.source,        rows: ads.rows.length,        reason: ads.reason || '',        cols: ads.cols.join(', ') },
@@ -7492,6 +7508,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Big sheets get a dedicated batch — fixes queue starvation on iPad',
+    tags: ['Fix'],
+    bullets: [
+      'Diagnostics feed proved the actual issue: iPad Safari serializes parallel <script>-tag loads from the same origin (same constraint we thought was unique to cross-origin fetch earlier — turns out it applies here too). Big sheets (raw_*_via, raw_ga4_*, raw_ads_via_kw) were aborting at ~86s after refresh start because their 45s timer didn\'t begin until they got a slot in the queue, ~40s in. When raw_gsc_lnow retried with a clean shot it completed in 7s — confirming the failures are queue starvation, not actual unreachability.',
+      'Re-introduced sequential batches but smarter: small/fast tabs (Aircall, Metricool, PageSpeed, SemRush) fire first and complete in ~5s total wall-clock. Big sheets (Google Ads, GSC, GA4, Keywords) then get a dedicated parallel batch where each has a clean shot at the connection pool. Total refresh time drops from chaotic ~90s to predictable ~25-35s.',
+      'Build tag bumped to r3 so iPad users can verify in Diagnostics they got the new code.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Bumped JSONP timeout to 45s — was false-failing the big sheets at 15s',

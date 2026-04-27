@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Viatrading + LiquidateNow — CMO Dashboard</title>
+<title>ViaTrading + LiquidateNow — CMO Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -145,7 +145,7 @@
     box-shadow: 0 1px 2px rgba(15,20,25,0.06);
   }
   /* Brand-specific accent — matches each company's logo color so the
-     active brand reads at a glance: Viatrading = blue, LiquidateNow =
+     active brand reads at a glance: ViaTrading = blue, LiquidateNow =
      orange. Idle buttons get a subtle tint of the same hue; active
      buttons fill solid + bold. */
   .brand-toggle button[data-brand="via"] { color: #1f77ff; }
@@ -1962,7 +1962,7 @@
 <aside class="side" id="sideNav" aria-label="Channel navigation">
   <div class="side-brand">
     <div class="side-brand-logos">
-      <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="Viatrading" />
+      <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="ViaTrading" />
       <img class="side-brand-logo" data-brand-logo="liq" src="https://www.liquidatenow.com/wp-content/uploads/2015/07/liquidate-now-logo.png" alt="LiquidateNow" />
     </div>
     <div class="side-brand-sub">CMO dashboard</div>
@@ -2030,7 +2030,7 @@
     <span class="label">Brand</span>
     <div class="group" role="group" aria-label="Brand filter">
       <button type="button" data-brand="all" aria-pressed="true">All</button>
-      <button type="button" data-brand="via" aria-pressed="false">Viatrading</button>
+      <button type="button" data-brand="via" aria-pressed="false">ViaTrading</button>
       <button type="button" data-brand="liq" aria-pressed="false">LiquidateNow</button>
     </div>
     <span id="brandPending" class="brand-pending hidden">social shown across both brands</span>
@@ -2542,7 +2542,7 @@
     </div>
     <div class="chat-log" id="chatLog"></div>
     <div class="chat-input-row">
-      <textarea id="chatInput" rows="2" placeholder="Ask about the data… (Enter to send, Shift+Enter for newline)"></textarea>
+      <textarea id="chatInput" rows="2" placeholder="Chat with Vicki about our data"></textarea>
       <button type="button" class="rec-btn rec-btn-primary" id="chatSend">Send</button>
     </div>
     <div class="claude-status" id="chatStatus"></div>
@@ -2613,7 +2613,7 @@
       <div class="threshold-brand">
         <span class="label">Editing</span>
         <div class="group" role="group" aria-label="Threshold brand">
-          <button type="button" data-tbrand="via" aria-pressed="true">Viatrading</button>
+          <button type="button" data-tbrand="via" aria-pressed="true">ViaTrading</button>
           <button type="button" data-tbrand="liq" aria-pressed="false">LiquidateNow</button>
         </div>
       </div>
@@ -2815,7 +2815,7 @@ function inferCallBrand(row) {
   /* 2. Number Name is column J per the user's rule */
   const line = String(getFirstFieldValue(row, AIRCALL_LINE_COLS) || '').trim();
   if (LIQ_AIRCALL_LINES.has(line)) return 'liq';
-  /* 3. Default: Viatrading */
+  /* 3. Default: ViaTrading */
   return 'via';
 }
 
@@ -2990,25 +2990,41 @@ async function fetchSheet(id, opts = {}) {
     try {
       const res = await fetch(url, { signal: controller.signal });
       if (!res.ok) throw new Error(`gviz ${res.status}`);
-      return await res.text();
+      /* Last-Modified is in the CORS-safelisted response headers, so we can
+         read it cross-origin without Access-Control-Expose-Headers. gviz
+         returns the underlying spreadsheet's modifiedTime here, which is
+         exactly what the Data Sources "Last pulled" cell wants. */
+      const lm = res.headers.get('last-modified');
+      return { text: await res.text(), lastModified: lm || null };
     } finally {
       clearTimeout(timer);
     }
   };
-  let text;
+  /* Safari surfaces network rejects (DNS, TLS, blocked, content blockers,
+     iCloud Private Relay) as a bare `TypeError: Load failed` which lands on
+     the Data Sources card with no hint about how to investigate. Catch the
+     TypeError shape and rewrite to something actionable. */
+  const friendlyFetchError = (e) => {
+    const msg = (e && e.message) || String(e);
+    const isTypeError = e && (e.name === 'TypeError' || /^Load failed$|^Failed to fetch$/i.test(msg));
+    if (isTypeError) return 'fetch rejected (network/sharing/Private Relay) — open sheet to verify';
+    return msg;
+  };
+  let fetched;
   try {
-    text = await fetchOnce();
+    fetched = await fetchOnce();
   } catch (e) {
     const isAbort = (e && (e.name === 'AbortError' || /abort/i.test(e.message || '')));
-    if (!isAbort) throw e;
+    if (!isAbort) throw new Error(friendlyFetchError(e));
     await new Promise(r => setTimeout(r, 2000));
     try {
-      text = await fetchOnce();
+      fetched = await fetchOnce();
     } catch (e2) {
       const isAbort2 = (e2 && (e2.name === 'AbortError' || /abort/i.test(e2.message || '')));
-      throw new Error(isAbort2 ? 'Timed out after retry — sheet shared as Viewer?' : (e2.message || String(e2)));
+      throw new Error(isAbort2 ? 'Timed out after retry — sheet shared as Viewer?' : friendlyFetchError(e2));
     }
   }
+  const { text, lastModified } = fetched;
   const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
   const cols = json.table.cols.map(c => stripCoefficientBanner(c.label || c.id));
   const rows = json.table.rows.map(r => {
@@ -3016,7 +3032,7 @@ async function fetchSheet(id, opts = {}) {
     r.c.forEach((cell,i) => { o[cols[i]] = cell ? coerceCell(cell.v) : null; });
     return o;
   });
-  return { rows, cols };
+  return { rows, cols, lastModified };
 }
 
 const COLUMN_ALIASES = {
@@ -3074,7 +3090,7 @@ const COLUMN_ALIASES = {
   /* SemRush — backlink authority snapshot (one row per brand per day). */
   semrush_bl: {
     Date:                 ['date', 'Day'],
-    'Referring Domains':  ['referring_domains', 'ref_domains'],
+    'Referring Domains':  ['referring_domains', 'ref_domains', 'referring_domains_total'],
     'New Domains':        ['new_domains'],
     'Lost Domains':       ['lost_domains'],
     'Total Backlinks':    ['total_backlinks', 'backlinks'],
@@ -3238,7 +3254,7 @@ function normalizePagespeedRows(rows, _cols) {
 async function loadChannel(key, requiredCols = []) {
   try {
     const sheet = SHEETS[key];
-    let rawRows, rawCols;
+    let rawRows, rawCols, lastModified = null, tabLastModified = null;
     if (sheet.brandTabs) {
       /* Fetch both brand tabs in parallel; tag each row with its brand so
          scopeChannel() can slice locally without re-fetching. A failure on
@@ -3250,11 +3266,13 @@ async function loadChannel(key, requiredCols = []) {
       const colsSet = new Set();
       const allRows = [];
       const problems = [];
+      tabLastModified = {};
       results.forEach((r, i) => {
         const [brand, tab] = entries[i];
         if (r.status === 'fulfilled' && r.value.rows && r.value.rows.length) {
           r.value.cols.forEach(c => colsSet.add(c));
           r.value.rows.forEach(row => allRows.push({ ...row, brand }));
+          if (r.value.lastModified) tabLastModified[brand] = r.value.lastModified;
         } else {
           problems.push(`${tab}: ${r.status === 'rejected' ? (r.reason && r.reason.message) : 'empty'}`);
         }
@@ -3267,16 +3285,17 @@ async function loadChannel(key, requiredCols = []) {
       if (!fetched.rows || !fetched.rows.length) throw new Error('empty');
       rawRows = fetched.rows;
       rawCols = fetched.cols;
+      lastModified = fetched.lastModified || null;
     }
     const { rows, cols } = applyAliases(key, rawRows, rawCols);
     const missing = requiredCols.filter(c => !cols.includes(c));
     if (missing.length) throw new Error(`missing cols: ${missing.join(', ')} — found: ${cols.join(', ')}`);
     const normalized = normalizeByKey(key, rows, cols);
-    return { rows: normalized, source: 'live', cols };
+    return { rows: normalized, source: 'live', cols, lastModified, tabLastModified };
   } catch (e) {
     /* No more silent demo fallback — leave rows empty and let the UI render
        a FAIL tag with the reason. */
-    return { rows: [], source: 'fail', cols: [], reason: e.message };
+    return { rows: [], source: 'fail', cols: [], reason: e.message, lastModified: null, tabLastModified: null };
   }
 }
 
@@ -3707,7 +3726,7 @@ function renderActionCardHtml(a) {
   const label = ACTION_TYPE_LABELS[a.action_type] || a.action_type;
   const trigger = a.metric_trigger ? `<div class="rec-trigger">${escapeHtml(a.metric_trigger)}</div>` : '';
   const metaBits = [`<span>${a.grain}</span>`];
-  if (a.brand && a.brand !== 'all') metaBits.push(`<span>${a.brand === 'via' ? 'Viatrading' : a.brand === 'liq' ? 'LiquidateNow' : a.brand}</span>`);
+  if (a.brand && a.brand !== 'all') metaBits.push(`<span>${a.brand === 'via' ? 'ViaTrading' : a.brand === 'liq' ? 'LiquidateNow' : a.brand}</span>`);
   metaBits.push('<span>click for numbers</span>');
   const decisionPayload = encodeURIComponent(JSON.stringify({
     kind: 'rule',
@@ -4875,6 +4894,55 @@ function dateRangeFromRows(rows) {
   return { min: f(min), max: f(max) };
 }
 
+/* Per-card "Last pulled" readout. Source of truth is the spreadsheet's
+   actual modifiedTime — gviz returns it in the Last-Modified response
+   header, which Last-Modified being CORS-safelisted lets us read cross-
+   origin without setup. brandTabs sources keep their own per-tab times so
+   a half-stale workbook (one tab fresh, one tab not) is obvious. */
+function relativeAgo(d) {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return null;
+  const ageSec = Math.max(0, Math.round((Date.now() - d.getTime()) / 1000));
+  const ageMin = Math.round(ageSec / 60);
+  const ageHr  = Math.round(ageMin / 60);
+  const ageDay = Math.round(ageHr / 24);
+  if (ageSec < 45)  return 'just now';
+  if (ageMin < 60)  return `${ageMin} minute${ageMin === 1 ? '' : 's'} ago`;
+  if (ageHr  < 24)  return `${ageHr} hour${ageHr === 1 ? '' : 's'} ago`;
+  return `${ageDay} day${ageDay === 1 ? '' : 's'} ago`;
+}
+function parseHttpDate(s) {
+  if (!s) return null;
+  const t = Date.parse(s);
+  return isNaN(t) ? null : new Date(t);
+}
+function formatLastPulled(lastModified, tabLastModified, fallbackDate) {
+  const fmtAbs = d => d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const phrase = d => {
+    const rel = relativeAgo(d);
+    return rel ? `${rel} <span class="src-stat-value dim">· ${escapeHtml(fmtAbs(d))}</span>` : escapeHtml(fmtAbs(d));
+  };
+  if (tabLastModified) {
+    const got = ['via', 'liq']
+      .filter(k => tabLastModified[k])
+      .map(k => ({ k, d: parseHttpDate(tabLastModified[k]) }))
+      .filter(x => x.d);
+    if (got.length === 2) {
+      const sameMin = Math.abs(got[0].d.getTime() - got[1].d.getTime()) < 60_000;
+      if (sameMin) return `<span class="src-stat-value">${phrase(got[0].d)}</span>`;
+      return `<span class="src-stat-value">${relativeAgo(got[0].d)} <span class="src-stat-value dim">(via)</span> · ${relativeAgo(got[1].d)} <span class="src-stat-value dim">(liq)</span></span>`;
+    }
+    if (got.length === 1) {
+      return `<span class="src-stat-value">${phrase(got[0].d)} <span class="src-stat-value dim">(${got[0].k} only)</span></span>`;
+    }
+  }
+  const d = parseHttpDate(lastModified);
+  if (d) return `<span class="src-stat-value">${phrase(d)}</span>`;
+  if (fallbackDate instanceof Date) {
+    return `<span class="src-stat-value dim">Refreshed ${escapeHtml(fmtAbs(fallbackDate))}</span>`;
+  }
+  return `<span class="src-stat-value dim">—</span>`;
+}
+
 /* Each Google Sheet tab is its own data source — Ads alone has two
    (raw_ads_via + raw_ads_lnow). Walk every SHEETS entry and emit one
    {label, tab, brand, live, source} record per tab, so the Overview
@@ -5000,13 +5068,20 @@ function renderDataSources(raw) {
       ? `<span class="src-stat-value">${fmt(split.via)} via · ${fmt(split.liq)} liq${split.none ? ` · ${fmt(split.none)} untagged` : ''}</span>`
       : `<span class="src-stat-value dim">single tab</span>`;
     const head = opts.head ? `<div class="src-tab-head">${escapeHtml(opts.head)}</div>` : '';
+    /* Aircall buckets every call to a Pacific Time business day (see
+       normalizeAircallRows) — the Date range readout otherwise looks like
+       it's missing the most recent day for evening calls that are next-day
+       UTC. Tag the readout so the bucketing isn't invisible. */
+    const ptSuffix = r.key === 'aircall' ? ' <span class="src-stat-value dim">(PT)</span>' : '';
+    const lastPulled = formatLastPulled(ch.lastModified, ch.tabLastModified, state.lastRefreshAt);
     return `
       ${head}
       <div class="src-stats">
         <div><div class="src-stat-label">Rows</div><div class="src-stat-value">${fmt(ch.rows.length)}</div></div>
         <div><div class="src-stat-label">Brand split</div>${splitLine}</div>
-        <div><div class="src-stat-label">Date range</div>${range ? `<span class="src-stat-value">${range.min} → ${range.max}</span>` : '<span class="src-stat-value dim">no date column</span>'}</div>
+        <div><div class="src-stat-label">Date range</div>${range ? `<span class="src-stat-value">${range.min} → ${range.max}</span>${ptSuffix}` : '<span class="src-stat-value dim">no date column</span>'}</div>
         <div><div class="src-stat-label">Columns</div><div class="src-stat-value">${(ch.cols || []).length}</div></div>
+        <div style="grid-column: 1 / -1"><div class="src-stat-label">Last pulled</div>${lastPulled}</div>
       </div>
       ${cols ? `<div class="src-cols">${cols}${colsExtra}</div>` : ''}
     `;
@@ -5096,7 +5171,7 @@ function renderDataSources(raw) {
   }).join('');
 }
 
-const BRAND_DISPLAY = { all: 'All brands', via: 'Viatrading', liq: 'LiquidateNow' };
+const BRAND_DISPLAY = { all: 'All brands', via: 'ViaTrading', liq: 'LiquidateNow' };
 
 /* Short suffix shown on KPI labels so the user can confirm at a glance which
    window the value covers. Mirrors the dropdown but compresses copy. */
@@ -5280,16 +5355,25 @@ async function idbCacheSet(payload) {
 
 async function render(opts = {}) {
   const force = !!opts.force;
-  /* Try the cache first unless the caller explicitly forced a refresh. */
+  /* Stale-while-revalidate: try the cache first for an instant paint, then
+     fall through to a background fetch if the cache is older than the
+     freshness window. Fast reloads stay fast (no network); but opening the
+     dashboard for the first time the next morning auto-refreshes instead of
+     leaving the topbar stuck on yesterday's "Updated …" timestamp. Force
+     refresh always skips the cache entirely. */
+  const STALE_AFTER_MS = 15 * 60 * 1000;
   if (!force) {
     const cached = await idbCacheGet();
     if (cached && cached.data && cached.at) {
+      const ageMs = Date.now() - cached.at;
       try {
         state.raw = cached.data;
         state.lastRefreshAt = new Date(cached.at);
         repaint();
-        console.log('CMO: hydrated from cache', new Date(cached.at).toLocaleString());
-        return;
+        console.log('CMO: hydrated from cache', new Date(cached.at).toLocaleString(), '· age', Math.round(ageMs / 60000), 'min');
+        if (ageMs <= STALE_AFTER_MS) return;
+        console.log('CMO: cache stale, auto-refreshing in background');
+        startLoadingHype();
       } catch (e) {
         console.warn('CMO: cache hydrate failed, refetching', e);
       }
@@ -5989,7 +6073,7 @@ function renderSemrush(kwChannel, blChannel) {
     blBrand.innerHTML = blSum.perBrand.length
       ? blSum.perBrand.map(p => `
           <div class="semrush-brand-card">
-            <div class="src-stat-label">${p.brand === 'via' ? 'Viatrading' : p.brand === 'liq' ? 'LiquidateNow' : escapeHtml(p.brand)}</div>
+            <div class="src-stat-label">${p.brand === 'via' ? 'ViaTrading' : p.brand === 'liq' ? 'LiquidateNow' : escapeHtml(p.brand)}</div>
             <div class="src-stat-value">${fmt(p.latest.refDomains)} ref</div>
             <div class="src-card-sub">${fmt(p.latest.totalBacklinks)} backlinks · ${p.latest.topAuthority != null ? p.latest.topAuthority : '—'} authority</div>
             <div class="src-card-sub">Δ ${p.refDomainsDelta >= 0 ? '+' : ''}${fmt(p.refDomainsDelta)} since ${escapeHtml(p.earliest.date || '—')}</div>
@@ -6010,7 +6094,7 @@ function renderSemrush(kwChannel, blChannel) {
     });
     const palette = { via: BLUE, liq: GREEN, all: AMBER };
     const datasets = Object.entries(seriesByBrand).map(([brand, byDate]) => ({
-      label: brand === 'via' ? 'Viatrading' : brand === 'liq' ? 'LiquidateNow' : brand,
+      label: brand === 'via' ? 'ViaTrading' : brand === 'liq' ? 'LiquidateNow' : brand,
       data: dates.map(d => byDate[d] || 0),
       borderColor: palette[brand] || BLUE,
       backgroundColor: 'transparent',
@@ -6395,7 +6479,7 @@ function renderLLMDecisions(list, mountId, badgeLabel) {
 
   const renderCard = d => {
     const sev = (d.priority || 'MEDIUM').toLowerCase();
-    const brandLine = d.brand && d.brand !== 'all' ? ` · ${d.brand === 'via' ? 'Viatrading' : d.brand === 'liq' ? 'LiquidateNow' : d.brand}` : '';
+    const brandLine = d.brand && d.brand !== 'all' ? ` · ${d.brand === 'via' ? 'ViaTrading' : d.brand === 'liq' ? 'LiquidateNow' : d.brand}` : '';
     const detail = SOURCE_DETAIL[d.source] || { label: d.source || '', hint: '' };
     const decisionPayload = encodeURIComponent(JSON.stringify({
       kind: 'llm',
@@ -6659,7 +6743,7 @@ function openDecisionModal(payload) {
   const sevLower = sev.toLowerCase();
   const detail = SOURCE_DETAIL[payload.source] || { label: payload.source || 'Decision' };
   const brandLabel = payload.brand && payload.brand !== 'all'
-    ? (payload.brand === 'via' ? 'Viatrading' : payload.brand === 'liq' ? 'LiquidateNow' : payload.brand)
+    ? (payload.brand === 'via' ? 'ViaTrading' : payload.brand === 'liq' ? 'LiquidateNow' : payload.brand)
     : 'All brands';
   const providerLabel = payload.provider || (payload.kind === 'rule' ? 'RULES' : '');
   const heading = payload.kind === 'rule'
@@ -7012,7 +7096,7 @@ function renderLowHanging(scoped) {
     const effortCls = w.effort === 'MEDIUM' ? 'lhf-effort is-medium' : 'lhf-effort';
     const detail = SOURCE_DETAIL[w.source] || { label: w.source };
     const brandLine = w.brand && w.brand !== 'all'
-      ? (w.brand === 'via' ? 'Viatrading' : w.brand === 'liq' ? 'LiquidateNow' : w.brand)
+      ? (w.brand === 'via' ? 'ViaTrading' : w.brand === 'liq' ? 'LiquidateNow' : w.brand)
       : '';
     const payload = encodeURIComponent(JSON.stringify({
       kind: 'lhf', source: w.source, title: w.title, entity: w.entity,
@@ -7046,6 +7130,88 @@ function renderLowHanging(scoped) {
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
   {
+    date: 'Apr 27, 2026',
+    title: 'Brand spelled "ViaTrading" everywhere (capital T)',
+    tags: ['Polish'],
+    bullets: [
+      'Renamed every "Viatrading" string in the dashboard and the SYSTEM_STATE notes to "ViaTrading" — topbar brand toggle, sidebar logo alt text, the BRAND_DISPLAY / BRAND_LABEL maps, every per-brand label in the action drawers, the page title, the threshold confirm dialog, and all prior App History entries that mentioned the brand.',
+      'No code-side identifiers changed (the `via` data-attribute, the `state.brand` value, the `raw_ads_via` tab name etc. all stay lowercase) — this is purely the user-facing display string.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
+    title: '"Last pulled" now reads the sheet\'s actual modifiedTime',
+    tags: ['Polish'],
+    bullets: [
+      'Earlier today the new "Last pulled" cell on each Data Sources card was reading the Coefficient banner phrase ("Last updated 17 hours ago") for Coefficient sheets and the dashboard\'s own fetch time for everything else. Now it reads the spreadsheet\'s actual modifiedTime — pulled from the gviz response\'s Last-Modified header (which is CORS-safelisted, so we can read it cross-origin without setup).',
+      'Display format: a relative phrase ("3 hours ago") with the absolute timestamp dimmed beside it ("· Apr 27, 2:14 PM"). brandTabs sources still keep the per-tab times so a half-stale workbook (one tab fresh, one tab not) reads as "(via) · (liq)" with both relative phrases. Dashboard fetch time stays as the final fallback when no Last-Modified header is present.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
+    title: 'Topbar timestamp auto-refreshes when the cached data is stale',
+    tags: ['Fix'],
+    bullets: [
+      'Opening the dashboard the next morning used to leave the topbar stuck on yesterday\'s "Updated …" time forever — page reloads (browser refresh / pull-to-refresh on iPad) hydrated instantly from the IndexedDB cache and never re-fetched, so the timestamp reflected when the cache was written, not when the user looked at it.',
+      'Now the cache hydrate still paints instantly (fast reloads stay fast), but if the cache is older than 15 minutes the dashboard fires a background refresh on its own — the loading hype line shows in the topbar while it runs, then the timestamp updates to "now" once gviz responds.',
+      'Manual Refresh button behaviour is unchanged: it always force-fetches.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
+    title: 'Data Sources cards show a per-card "Last pulled" stamp',
+    tags: ['Feature'],
+    bullets: [
+      'Every card on the Data Sources page now has a "Last pulled" cell. For Coefficient sheets (Ads, GSC, GA4, Aircall, Keywords) it surfaces the upstream "X hours ago" phrase Coefficient writes into row 1 — captured during fetch and threaded through to the card. For non-Coefficient sheets (SemRush, Page Speed, Metricool) it shows the dashboard\'s own fetch time instead, dimmed to flag the difference.',
+      'brandTabs sources keep banners per tab — when via and liq Coefficient pulls run on different schedules, both phrases show side-by-side ("17 hours ago (via) · 2 hours ago (liq)") so a half-stale workbook is obvious at a glance.',
+      'This is the diagnostic that explains date-range max-day mysteries: fresh banner + Apr 24 max → upstream just hasn\'t released the next day yet; stale banner + Apr 24 max → Coefficient pull is broken.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
+    title: 'Aircall date range labelled (PT) so the PT bucketing isn\'t invisible',
+    tags: ['Polish'],
+    bullets: [
+      'normalizeAircallRows buckets every call to a Pacific Time business day on purpose (so a 5pm-PT call doesn\'t roll over into the next day), but the Data Sources card just showed "Jan 21 → Apr 24, 2026" with no hint that PT was in play. A 2026-04-25 0:29 UTC row in the sheet correctly buckets into Apr 24 PT, which looked like missing data.',
+      'Added a small dim "(PT)" suffix on the Aircall card\'s Date range so the bucketing is explicit. No change to the bucketing itself or to other cards.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
+    title: 'SemRush · Backlinks reads referring_domains_total',
+    tags: ['Fix'],
+    bullets: [
+      'The SemRush Backlinks tab was showing FAIL with "missing cols: Referring Domains — found: …, referring_domains_total, …" because the alias map for "Referring Domains" only knew `referring_domains` and `ref_domains`. Added `referring_domains_total` so the canonical column is recognized and the card flips back to LIVE.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
+    title: 'Safari "Load failed" rewritten to something actionable',
+    tags: ['Polish'],
+    bullets: [
+      'When iPad Safari rejects a fetch (network blip, content blocker, iCloud Private Relay, per-tab "Protect sheets" permission), the bare "TypeError: Load failed" used to surface verbatim on the Data Sources card with no hint about what to do. Now it reads "fetch rejected (network/sharing/Private Relay) — open sheet to verify" so the user knows where to look.',
+      'Other error messages (gviz HTTP status codes, "Timed out after retry") are unchanged — only the Safari/Chrome generic-network-reject case is rewritten.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
+    title: 'Chat replies tagged with the model that produced them',
+    tags: ['Polish'],
+    bullets: [
+      'The Chat page already let you toggle between Claude and GPT, but the reply bubbles didn\'t carry any indication of which one answered — flipping the toggle mid-conversation made old replies anonymous on re-render. Each assistant message now stores `model: "claude" | "gpt"` in chat history and renders a small "Claude" or "GPT" label above the bubble.',
+      'Older history without a model field renders unlabelled (no guessing). The transient status line still reads "Claude replied · 5:06 PM" / "GPT replied · 5:06 PM" — the per-bubble label is the persistent tag.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
+    title: 'Chat input placeholder + empty-state copy',
+    tags: ['Polish'],
+    bullets: [
+      'Replaced the chat textarea placeholder with "Chat with Vicki about our data" — the toggle and Send button already make affordances clear, so the old "Enter to send, Shift+Enter for newline" guidance was clutter.',
+      'Refreshed the empty-state hint to match the new tone: "Vicki has the current scope (brand + range) loaded. Ask things like …" instead of the generic "Ask anything about the current scope". Example questions kept.',
+    ],
+  },
+  {
     date: 'Apr 26, 2026',
     title: 'Metricool collapsed to one Data Sources card with two tabs',
     tags: ['Polish'],
@@ -7059,16 +7225,16 @@ const APP_HISTORY = [
     title: 'Sidebar logos pinned to top-left',
     tags: ['Polish'],
     bullets: [
-      'Removed the empty row that the collapse chevron was sitting in. The Viatrading + LiquidateNow logos now anchor at the very top-left of the sidebar with no leading whitespace. Collapse chevron floats absolutely in the top-right corner so it stays accessible without consuming a row.',
+      'Removed the empty row that the collapse chevron was sitting in. The ViaTrading + LiquidateNow logos now anchor at the very top-left of the sidebar with no leading whitespace. Collapse chevron floats absolutely in the top-right corner so it stays accessible without consuming a row.',
     ],
   },
   {
     date: 'Apr 26, 2026',
-    title: 'Branding swap — Vicki in topbar, bigger Viatrading + LiquidateNow logos in sidebar',
+    title: 'Branding swap — Vicki in topbar, bigger ViaTrading + LiquidateNow logos in sidebar',
     tags: ['Polish'],
     bullets: [
       'Restored the Vicki Intelligence mark to the topbar (next to the page title) and removed the duplicate from the sidebar header.',
-      'Enlarged the Viatrading + LiquidateNow logos in the sidebar from 22px to 38px tall so the customer-facing brands lead in the sidebar instead of competing with Vicki for space.',
+      'Enlarged the ViaTrading + LiquidateNow logos in the sidebar from 22px to 38px tall so the customer-facing brands lead in the sidebar instead of competing with Vicki for space.',
       'Sidebar collapse chevron stays where it was — now alone in its row, right-aligned.',
     ],
   },
@@ -7122,7 +7288,7 @@ const APP_HISTORY = [
     title: 'Brand toggle painted with each company\'s color',
     tags: ['Polish'],
     bullets: [
-      'The Viatrading and LiquidateNow buttons in the topbar brand toggle now use each company\'s brand color — Viatrading blue, LiquidateNow orange. Idle state shows the brand color in the text with a subtle hover tint; the active brand fills solid in its hue with a soft glow so it\'s instantly readable from across the room.',
+      'The ViaTrading and LiquidateNow buttons in the topbar brand toggle now use each company\'s brand color — ViaTrading blue, LiquidateNow orange. Idle state shows the brand color in the text with a subtle hover tint; the active brand fills solid in its hue with a soft glow so it\'s instantly readable from across the room.',
     ],
   },
   {
@@ -7130,7 +7296,7 @@ const APP_HISTORY = [
     title: 'Vicki Intelligence brand mark + collapsible sidebar',
     tags: ['Polish'],
     bullets: [
-      'New Vicki Intelligence brand mark (sparkle SVG with purple→magenta→pink gradient + "Vicki" gradient wordmark) lives in the sidebar header above the Viatrading + LiquidateNow logos and as a compact version next to the page title in the topbar.',
+      'New Vicki Intelligence brand mark (sparkle SVG with purple→magenta→pink gradient + "Vicki" gradient wordmark) lives in the sidebar header above the ViaTrading + LiquidateNow logos and as a compact version next to the page title in the topbar.',
       'Sidebar is now collapsible — click the chevron in the sidebar header to slim the sidebar to 64px (icons only). Hover any link to see its name as a tooltip. Collapsed state persists across reloads via localStorage.',
       'Mobile sidebar overlay behavior is unchanged; the collapse only applies on desktop where the sidebar is a fixed column.',
     ],
@@ -7321,7 +7487,7 @@ const APP_HISTORY = [
       'Connected the Page Speed sheet (Lighthouse / Core Web Vitals per URL + device) as a live channel with its own page.',
       'Aircall daily call counts are now pinned to Pacific Time so the buckets line up with US business hours.',
       'Switched the whole dashboard to a light, Semrush-style theme — white cards on a soft-grey page, blue accent, Inter typeface, sentence-case labels.',
-      'Added Viatrading + LiquidateNow logos to the sidebar header. Footer now reads "Powered by Vicki Intelligence."',
+      'Added ViaTrading + LiquidateNow logos to the sidebar header. Footer now reads "Powered by Vicki Intelligence."',
     ],
   },
   {
@@ -7400,7 +7566,7 @@ const APP_HISTORY = [
     title: 'Dual-brand framing + AI Copilot v1',
     tags: ['Foundation'],
     bullets: [
-      'Re-framed the dashboard as Viatrading + LiquidateNow with a brand toggle in the top bar.',
+      'Re-framed the dashboard as ViaTrading + LiquidateNow with a brand toggle in the top bar.',
       'Decoupled the data feed from the original Storage / Cheyenne project so /cmo is its own thing.',
       'First version of the AI Copilot briefing at the top of the page — narrative summary + top recommendations + cross-channel insights.',
     ],
@@ -7610,7 +7776,7 @@ function renderChatLog() {
   if (!log) return;
   const history = (state.chat && state.chat.history) || [];
   if (!history.length) {
-    log.innerHTML = `<div class="chat-empty">Ask anything about the current scope (brand + range). Examples: "Which campaigns waste the most spend?" · "What's our biggest organic ranking opportunity?"</div>`;
+    log.innerHTML = `<div class="chat-empty">Vicki has the current scope (brand + range) loaded. Ask things like "Which campaigns waste the most spend?" or "What's our biggest organic ranking opportunity?"</div>`;
     return;
   }
   log.innerHTML = history.map((m, i) => {
@@ -7620,7 +7786,13 @@ function renderChatLog() {
     const cls = m.error ? 'chat-msg-err' : 'chat-msg-bot';
     /* Only pin successful assistant replies (not error bubbles). */
     const pinBtn = m.error ? '' : `<button type="button" class="chat-pin-btn" data-pin-idx="${i}" title="Pin this answer">📌 Pin</button>`;
+    /* Tag each reply with the model that produced it so flipping the toggle
+       mid-conversation stays legible on re-render. Older history without a
+       `model` field renders unlabelled (don't guess). */
+    const modelLabel = m.model === 'claude' ? 'Claude' : m.model === 'gpt' ? 'GPT' : '';
+    const meta = modelLabel ? `<div class="chat-msg-meta">${modelLabel}</div>` : '';
     return `<div class="chat-msg-bot-wrap">
+      ${meta}
       <div class="chat-msg ${cls}">${escapeHtml(m.content)}</div>
       ${pinBtn}
     </div>`;
@@ -7689,13 +7861,13 @@ async function sendChatMessage() {
       const { text: t } = await callOpenAIAPI(null, apiKey, { messages, maxTokens: 600 });
       answer = (t || '').trim();
     }
-    state.chat.history.push({ role: 'assistant', content: answer || '(empty response)', at: new Date().toISOString() });
+    state.chat.history.push({ role: 'assistant', content: answer || '(empty response)', model: usingClaude ? 'claude' : 'gpt', at: new Date().toISOString() });
     saveChatHistory(state.chat.history);
     renderChatLog();
     setLLMStatus('chatStatus', `${usingClaude ? 'Claude' : 'GPT'} replied · ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`, 'ok');
   } catch (e) {
     const msg = e.message || String(e);
-    state.chat.history.push({ role: 'assistant', content: msg, error: true, at: new Date().toISOString() });
+    state.chat.history.push({ role: 'assistant', content: msg, error: true, model: usingClaude ? 'claude' : 'gpt', at: new Date().toISOString() });
     saveChatHistory(state.chat.history);
     renderChatLog();
     setLLMStatus('chatStatus', msg, 'error');
@@ -7720,7 +7892,7 @@ function renderPlaceholders() {
   ]);
 }
 
-const BRAND_LABEL = { all: 'All brands', via: 'Viatrading', liq: 'LiquidateNow' };
+const BRAND_LABEL = { all: 'All brands', via: 'ViaTrading', liq: 'LiquidateNow' };
 /* ══════════════════════ TIME RANGE ═══════════════════════════════════
    Range keys resolve to { key, label, start, end, days }. Dates are
    YYYY-MM-DD strings so plain-string comparisons work against the
@@ -8006,7 +8178,7 @@ function initThresholds() {
   });
   const reset = document.getElementById('thresholdsReset');
   if (reset) reset.addEventListener('click', () => {
-    if (!confirm('Reset thresholds to defaults for ' + (state.thresholdBrand === 'via' ? 'Viatrading' : 'LiquidateNow') + '?')) return;
+    if (!confirm('Reset thresholds to defaults for ' + (state.thresholdBrand === 'via' ? 'ViaTrading' : 'LiquidateNow') + '?')) return;
     state.thresholds[state.thresholdBrand] = { ...THRESHOLD_DEFAULTS };
     saveThresholds();
     renderThresholds();

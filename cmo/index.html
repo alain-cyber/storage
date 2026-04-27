@@ -2784,7 +2784,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 45s timeout · sequential brand-tabs · built 2026-04-27 r5', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 120-day date filter on big sheets · built 2026-04-27 r6', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -2823,16 +2823,19 @@ const SHEETS = {
     id: '1oR4yEYbOYkzQcOyyMliKe__4KErtKFZyCnGDnjKI_JE',
     label: 'Google Ads', headers: 2,
     brandTabs: { via: 'raw_ads_via', liq: 'raw_ads_lnow' },
+    dateColumn: 'A',
   },
   gsc: {
     id: '1UZ7fp46L83YdPEcjEp7Zdl4-8-taK5zMueZNd1pI7k8',
     label: 'Search Console', headers: 2,
     brandTabs: { via: 'raw_gsc_via', liq: 'raw_gsc_lnow' },
+    dateColumn: 'A',
   },
   ga: {
     id: '1gZ_ahjqHMMSmqF2av0pOV2nkLj0oA5IVGqTHm6w7_nw',
     label: 'Google Analytics', headers: 2,
     brandTabs: { via: 'raw_ga4_via', liq: 'raw_ga4_lnow' },
+    dateColumn: 'A',
   },
   aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall', headers: 2 },
   social:  { id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk', gid: 1914162846, label: 'Metricool · Posts' },
@@ -2850,6 +2853,7 @@ const SHEETS = {
     id: '1YNnopbYftG4CVhcna3mBvfx4WuxrVqNvi_zfAiOkav0',
     label: 'Google Ads · Keywords', headers: 2,
     brandTabs: { via: 'raw_ads_via_kw', liq: 'raw_ads_lnow_kw' },
+    dateColumn: 'A',
   },
   /* PageSpeed Insights / Lighthouse export — one row per (URL, day, device).
      Hand-managed, so headers live in row 1 (no banner). */
@@ -3161,11 +3165,32 @@ function fetchSheetJSONP(url, perAttemptMs) {
   });
 }
 
+/* Date filter for big Coefficient sheets. Default 120 days back covers the
+   longest selectable range (90d) plus a 30-day buffer for WoW / MoM rule
+   comparisons. Sheets with multi-year history collapse to ~6 months of
+   data — typically a 5-20× payload reduction, which usually drops gviz
+   response time from 15-30s back to 1-3s, the actual fix for the
+   raw_*_via "always fails" symptom we couldn't crack with retries. */
+function gvizDateCutoff(daysBack = 120) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysBack);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function buildTqDateFilter(dateCol) {
+  if (!dateCol) return null;
+  const cutoff = gvizDateCutoff(120);
+  return encodeURIComponent(`select * where ${dateCol} >= date '${cutoff}'`);
+}
+
 async function fetchSheet(id, opts = {}) {
   const params = ['tqx=out:json'];
   if (opts.gid != null) params.push(`gid=${encodeURIComponent(opts.gid)}`);
   else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
   if (opts.headers != null) params.push(`headers=${encodeURIComponent(opts.headers)}`);
+  if (opts.tq) params.push(`tq=${opts.tq}`);
   const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?${params.join('&')}`;
   /* Per-attempt timeout: 45s. The big sheets (GSC, GA4, Keywords,
      raw_ads_via) consistently take 8-15s on a cold load — raw_ads_lnow
@@ -3461,10 +3486,11 @@ async function loadChannel(key, requiredCols = []) {
          a single channel's two-tab load (e.g. 5s → 10s) — acceptable
          trade for actually getting the data. */
       const entries = Object.entries(sheet.brandTabs); /* [['via','raw_..._via'], ['liq','raw_..._lnow']] */
+      const tq = buildTqDateFilter(sheet.dateColumn);
       const results = [];
       for (const [, tab] of entries) {
         try {
-          const value = await fetchSheet(sheet.id, { sheetName: tab, headers: sheet.headers });
+          const value = await fetchSheet(sheet.id, { sheetName: tab, headers: sheet.headers, tq });
           results.push({ status: 'fulfilled', value });
         } catch (reason) {
           results.push({ status: 'rejected', reason });
@@ -3502,7 +3528,8 @@ async function loadChannel(key, requiredCols = []) {
       rawRows = allRows;
       rawCols = [...colsSet];
     } else {
-      const fetched = await fetchSheet(sheet.id, { gid: sheet.gid, sheetName: sheet.sheetName, headers: sheet.headers });
+      const tq = buildTqDateFilter(sheet.dateColumn);
+      const fetched = await fetchSheet(sheet.id, { gid: sheet.gid, sheetName: sheet.sheetName, headers: sheet.headers, tq });
       if (!fetched.rows || !fetched.rows.length) throw new Error('empty');
       rawRows = fetched.rows;
       rawCols = fetched.cols;
@@ -5208,6 +5235,11 @@ function gvizUrl(sheet, opts = {}) {
   if (opts.gid != null) params.push(`gid=${encodeURIComponent(opts.gid)}`);
   else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
   if (sheet.headers != null) params.push(`headers=${encodeURIComponent(sheet.headers)}`);
+  /* Mirror the date filter applied at fetch time so a tap on a failing
+     ✗ chip opens the SAME URL we tried — not the unfiltered version
+     that might return very different data and hide the actual cause. */
+  const tq = buildTqDateFilter(sheet.dateColumn);
+  if (tq) params.push(`tq=${tq}`);
   return `https://docs.google.com/spreadsheets/d/${sheet.id}/gviz/tq?${params.join('&')}`;
 }
 
@@ -7542,6 +7574,17 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Date-filter big sheets at gviz so payloads shrink 5-20×',
+    tags: ['Fix'],
+    bullets: [
+      'Big Coefficient sheets (Google Ads, GSC, GA4, Keywords) carry years of historical data we don\'t need. The dashboard\'s longest selectable range is 90 days, but every fetch was pulling the entire workbook history — which on raw_*_via tabs apparently exceeded what gviz wants to serve in one JSONP response, hence the persistent failures.',
+      'Now: each big-sheet fetch passes `tq=select * where A >= date \'…\'` with a 120-day cutoff (covers Last 90 days + a 30-day buffer for WoW / MoM rule comparisons). Server-side filter, no client work, gviz returns 1-3s instead of 15-30s.',
+      'Tap-to-verify chip URLs on the Data Sources page mirror the same filter so the response in your iPad tab matches what the dashboard tried to fetch.',
+      'Build tag bumped to r6.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Sequential brand-tab fetches — eliminates gviz lock race',

@@ -51,7 +51,7 @@ The dashboard never *writes* to any sheet. It is a read-only view.
 | Field | Value |
 | --- | --- |
 | Spreadsheet ID | `1oR4yEYbOYkzQcOyyMliKe__4KErtKFZyCnGDnjKI_JE` |
-| Tabs | `raw_ads_via` (Viatrading), `raw_ads_lnow` (LiquidateNow) |
+| Tabs | `raw_ads_via` (ViaTrading), `raw_ads_lnow` (LiquidateNow) |
 | Headers row | 2 (Coefficient banner on row 1) |
 | Source system | Google Ads → **Coefficient** add-on |
 | Refresh cadence | Configured inside Coefficient — TBD: confirm schedule (typical setup: daily at 6am PT). Verify in Coefficient → Schedules. |
@@ -139,7 +139,7 @@ The dashboard never *writes* to any sheet. It is a read-only view.
 | Field | Value |
 | --- | --- |
 | Spreadsheet ID | `1gGFtFMEWL1iqXVn1OVwqPdbrE9tMwg93-i0tbBDkHe8` |
-| Tabs | `kw_via` (Viatrading), `kw_lnow` (LiquidateNow) |
+| Tabs | `kw_via` (ViaTrading), `kw_lnow` (LiquidateNow) |
 | Headers row | 1 (no Coefficient banner — direct SemRush export) |
 | Source system | SemRush organic keyword export (one row per keyword per day) |
 | Columns | `date, keyword, position, url, search_volume, difficulty, position_delta` |
@@ -151,7 +151,7 @@ The dashboard never *writes* to any sheet. It is a read-only view.
 | Field | Value |
 | --- | --- |
 | Spreadsheet ID | `17vtH6XeDzd3O9i3qjNFAL5XESxSYfi15WrszCgq-xeo` |
-| Tabs | `bl_via` (Viatrading), `bl_lnow` (LiquidateNow) |
+| Tabs | `bl_via` (ViaTrading), `bl_lnow` (LiquidateNow) |
 | Headers row | 1 (no Coefficient banner — direct SemRush export) |
 | Source system | SemRush backlink authority snapshot (one row per brand per day) |
 | Columns | `date, referring_domains, new_domains, lost_domains, total_backlinks, top_linking_domain_authority` |

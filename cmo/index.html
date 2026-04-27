@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Viatrading + LiquidateNow — CMO Dashboard</title>
+<title>ViaTrading + LiquidateNow — CMO Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -145,7 +145,7 @@
     box-shadow: 0 1px 2px rgba(15,20,25,0.06);
   }
   /* Brand-specific accent — matches each company's logo color so the
-     active brand reads at a glance: Viatrading = blue, LiquidateNow =
+     active brand reads at a glance: ViaTrading = blue, LiquidateNow =
      orange. Idle buttons get a subtle tint of the same hue; active
      buttons fill solid + bold. */
   .brand-toggle button[data-brand="via"] { color: #1f77ff; }
@@ -1962,7 +1962,7 @@
 <aside class="side" id="sideNav" aria-label="Channel navigation">
   <div class="side-brand">
     <div class="side-brand-logos">
-      <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="Viatrading" />
+      <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="ViaTrading" />
       <img class="side-brand-logo" data-brand-logo="liq" src="https://www.liquidatenow.com/wp-content/uploads/2015/07/liquidate-now-logo.png" alt="LiquidateNow" />
     </div>
     <div class="side-brand-sub">CMO dashboard</div>
@@ -2030,7 +2030,7 @@
     <span class="label">Brand</span>
     <div class="group" role="group" aria-label="Brand filter">
       <button type="button" data-brand="all" aria-pressed="true">All</button>
-      <button type="button" data-brand="via" aria-pressed="false">Viatrading</button>
+      <button type="button" data-brand="via" aria-pressed="false">ViaTrading</button>
       <button type="button" data-brand="liq" aria-pressed="false">LiquidateNow</button>
     </div>
     <span id="brandPending" class="brand-pending hidden">social shown across both brands</span>
@@ -2613,7 +2613,7 @@
       <div class="threshold-brand">
         <span class="label">Editing</span>
         <div class="group" role="group" aria-label="Threshold brand">
-          <button type="button" data-tbrand="via" aria-pressed="true">Viatrading</button>
+          <button type="button" data-tbrand="via" aria-pressed="true">ViaTrading</button>
           <button type="button" data-tbrand="liq" aria-pressed="false">LiquidateNow</button>
         </div>
       </div>
@@ -2815,7 +2815,7 @@ function inferCallBrand(row) {
   /* 2. Number Name is column J per the user's rule */
   const line = String(getFirstFieldValue(row, AIRCALL_LINE_COLS) || '').trim();
   if (LIQ_AIRCALL_LINES.has(line)) return 'liq';
-  /* 3. Default: Viatrading */
+  /* 3. Default: ViaTrading */
   return 'via';
 }
 
@@ -3726,7 +3726,7 @@ function renderActionCardHtml(a) {
   const label = ACTION_TYPE_LABELS[a.action_type] || a.action_type;
   const trigger = a.metric_trigger ? `<div class="rec-trigger">${escapeHtml(a.metric_trigger)}</div>` : '';
   const metaBits = [`<span>${a.grain}</span>`];
-  if (a.brand && a.brand !== 'all') metaBits.push(`<span>${a.brand === 'via' ? 'Viatrading' : a.brand === 'liq' ? 'LiquidateNow' : a.brand}</span>`);
+  if (a.brand && a.brand !== 'all') metaBits.push(`<span>${a.brand === 'via' ? 'ViaTrading' : a.brand === 'liq' ? 'LiquidateNow' : a.brand}</span>`);
   metaBits.push('<span>click for numbers</span>');
   const decisionPayload = encodeURIComponent(JSON.stringify({
     kind: 'rule',
@@ -5171,7 +5171,7 @@ function renderDataSources(raw) {
   }).join('');
 }
 
-const BRAND_DISPLAY = { all: 'All brands', via: 'Viatrading', liq: 'LiquidateNow' };
+const BRAND_DISPLAY = { all: 'All brands', via: 'ViaTrading', liq: 'LiquidateNow' };
 
 /* Short suffix shown on KPI labels so the user can confirm at a glance which
    window the value covers. Mirrors the dropdown but compresses copy. */
@@ -6073,7 +6073,7 @@ function renderSemrush(kwChannel, blChannel) {
     blBrand.innerHTML = blSum.perBrand.length
       ? blSum.perBrand.map(p => `
           <div class="semrush-brand-card">
-            <div class="src-stat-label">${p.brand === 'via' ? 'Viatrading' : p.brand === 'liq' ? 'LiquidateNow' : escapeHtml(p.brand)}</div>
+            <div class="src-stat-label">${p.brand === 'via' ? 'ViaTrading' : p.brand === 'liq' ? 'LiquidateNow' : escapeHtml(p.brand)}</div>
             <div class="src-stat-value">${fmt(p.latest.refDomains)} ref</div>
             <div class="src-card-sub">${fmt(p.latest.totalBacklinks)} backlinks · ${p.latest.topAuthority != null ? p.latest.topAuthority : '—'} authority</div>
             <div class="src-card-sub">Δ ${p.refDomainsDelta >= 0 ? '+' : ''}${fmt(p.refDomainsDelta)} since ${escapeHtml(p.earliest.date || '—')}</div>
@@ -6094,7 +6094,7 @@ function renderSemrush(kwChannel, blChannel) {
     });
     const palette = { via: BLUE, liq: GREEN, all: AMBER };
     const datasets = Object.entries(seriesByBrand).map(([brand, byDate]) => ({
-      label: brand === 'via' ? 'Viatrading' : brand === 'liq' ? 'LiquidateNow' : brand,
+      label: brand === 'via' ? 'ViaTrading' : brand === 'liq' ? 'LiquidateNow' : brand,
       data: dates.map(d => byDate[d] || 0),
       borderColor: palette[brand] || BLUE,
       backgroundColor: 'transparent',
@@ -6479,7 +6479,7 @@ function renderLLMDecisions(list, mountId, badgeLabel) {
 
   const renderCard = d => {
     const sev = (d.priority || 'MEDIUM').toLowerCase();
-    const brandLine = d.brand && d.brand !== 'all' ? ` · ${d.brand === 'via' ? 'Viatrading' : d.brand === 'liq' ? 'LiquidateNow' : d.brand}` : '';
+    const brandLine = d.brand && d.brand !== 'all' ? ` · ${d.brand === 'via' ? 'ViaTrading' : d.brand === 'liq' ? 'LiquidateNow' : d.brand}` : '';
     const detail = SOURCE_DETAIL[d.source] || { label: d.source || '', hint: '' };
     const decisionPayload = encodeURIComponent(JSON.stringify({
       kind: 'llm',
@@ -6743,7 +6743,7 @@ function openDecisionModal(payload) {
   const sevLower = sev.toLowerCase();
   const detail = SOURCE_DETAIL[payload.source] || { label: payload.source || 'Decision' };
   const brandLabel = payload.brand && payload.brand !== 'all'
-    ? (payload.brand === 'via' ? 'Viatrading' : payload.brand === 'liq' ? 'LiquidateNow' : payload.brand)
+    ? (payload.brand === 'via' ? 'ViaTrading' : payload.brand === 'liq' ? 'LiquidateNow' : payload.brand)
     : 'All brands';
   const providerLabel = payload.provider || (payload.kind === 'rule' ? 'RULES' : '');
   const heading = payload.kind === 'rule'
@@ -7096,7 +7096,7 @@ function renderLowHanging(scoped) {
     const effortCls = w.effort === 'MEDIUM' ? 'lhf-effort is-medium' : 'lhf-effort';
     const detail = SOURCE_DETAIL[w.source] || { label: w.source };
     const brandLine = w.brand && w.brand !== 'all'
-      ? (w.brand === 'via' ? 'Viatrading' : w.brand === 'liq' ? 'LiquidateNow' : w.brand)
+      ? (w.brand === 'via' ? 'ViaTrading' : w.brand === 'liq' ? 'LiquidateNow' : w.brand)
       : '';
     const payload = encodeURIComponent(JSON.stringify({
       kind: 'lhf', source: w.source, title: w.title, entity: w.entity,
@@ -7129,6 +7129,15 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Brand spelled "ViaTrading" everywhere (capital T)',
+    tags: ['Polish'],
+    bullets: [
+      'Renamed every "Viatrading" string in the dashboard and the SYSTEM_STATE notes to "ViaTrading" — topbar brand toggle, sidebar logo alt text, the BRAND_DISPLAY / BRAND_LABEL maps, every per-brand label in the action drawers, the page title, the threshold confirm dialog, and all prior App History entries that mentioned the brand.',
+      'No code-side identifiers changed (the `via` data-attribute, the `state.brand` value, the `raw_ads_via` tab name etc. all stay lowercase) — this is purely the user-facing display string.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: '"Last pulled" now reads the sheet\'s actual modifiedTime',
@@ -7216,16 +7225,16 @@ const APP_HISTORY = [
     title: 'Sidebar logos pinned to top-left',
     tags: ['Polish'],
     bullets: [
-      'Removed the empty row that the collapse chevron was sitting in. The Viatrading + LiquidateNow logos now anchor at the very top-left of the sidebar with no leading whitespace. Collapse chevron floats absolutely in the top-right corner so it stays accessible without consuming a row.',
+      'Removed the empty row that the collapse chevron was sitting in. The ViaTrading + LiquidateNow logos now anchor at the very top-left of the sidebar with no leading whitespace. Collapse chevron floats absolutely in the top-right corner so it stays accessible without consuming a row.',
     ],
   },
   {
     date: 'Apr 26, 2026',
-    title: 'Branding swap — Vicki in topbar, bigger Viatrading + LiquidateNow logos in sidebar',
+    title: 'Branding swap — Vicki in topbar, bigger ViaTrading + LiquidateNow logos in sidebar',
     tags: ['Polish'],
     bullets: [
       'Restored the Vicki Intelligence mark to the topbar (next to the page title) and removed the duplicate from the sidebar header.',
-      'Enlarged the Viatrading + LiquidateNow logos in the sidebar from 22px to 38px tall so the customer-facing brands lead in the sidebar instead of competing with Vicki for space.',
+      'Enlarged the ViaTrading + LiquidateNow logos in the sidebar from 22px to 38px tall so the customer-facing brands lead in the sidebar instead of competing with Vicki for space.',
       'Sidebar collapse chevron stays where it was — now alone in its row, right-aligned.',
     ],
   },
@@ -7279,7 +7288,7 @@ const APP_HISTORY = [
     title: 'Brand toggle painted with each company\'s color',
     tags: ['Polish'],
     bullets: [
-      'The Viatrading and LiquidateNow buttons in the topbar brand toggle now use each company\'s brand color — Viatrading blue, LiquidateNow orange. Idle state shows the brand color in the text with a subtle hover tint; the active brand fills solid in its hue with a soft glow so it\'s instantly readable from across the room.',
+      'The ViaTrading and LiquidateNow buttons in the topbar brand toggle now use each company\'s brand color — ViaTrading blue, LiquidateNow orange. Idle state shows the brand color in the text with a subtle hover tint; the active brand fills solid in its hue with a soft glow so it\'s instantly readable from across the room.',
     ],
   },
   {
@@ -7287,7 +7296,7 @@ const APP_HISTORY = [
     title: 'Vicki Intelligence brand mark + collapsible sidebar',
     tags: ['Polish'],
     bullets: [
-      'New Vicki Intelligence brand mark (sparkle SVG with purple→magenta→pink gradient + "Vicki" gradient wordmark) lives in the sidebar header above the Viatrading + LiquidateNow logos and as a compact version next to the page title in the topbar.',
+      'New Vicki Intelligence brand mark (sparkle SVG with purple→magenta→pink gradient + "Vicki" gradient wordmark) lives in the sidebar header above the ViaTrading + LiquidateNow logos and as a compact version next to the page title in the topbar.',
       'Sidebar is now collapsible — click the chevron in the sidebar header to slim the sidebar to 64px (icons only). Hover any link to see its name as a tooltip. Collapsed state persists across reloads via localStorage.',
       'Mobile sidebar overlay behavior is unchanged; the collapse only applies on desktop where the sidebar is a fixed column.',
     ],
@@ -7478,7 +7487,7 @@ const APP_HISTORY = [
       'Connected the Page Speed sheet (Lighthouse / Core Web Vitals per URL + device) as a live channel with its own page.',
       'Aircall daily call counts are now pinned to Pacific Time so the buckets line up with US business hours.',
       'Switched the whole dashboard to a light, Semrush-style theme — white cards on a soft-grey page, blue accent, Inter typeface, sentence-case labels.',
-      'Added Viatrading + LiquidateNow logos to the sidebar header. Footer now reads "Powered by Vicki Intelligence."',
+      'Added ViaTrading + LiquidateNow logos to the sidebar header. Footer now reads "Powered by Vicki Intelligence."',
     ],
   },
   {
@@ -7557,7 +7566,7 @@ const APP_HISTORY = [
     title: 'Dual-brand framing + AI Copilot v1',
     tags: ['Foundation'],
     bullets: [
-      'Re-framed the dashboard as Viatrading + LiquidateNow with a brand toggle in the top bar.',
+      'Re-framed the dashboard as ViaTrading + LiquidateNow with a brand toggle in the top bar.',
       'Decoupled the data feed from the original Storage / Cheyenne project so /cmo is its own thing.',
       'First version of the AI Copilot briefing at the top of the page — narrative summary + top recommendations + cross-channel insights.',
     ],
@@ -7883,7 +7892,7 @@ function renderPlaceholders() {
   ]);
 }
 
-const BRAND_LABEL = { all: 'All brands', via: 'Viatrading', liq: 'LiquidateNow' };
+const BRAND_LABEL = { all: 'All brands', via: 'ViaTrading', liq: 'LiquidateNow' };
 /* ══════════════════════ TIME RANGE ═══════════════════════════════════
    Range keys resolve to { key, label, start, end, days }. Dates are
    YYYY-MM-DD strings so plain-string comparisons work against the
@@ -8169,7 +8178,7 @@ function initThresholds() {
   });
   const reset = document.getElementById('thresholdsReset');
   if (reset) reset.addEventListener('click', () => {
-    if (!confirm('Reset thresholds to defaults for ' + (state.thresholdBrand === 'via' ? 'Viatrading' : 'LiquidateNow') + '?')) return;
+    if (!confirm('Reset thresholds to defaults for ' + (state.thresholdBrand === 'via' ? 'ViaTrading' : 'LiquidateNow') + '?')) return;
     state.thresholds[state.thresholdBrand] = { ...THRESHOLD_DEFAULTS };
     saveThresholds();
     renderThresholds();

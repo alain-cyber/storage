@@ -2784,7 +2784,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 45s timeout · big-sheets isolated batch · built 2026-04-27 r3', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 45s timeout · two-stage paint · built 2026-04-27 r4', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -5701,6 +5701,26 @@ async function render(opts = {}) {
       ['semrush_kw', REQUIRED_COLS.semrush_kw],
       ['semrush_bl', REQUIRED_COLS.semrush_bl],
     ]);
+    /* PARTIAL PAINT: as soon as the fast batch lands, merge it into
+       state.raw, drop the loading hype, and repaint. The user sees their
+       data within ~5s instead of staring at a 95s loading spinner.
+       Big sheets continue to fetch quietly in the background; their
+       cached values (if any) keep showing on the cards until the big
+       batch completes. */
+    if (state.raw) {
+      state.raw = { ...state.raw,
+        ac: fastBatch.aircall,
+        social: fastBatch.social,
+        social_analytics: fastBatch.social_analytics,
+        pagespeed: fastBatch.pagespeed,
+        semrush_kw: fastBatch.semrush_kw,
+        semrush_bl: fastBatch.semrush_bl,
+      };
+      state.lastRefreshAt = new Date();
+      repaint();
+      stopLoadingHype();
+      dlog('info', '[render] fast batch painted · big batch fetching in background');
+    }
     const bigBatch = await runBatch([
       ['ads', REQUIRED_COLS.ads],
       ['gsc', REQUIRED_COLS.gsc],
@@ -7508,6 +7528,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Dashboard paints in two stages so loading text stops in 5s, not 95s',
+    tags: ['Polish', 'Fix'],
+    bullets: [
+      'After the fast batch lands (~5s — Aircall, Metricool, PageSpeed, SemRush), the dashboard now repaints immediately and stops the rotating "Sweet-talking the spreadsheet…" hype line, even though the big sheets (Ads, GSC, GA4, Keywords) are still fetching in the background. You see most of your data ~5s after pull-to-refresh instead of staring at the loading text for the full 30-95s of the big batch.',
+      'Big sheet cards continue to show their previous (cached) values until the big batch finishes; once it does, those cards repaint with the fresh values (or FAIL if they actually couldn\'t load). On a fresh first-ever load (no cache), the partial paint is skipped — you wait for both batches because there\'s nothing to show yet.',
+      'Build tag bumped to r4 so iPad users can verify in Diagnostics.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Big sheets get a dedicated batch — fixes queue starvation on iPad',

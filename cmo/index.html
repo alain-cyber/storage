@@ -2044,7 +2044,7 @@
   <div class="side-brand">
     <div class="side-brand-logos">
       <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="ViaTrading" />
-      <img class="side-brand-logo" data-brand-logo="liq" src="https://www.liquidatenow.com/wp-content/uploads/2015/07/liquidate-now-logo.png" alt="LiquidateNow" />
+      <img class="side-brand-logo" data-brand-logo="liq" src="https://lh3.googleusercontent.com/d/10M2jFwzbFnV4GD4QCF5k56lT1Q0-gFve" alt="LiquidateNow" />
     </div>
     <div class="side-brand-sub">CMO dashboard</div>
     <button type="button" class="side-collapse-toggle" id="sideCollapseToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
@@ -2784,7 +2784,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 120-day date filter on big sheets · built 2026-04-27 r6', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · date filter on every sheet · LN logo swap · built 2026-04-27 r7', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -2837,7 +2837,12 @@ const SHEETS = {
     brandTabs: { via: 'raw_ga4_via', liq: 'raw_ga4_lnow' },
     dateColumn: 'A',
   },
-  aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall', headers: 2 },
+  aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall', headers: 2,
+    /* Aircall's Started At is column B and is a datetime, not a plain date. */
+    dateColumn: 'B', dateType: 'datetime' },
+  /* Metricool Posts: skip dateColumn — the date is a nested struct
+     (`{timezone=…, dateTime=…, date=…}`) that gviz tq can't compare
+     against a date literal. The sheet is small enough not to need it. */
   social:  { id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk', gid: 1914162846, label: 'Metricool · Posts' },
   /* Metricool Analytics tab — daily follower / impression / engagement
      snapshot per network. Schema: network, metric, date, value. Lives in
@@ -2846,6 +2851,7 @@ const SHEETS = {
     id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk',
     sheetName: 'Analytics',
     label: 'Metricool · Analytics', headers: 1,
+    dateColumn: 'C',
   },
   /* Keyword-grain Ads data — split out of the Google Ads sheet when it hit the
      10M cell cap. Same Coefficient banner-on-row-1 quirk → headers: 2. */
@@ -2861,6 +2867,7 @@ const SHEETS = {
     id: '1f9J-XrnwKDHGRNrrBsApebDp8bBAp5Zh7DjNr5tTd4M',
     label: 'Page Speed', headers: 1,
     brandTabs: { via: 'perf_via', liq: 'perf_lnow' },
+    dateColumn: 'A',
   },
   /* SemRush — Keywords (organic ranking export). One row per (date, keyword)
      per brand. No Coefficient banner → headers: 1. */
@@ -2868,6 +2875,7 @@ const SHEETS = {
     id: '1gGFtFMEWL1iqXVn1OVwqPdbrE9tMwg93-i0tbBDkHe8',
     label: 'SemRush · Keywords', headers: 1,
     brandTabs: { via: 'kw_via', liq: 'kw_lnow' },
+    dateColumn: 'A',
   },
   /* SemRush — Backlinks (daily authority snapshot). One row per (date, brand).
      No Coefficient banner → headers: 1. */
@@ -2875,6 +2883,7 @@ const SHEETS = {
     id: '17vtH6XeDzd3O9i3qjNFAL5XESxSYfi15WrszCgq-xeo',
     label: 'SemRush · Backlinks', headers: 1,
     brandTabs: { via: 'bl_via', liq: 'bl_lnow' },
+    dateColumn: 'A',
   },
 };
 
@@ -3179,9 +3188,16 @@ function gvizDateCutoff(daysBack = 120) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-function buildTqDateFilter(dateCol) {
+function buildTqDateFilter(dateCol, dateType = 'date') {
   if (!dateCol) return null;
   const cutoff = gvizDateCutoff(120);
+  /* gviz Query Language: `date 'YYYY-MM-DD'` for date columns; `datetime
+     'YYYY-MM-DD HH:MM:SS'` for timestamp columns (Aircall's Started At,
+     Metricool Analytics' date is also datetime sometimes). Mismatching
+     types between column and literal can return zero rows. */
+  if (dateType === 'datetime') {
+    return encodeURIComponent(`select * where ${dateCol} >= datetime '${cutoff} 00:00:00'`);
+  }
   return encodeURIComponent(`select * where ${dateCol} >= date '${cutoff}'`);
 }
 
@@ -3486,7 +3502,7 @@ async function loadChannel(key, requiredCols = []) {
          a single channel's two-tab load (e.g. 5s → 10s) — acceptable
          trade for actually getting the data. */
       const entries = Object.entries(sheet.brandTabs); /* [['via','raw_..._via'], ['liq','raw_..._lnow']] */
-      const tq = buildTqDateFilter(sheet.dateColumn);
+      const tq = buildTqDateFilter(sheet.dateColumn, sheet.dateType);
       const results = [];
       for (const [, tab] of entries) {
         try {
@@ -3528,7 +3544,7 @@ async function loadChannel(key, requiredCols = []) {
       rawRows = allRows;
       rawCols = [...colsSet];
     } else {
-      const tq = buildTqDateFilter(sheet.dateColumn);
+      const tq = buildTqDateFilter(sheet.dateColumn, sheet.dateType);
       const fetched = await fetchSheet(sheet.id, { gid: sheet.gid, sheetName: sheet.sheetName, headers: sheet.headers, tq });
       if (!fetched.rows || !fetched.rows.length) throw new Error('empty');
       rawRows = fetched.rows;
@@ -5238,7 +5254,7 @@ function gvizUrl(sheet, opts = {}) {
   /* Mirror the date filter applied at fetch time so a tap on a failing
      ✗ chip opens the SAME URL we tried — not the unfiltered version
      that might return very different data and hide the actual cause. */
-  const tq = buildTqDateFilter(sheet.dateColumn);
+  const tq = buildTqDateFilter(sheet.dateColumn, sheet.dateType);
   if (tq) params.push(`tq=${tq}`);
   return `https://docs.google.com/spreadsheets/d/${sheet.id}/gviz/tq?${params.join('&')}`;
 }
@@ -7574,6 +7590,18 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Date filter applied to every sheet that has a clean date column · new LN logo',
+    tags: ['Fix', 'Polish'],
+    bullets: [
+      'Extended the 120-day gviz date filter from just the big Coefficient sheets to every sheet with a clean date column: Aircall (column B, datetime), Page Speed (A, date), SemRush KW (A, date), SemRush BL (A, date), Metricool Analytics (C, date). Aircall was the biggest leftover at 22k+ rows; this drops it to whatever fits in 120 days.',
+      'buildTqDateFilter now accepts a dateType (`date` vs `datetime`) so columns with timestamps like Aircall\'s Started At are compared against `datetime \'YYYY-MM-DD HH:MM:SS\'` instead of `date \'YYYY-MM-DD\'` (gviz returns zero rows on type-mismatched comparisons).',
+      'Metricool Posts is the one source kept un-filtered: its date is a nested struct (`{timezone=…, dateTime=…, date=…}`) that gviz tq can\'t compare cleanly against a literal. The sheet is small enough not to need it.',
+      'Swapped the LiquidateNow sidebar logo to the new image hosted on Google Drive (via the lh3 image CDN). If iPad Safari fails to load it, we\'ll move it into the repo at /cmo/assets/.',
+      'Build tag bumped to r7.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Date-filter big sheets at gviz so payloads shrink 5-20×',

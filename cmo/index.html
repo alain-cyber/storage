@@ -2784,7 +2784,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP script-tag · built 2026-04-27', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 45s timeout · built 2026-04-27 r2', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -3167,17 +3167,18 @@ async function fetchSheet(id, opts = {}) {
   else if (opts.sheetName) params.push(`sheet=${encodeURIComponent(opts.sheetName)}`);
   if (opts.headers != null) params.push(`headers=${encodeURIComponent(opts.headers)}`);
   const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?${params.join('&')}`;
-  /* JSONP failures are typically permanent within a single page load
-     (sharing revoked, tab renamed, blocking layer rejecting script-tag
-     loads from docs.google.com). 15s per attempt × 2 attempts means worst
-     case ~30s per failing tab — vs the 3+ minutes the prior 60s × 3
-     config burned waiting on requests that were never coming back.
-     LIVE sheets respond in 1-5s so the tighter window doesn't false-fail
-     them; gviz cold starts on the BIG sheets occasionally take 8-12s, and
-     15s leaves enough headroom for that case. */
-  const PER_ATTEMPT_MS = 15000;
+  /* Per-attempt timeout: 45s. The big sheets (GSC, GA4, Keywords,
+     raw_ads_via) consistently take 8-15s on a cold load — raw_ads_lnow
+     came back at 5.9s in iPad logs, suggesting larger tabs in the same
+     workbook need 12-20s. The previous 15s ceiling was false-failing
+     them at exactly 15s and then the rapid retry was hitting gviz
+     rate-limit / error-response paths (returning HTML or partial data
+     that fails to execute as JS, hence the second-attempt "script load
+     failed" we saw in the diagnostics feed).
+     Backoff 5s gives gviz enough time to recover from a hot retry. */
+  const PER_ATTEMPT_MS = 45000;
   const MAX_ATTEMPTS = 2;
-  const BACKOFFS_MS = [1000];
+  const BACKOFFS_MS = [5000];
   const fetchOnce = async () => {
     const data = await fetchSheetJSONP(url, PER_ATTEMPT_MS);
     return { data, lastModified: null };
@@ -3527,20 +3528,37 @@ function escapeHtml(s) {
 function makeChart(id, type, labels, datasets, opts={}) {
   const ctx = document.getElementById(id);
   if (!ctx) return;
-  return new Chart(ctx, {
-    type,
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: opts.legend || { display: false } },
-      scales: type === 'doughnut' ? {} : {
-        x: { grid: { display: false }, ticks: { maxRotation: 45, ...opts.xTicks } },
-        y: { grid: { color: GRID }, ...opts.yScale },
+  /* Chart.js panics if you instantiate a second Chart on the same canvas
+     without destroying the first. Repaints during partial-data state
+     (e.g. data still fetching, brand toggle flipping) used to surface as
+     a noisy unhandledrejection from chart.umd.js. Destroy any previous
+     instance first; wrap construction in try/catch so a single bad chart
+     doesn't kill the rest of the render. */
+  try {
+    if (typeof Chart.getChart === 'function') {
+      const prev = Chart.getChart(ctx);
+      if (prev) prev.destroy();
+    }
+  } catch {}
+  try {
+    return new Chart(ctx, {
+      type,
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: opts.legend || { display: false } },
+        scales: type === 'doughnut' ? {} : {
+          x: { grid: { display: false }, ticks: { maxRotation: 45, ...opts.xTicks } },
+          y: { grid: { color: GRID }, ...opts.yScale },
+        },
+        ...opts.extra,
       },
-      ...opts.extra,
-    },
-  });
+    });
+  } catch (e) {
+    dlog('warn', `[chart] ${id} construction failed: ${e && e.message || e}`);
+    return null;
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────────
@@ -7474,6 +7492,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Bumped JSONP timeout to 45s — was false-failing the big sheets at 15s',
+    tags: ['Fix'],
+    bullets: [
+      'Diagnostics feed showed the smoking gun: every failing tab (GSC, GA4, Keywords, raw_ads_via) timed out at exactly 15s on attempt 1, then returned faster but with "script load failed" on the rapid retry — gviz appears to throttle or error on the immediate second hit. Meanwhile raw_ads_lnow on the same workbook took 5.9s to succeed, suggesting larger sibling tabs need 12-20s of headroom.',
+      'Bumped per-attempt timeout from 15s to 45s and the retry backoff from 1s to 5s. The big sheets now have headroom to actually complete; the longer backoff lets gviz settle between attempts. Worst case for a truly dead tab is now 95s vs the prior 31s — acceptable trade for not false-failing healthy slow sheets.',
+      'Also hardened makeChart against partial-data repaints: it now destroys any existing Chart instance on the same canvas before constructing a new one, and wraps construction in try/catch. Fixes the "An@chart.umd.js" unhandledrejection that was firing during in-flight refreshes when brand-toggle or data updates triggered a paint while ads.rows was still empty.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'New Diagnostics page — debug data pulls on iPad without Web Inspector',

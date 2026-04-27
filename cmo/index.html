@@ -684,6 +684,25 @@
     line-height: 1.45;
   }
   .src-reason.fail { color: var(--red); background: var(--red-dim); }
+  /* Diagnostic block on FAILED Data Sources cards. Surfaces the underlying
+     error name and the full gviz URL so the user can long-press to copy
+     and verify in another tab without opening DevTools. */
+  .src-diag {
+    margin-top: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface2);
+    border: 1px dashed var(--border2);
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.7rem;
+    color: var(--text2);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+  .src-diag-row + .src-diag-row { margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px dotted var(--border); }
+  .src-diag code { background: var(--surface); padding: 0 4px; border-radius: 3px; }
+  .src-diag-url { margin-top: 0.2rem; }
+  .src-diag-url a { color: var(--accent); text-decoration: underline; }
   .pill.warn { background: var(--amber-dim); color: var(--amber); }
 
   /* "Last refreshed" strip on Overview */
@@ -3026,13 +3045,17 @@ async function fetchSheet(id, opts = {}) {
     return msg;
   };
   let fetched, lastError;
+  const tabLabel = opts.sheetName || (opts.gid != null ? `gid=${opts.gid}` : 'default');
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
+      const t0 = Date.now();
       fetched = await fetchOnce();
+      console.log(`[gviz] ${tabLabel} OK · attempt ${attempt + 1}/${MAX_ATTEMPTS} · ${Date.now() - t0}ms`);
       lastError = null;
       break;
     } catch (e) {
       lastError = e;
+      console.warn(`[gviz] ${tabLabel} FAIL · attempt ${attempt + 1}/${MAX_ATTEMPTS} · name=${e && e.name} · msg=${(e && e.message) || String(e)} · url=${url}`);
       const remaining = MAX_ATTEMPTS - attempt - 1;
       if (remaining <= 0) break;
       await new Promise(r => setTimeout(r, BACKOFFS_MS[attempt] || 5000));
@@ -3040,7 +3063,14 @@ async function fetchSheet(id, opts = {}) {
   }
   if (lastError) {
     const isAbort = (lastError.name === 'AbortError' || /abort/i.test(lastError.message || ''));
-    throw new Error(isAbort ? 'Timed out after retries — sheet shared as Viewer?' : friendlyFetchError(lastError));
+    /* Stash the underlying error name + URL on the thrown error so the
+       Data Sources card can render concrete diagnostic info instead of
+       just a friendly summary. */
+    const wrapped = new Error(isAbort ? 'Timed out after retries — sheet shared as Viewer?' : friendlyFetchError(lastError));
+    wrapped.errorName = lastError.name || 'Error';
+    wrapped.errorRaw = (lastError.message || String(lastError)).slice(0, 160);
+    wrapped.gvizUrl = url;
+    throw wrapped;
   }
   const { text, lastModified } = fetched;
   const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
@@ -3284,6 +3314,7 @@ async function loadChannel(key, requiredCols = []) {
       const colsSet = new Set();
       const allRows = [];
       const problems = [];
+      const diagnostics = [];
       tabLastModified = {};
       results.forEach((r, i) => {
         const [brand, tab] = entries[i];
@@ -3292,10 +3323,23 @@ async function loadChannel(key, requiredCols = []) {
           r.value.rows.forEach(row => allRows.push({ ...row, brand }));
           if (r.value.lastModified) tabLastModified[brand] = r.value.lastModified;
         } else {
-          problems.push(`${tab}: ${r.status === 'rejected' ? (r.reason && r.reason.message) : 'empty'}`);
+          const why = r.status === 'rejected' ? (r.reason && r.reason.message) : 'empty';
+          problems.push(`${tab}: ${why}`);
+          if (r.status === 'rejected' && r.reason) {
+            diagnostics.push({
+              tab,
+              errorName: r.reason.errorName || r.reason.name || 'Error',
+              errorRaw: r.reason.errorRaw || (r.reason.message || '').slice(0, 160),
+              gvizUrl: r.reason.gvizUrl || null,
+            });
+          }
         }
       });
-      if (!allRows.length) throw new Error(problems.join(' · ') || 'no brand tabs returned data');
+      if (!allRows.length) {
+        const wrapped = new Error(problems.join(' · ') || 'no brand tabs returned data');
+        wrapped.diagnostics = diagnostics;
+        throw wrapped;
+      }
       rawRows = allRows;
       rawCols = [...colsSet];
     } else {
@@ -3313,7 +3357,11 @@ async function loadChannel(key, requiredCols = []) {
   } catch (e) {
     /* No more silent demo fallback — leave rows empty and let the UI render
        a FAIL tag with the reason. */
-    return { rows: [], source: 'fail', cols: [], reason: e.message, lastModified: null, tabLastModified: null };
+    return {
+      rows: [], source: 'fail', cols: [], reason: e.message,
+      lastModified: null, tabLastModified: null,
+      diagnostics: e.diagnostics || (e.gvizUrl ? [{ tab: '(default)', errorName: e.errorName || e.name || 'Error', errorRaw: e.errorRaw || (e.message || '').slice(0, 160), gvizUrl: e.gvizUrl }] : []),
+    };
   }
 }
 
@@ -5165,7 +5213,7 @@ function renderDataSources(raw) {
       const subKeys = g.constituents.map(c => c.key).join(' + ');
       const reasons = g.constituents
         .filter(c => c.channel.reason)
-        .map(c => `<div class="src-reason${c.channel.source !== 'live' ? ' fail' : ''}">${escapeHtml(c.label)}: ${escapeHtml(String(c.channel.reason))}</div>`)
+        .map(c => `<div class="src-reason${c.channel.source !== 'live' ? ' fail' : ''}">${escapeHtml(c.label)}: ${escapeHtml(String(c.channel.reason))}</div>${renderDiagnostics(c.channel.diagnostics)}`)
         .join('');
       const blocks = g.constituents.map(c => {
         const head = (c.label.split('·')[1] || c.label).trim();
@@ -5207,6 +5255,7 @@ function renderDataSources(raw) {
     const reasonBlock = ch.reason
       ? `<div class="src-reason${status === 'fail' ? ' fail' : ''}">${escapeHtml(String(ch.reason))}</div>`
       : '';
+    const diagBlock = renderDiagnostics(ch.diagnostics);
     return `
       <article class="src-card is-${status}">
         <header class="src-card-head">
@@ -5222,9 +5271,26 @@ function renderDataSources(raw) {
           <div><strong>Tabs</strong> ${tabs_html}</div>
         </div>
         ${reasonBlock}
+        ${diagBlock}
       </article>
     `;
   }).join('');
+}
+
+/* Render per-tab diagnostic block on FAILED cards. Shows the underlying
+   error name (TypeError vs AbortError vs HTTP-status) and the full gviz
+   URL so it's tappable AND long-press-copyable. The diagnostic info comes
+   from fetchSheet's wrapped error (errorName/errorRaw/gvizUrl) and is
+   collected per-tab in loadChannel. */
+function renderDiagnostics(diags) {
+  if (!Array.isArray(diags) || !diags.length) return '';
+  const rows = diags.map(d => `
+    <div class="src-diag-row">
+      <div><strong>${escapeHtml(d.tab)}</strong> · <code>${escapeHtml(d.errorName || 'Error')}</code> · ${escapeHtml(d.errorRaw || '')}</div>
+      ${d.gvizUrl ? `<div class="src-diag-url"><a href="${d.gvizUrl}" rel="noopener">${escapeHtml(d.gvizUrl)}</a></div>` : ''}
+    </div>
+  `).join('');
+  return `<div class="src-diag">${rows}</div>`;
 }
 
 const BRAND_DISPLAY = { all: 'All brands', via: 'ViaTrading', liq: 'LiquidateNow' };
@@ -7269,6 +7335,15 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Failed Data Sources cards now show the actual error + gviz URL',
+    tags: ['Polish'],
+    bullets: [
+      'When a tab fails, the card now renders a small dashed-border diagnostic block beneath the friendly reason: the underlying error name (TypeError vs AbortError vs the gviz HTTP status code), the raw error message, and the full gviz URL as a tappable + long-press-copyable link. Same data lives in the Safari Web Inspector console for every fetch attempt — `[gviz] tab_name FAIL · attempt N/3 · name=… · msg=… · url=…` — so cause is unambiguous in one glance.',
+      'No fetch behavior change. Pure surfacing of info that was already in scope but being swallowed by the friendly summary.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Playbook brand toggle gains a "Both" option',

@@ -1124,6 +1124,56 @@
     padding: 3rem 1rem; text-align: center;
   }
 
+  /* Diagnostics page — live log feed for iPad debug without Web Inspector */
+  .diag-build {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    color: var(--text2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+    margin-bottom: 0.85rem;
+    overflow-wrap: anywhere;
+  }
+  .diag-controls {
+    display: flex; align-items: center; gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+  }
+  .diag-status {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    color: var(--text3);
+    margin-left: 0.4rem;
+  }
+  .diag-status.ok { color: var(--green); }
+  .diag-status.busy { color: var(--amber); }
+  .diag-status.error { color: var(--red); }
+  .diag-feed {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0.6rem;
+    height: 60vh;
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+  .diag-line { padding: 1px 0; overflow-wrap: anywhere; }
+  .diag-line + .diag-line { border-top: 1px dotted var(--border); }
+  .diag-line .ts { color: var(--text3); margin-right: 8px; }
+  .diag-line.info .msg { color: var(--text); }
+  .diag-line.warn .msg { color: var(--amber); }
+  .diag-line.error .msg { color: var(--red); }
+  .diag-empty {
+    color: var(--text3);
+    font-style: italic;
+    padding: 0.6rem;
+    text-align: center;
+  }
+
   /* App History timeline */
   .history-list { display: flex; flex-direction: column; gap: 1rem; }
   .history-entry {
@@ -2022,6 +2072,7 @@
     <a class="side-link" data-route="decisions_gpt"     href="#/decisions_gpt"><span class="side-link-text">Decisions from GPT</span></a>
     <a class="side-link" data-route="thresholds" href="#/thresholds"><span class="side-link-text">Playbook</span></a>
     <a class="side-link" data-route="sources"   href="#/sources"><span class="side-link-text">Data Sources</span> <span class="pill" id="sideSourcesPill"></span></a>
+    <a class="side-link" data-route="diagnostics" href="#/diagnostics"><span class="side-link-text">Diagnostics</span></a>
     <a class="side-link" data-route="history"   href="#/history"><span class="side-link-text">App History</span></a>
     <div class="side-sep"></div>
     <a class="side-link side-link-external" href="https://liqprop.onrender.com" target="_blank" rel="noopener noreferrer" title="LiqProp — opens in a new tab">
@@ -2681,6 +2732,23 @@
   </section>
 </section>
 
+<section class="page" data-page="diagnostics" hidden>
+  <section class="section" id="diagnosticsSection">
+    <div class="section-head">
+      <div class="section-title">Diagnostics</div>
+      <div class="section-meta">Live console output for the data fetcher · build tag · use this to debug data-pull issues without a Mac and Web Inspector</div>
+    </div>
+    <div class="diag-build" id="diagBuild"></div>
+    <div class="diag-controls">
+      <button type="button" class="rec-btn rec-btn-primary" id="diagRefresh">Refresh data now</button>
+      <button type="button" class="rec-btn" id="diagClear">Clear log</button>
+      <button type="button" class="rec-btn" id="diagCopy">Copy log</button>
+      <span class="diag-status" id="diagStatus"></span>
+    </div>
+    <div class="diag-feed" id="diagFeed"></div>
+  </section>
+</section>
+
 </main>
 
 <footer class="footer">
@@ -2713,10 +2781,42 @@
    Speed sheet is hand-managed with no banner, so it uses headers: 1. */
 
 /* Build tag — bumped each time the gviz transport or other low-level
-   plumbing changes. Surface in the console on every page load so we can
-   tell at a glance whether iPad Safari is running cached old code or the
-   latest deploy. */
-console.log('[CMO build] gviz transport: JSONP script-tag · built 2026-04-27');
+   plumbing changes. Surfaces in the in-app Diagnostics page AND the
+   browser console so iPad users without Web Inspector can still confirm
+   which code is loaded. */
+const CMO_BUILD = { tag: 'JSONP script-tag · built 2026-04-27', startedAt: new Date() };
+
+/* dlog: buffer the last N log entries in memory so the in-app
+   Diagnostics page can render them without needing Safari Web Inspector.
+   Always also forwards to the real console.log/warn/error so a Mac with
+   inspector still sees everything. Captures window errors + unhandled
+   promise rejections so any JS exception is visible from the iPad. */
+const DLOG_MAX = 500;
+const _dlogBuffer = [];
+function dlog(level, ...args) {
+  const message = args.map(a => {
+    if (typeof a === 'string') return a;
+    try { return JSON.stringify(a); } catch { return String(a); }
+  }).join(' ');
+  const entry = { ts: new Date(), level, message };
+  _dlogBuffer.push(entry);
+  if (_dlogBuffer.length > DLOG_MAX) _dlogBuffer.shift();
+  const fn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
+  try { fn.call(console, message); } catch {}
+  /* Re-render the live feed if Diagnostics is the visible page. */
+  try {
+    const visible = document.querySelector('.page[data-page="diagnostics"]:not([hidden])');
+    if (visible) renderDiagnosticsFeed();
+  } catch {}
+}
+window.addEventListener('error', (e) => {
+  dlog('error', `[window.error] ${e.message || ''} · ${e.filename || ''}:${e.lineno || ''}:${e.colno || ''}`);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const reason = e.reason && (e.reason.stack || e.reason.message) || String(e.reason);
+  dlog('error', `[unhandledrejection] ${reason}`);
+});
+dlog('info', `[CMO build] gviz transport: ${CMO_BUILD.tag}`);
 
 const SHEETS = {
   ads: {
@@ -3094,12 +3194,12 @@ async function fetchSheet(id, opts = {}) {
     try {
       const t0 = Date.now();
       fetched = await fetchOnce();
-      console.log(`[gviz] ${tabLabel} OK · attempt ${attempt + 1}/${MAX_ATTEMPTS} · ${Date.now() - t0}ms`);
+      dlog('info', `[gviz] ${tabLabel} OK · attempt ${attempt + 1}/${MAX_ATTEMPTS} · ${Date.now() - t0}ms`);
       lastError = null;
       break;
     } catch (e) {
       lastError = e;
-      console.warn(`[gviz] ${tabLabel} FAIL · attempt ${attempt + 1}/${MAX_ATTEMPTS} · name=${e && e.name} · msg=${(e && e.message) || String(e)} · url=${url}`);
+      dlog('warn', `[gviz] ${tabLabel} FAIL · attempt ${attempt + 1}/${MAX_ATTEMPTS} · name=${e && e.name} · msg=${(e && e.message) || String(e)}`);
       const remaining = MAX_ATTEMPTS - attempt - 1;
       if (remaining <= 0) break;
       await new Promise(r => setTimeout(r, BACKOFFS_MS[attempt] || 5000));
@@ -5406,6 +5506,8 @@ function paint(ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrus
   renderSemrush(semrush_kw, semrush_bl);
   /* Always show what was actually pulled — not the brand/range slice. */
   if (state.raw) renderDataSources(state.raw);
+  /* Keep the Diagnostics page header in sync whenever data lands. */
+  if (document.querySelector('.page[data-page="diagnostics"]:not([hidden])')) renderDiagnostics();
   renderPlaceholders();
 }
 
@@ -7374,6 +7476,17 @@ function renderLowHanging(scoped) {
 const APP_HISTORY = [
   {
     date: 'Apr 27, 2026',
+    title: 'New Diagnostics page — debug data pulls on iPad without Web Inspector',
+    tags: ['Feature'],
+    bullets: [
+      'New "Diagnostics" item in the sidebar (between Data Sources and App History). Shows the build tag, page-loaded time, last data refresh, and live-streaming log feed for every fetch attempt — no Mac + cable + Safari Web Inspector required.',
+      'Three buttons: Refresh data now (force-fetches every channel), Clear log (drops the in-memory buffer of 500 entries), Copy log (puts the entire log + build header on the clipboard so you can paste it into Slack / a message to me).',
+      'Captures any uncaught JS errors and unhandledrejection events automatically — so if "links are unresponsive" because of a script error, that error shows up red in the feed.',
+      'Same log lines also still go to the real browser console for anyone who does have Web Inspector — the in-app feed is purely additive.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
     title: 'Switched gviz transport from fetch() to JSONP script-tag — fixes the all-day Google failures',
     tags: ['Fix'],
     bullets: [
@@ -7921,6 +8034,83 @@ function renderHistory() {
   }).join('');
 }
 
+/* ── Diagnostics page ───────────────────────────────────────────────
+   In-app live console for iPad — surfaces fetch logs + window errors so
+   data-pull issues can be debugged without plugging into a Mac and using
+   Safari Web Inspector. */
+function renderDiagnostics() {
+  const buildEl = document.getElementById('diagBuild');
+  if (!buildEl) return;
+  const since = CMO_BUILD.startedAt ? CMO_BUILD.startedAt.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '';
+  const sources = state.raw ? summarizeSourceHealth(state.raw) : { live: 0, fail: 0, total: 0 };
+  buildEl.innerHTML = `
+    <div><strong>Build:</strong> ${escapeHtml(CMO_BUILD.tag)}</div>
+    <div><strong>Page loaded:</strong> ${escapeHtml(since)}</div>
+    <div><strong>Last data refresh:</strong> ${state.lastRefreshAt instanceof Date ? escapeHtml(state.lastRefreshAt.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})) : '—'}</div>
+    <div><strong>Sources:</strong> ${sources.live} live · ${sources.fail} failed · ${sources.total} total</div>
+  `;
+  renderDiagnosticsFeed();
+}
+
+function renderDiagnosticsFeed() {
+  const feed = document.getElementById('diagFeed');
+  if (!feed) return;
+  if (!_dlogBuffer.length) {
+    feed.innerHTML = '<div class="diag-empty">Log empty — hit Refresh data now to populate.</div>';
+    return;
+  }
+  /* Reverse so newest is on top — easier on a phone where you don't want
+     to scroll down through hundreds of entries to find the latest. */
+  const html = _dlogBuffer.slice().reverse().map(e => {
+    const ts = e.ts.toLocaleTimeString('en-US', { hour12: false });
+    return `<div class="diag-line ${e.level}"><span class="ts">${escapeHtml(ts)}</span><span class="msg">${escapeHtml(e.message)}</span></div>`;
+  }).join('');
+  feed.innerHTML = html;
+}
+
+function initDiagnostics() {
+  const refresh = document.getElementById('diagRefresh');
+  const clear   = document.getElementById('diagClear');
+  const copy    = document.getElementById('diagCopy');
+  const status  = document.getElementById('diagStatus');
+  const setStatus = (text, kind = '') => {
+    if (!status) return;
+    status.textContent = text || '';
+    status.classList.remove('ok', 'busy', 'error');
+    if (kind) status.classList.add(kind);
+  };
+  if (refresh) refresh.addEventListener('click', async () => {
+    refresh.disabled = true;
+    setStatus('Refreshing…', 'busy');
+    try {
+      await render({ force: true });
+      setStatus('Done', 'ok');
+    } catch (e) {
+      setStatus(`Error: ${e.message || e}`, 'error');
+    } finally {
+      refresh.disabled = false;
+      setTimeout(() => setStatus(''), 4000);
+    }
+  });
+  if (clear) clear.addEventListener('click', () => {
+    _dlogBuffer.length = 0;
+    renderDiagnosticsFeed();
+    setStatus('Log cleared', 'ok');
+    setTimeout(() => setStatus(''), 1500);
+  });
+  if (copy) copy.addEventListener('click', async () => {
+    const lines = _dlogBuffer.map(e => `${e.ts.toISOString()} [${e.level}] ${e.message}`).join('\n');
+    const blob = `Build: ${CMO_BUILD.tag}\nPage loaded: ${CMO_BUILD.startedAt.toISOString()}\nLast refresh: ${state.lastRefreshAt ? state.lastRefreshAt.toISOString() : '—'}\n\n${lines}`;
+    try {
+      await navigator.clipboard.writeText(blob);
+      setStatus(`Copied ${_dlogBuffer.length} lines`, 'ok');
+    } catch {
+      setStatus('Copy not allowed by browser — long-press the feed instead', 'error');
+    }
+    setTimeout(() => setStatus(''), 3000);
+  });
+}
+
 /* Back-compat: anything still calling renderClaudeDecisions keeps working. */
 function renderClaudeDecisions(list) { renderLLMDecisions(list, 'claudeRecs', 'CLAUDE'); }
 
@@ -8328,6 +8518,7 @@ const NAV_LABEL = {
   decisions_gpt: 'Decisions from GPT',
   thresholds: 'Playbook',
   sources: 'Data Sources',
+  diagnostics: 'Diagnostics',
   history: 'App History',
 };
 /* Back-compat: legacy `#/decisions` keeps working — we transparently route it
@@ -8352,6 +8543,9 @@ function route() {
   state.activeChannel = key;
   const side = document.getElementById('sideNav');
   if (side) side.classList.remove('is-open');
+  /* Refresh the Diagnostics page header on every visit so the build tag
+     and last-refresh timestamps reflect the current state. */
+  if (key === 'diagnostics') renderDiagnostics();
   window.scrollTo({ top: 0 });
 }
 
@@ -8645,8 +8839,10 @@ initClaude();
 initGpt();
 initChat();
 initDecisionModal();
+initDiagnostics();
 renderHistory();
 renderThresholds();
+renderDiagnostics();
 route();
 startLoadingHype();
 /* Manual Refresh button — only re-pulls gviz on click. First load and

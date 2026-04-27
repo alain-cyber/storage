@@ -1239,7 +1239,7 @@
     display: grid;
     grid-template-columns: 1fr 110px;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.4rem 0.6rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -1250,6 +1250,16 @@
     font-size: 0.72rem;
     color: var(--text2);
     line-height: 1.3;
+  }
+  /* One-sentence "why" line below each Playbook row — same dim small-text
+     treatment as the section hints, spans the full row width so it reads as
+     a caption rather than competing with the input. */
+  .threshold-why {
+    grid-column: 1 / -1;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.7rem;
+    color: var(--text3);
+    line-height: 1.45;
   }
   .threshold-input {
     background: var(--surface2);
@@ -1989,7 +1999,7 @@
     <a class="side-link" data-route="decisions_filters" href="#/decisions_filters"><span class="side-link-text">Decisions from Filters</span> <span class="pill" id="sideDecisionsCount"></span></a>
     <a class="side-link" data-route="decisions_claude"  href="#/decisions_claude"><span class="side-link-text">Decisions from Claude</span></a>
     <a class="side-link" data-route="decisions_gpt"     href="#/decisions_gpt"><span class="side-link-text">Decisions from GPT</span></a>
-    <a class="side-link" data-route="thresholds" href="#/thresholds"><span class="side-link-text">Thresholds</span></a>
+    <a class="side-link" data-route="thresholds" href="#/thresholds"><span class="side-link-text">Playbook</span></a>
     <a class="side-link" data-route="sources"   href="#/sources"><span class="side-link-text">Data Sources</span> <span class="pill" id="sideSourcesPill"></span></a>
     <a class="side-link" data-route="history"   href="#/history"><span class="side-link-text">App History</span></a>
     <div class="side-sep"></div>
@@ -2417,7 +2427,7 @@
   <section class="section" id="decisionsSection">
     <div class="section-head">
       <div class="section-title">Decisions from Filters</div>
-      <div class="section-meta">Rule-based actions · thresholds editable on the Thresholds page</div>
+      <div class="section-meta">Rule-based actions · rules editable on the Playbook page</div>
     </div>
     <div class="action-bar">
       <div class="action-counters" id="actionCounters"></div>
@@ -2606,13 +2616,13 @@
 <section class="page" data-page="thresholds" hidden>
   <section class="section" id="thresholdsSection">
     <div class="section-head">
-      <div class="section-title">Thresholds</div>
-      <div class="section-meta">Tune what triggers each rule · per brand · saved locally</div>
+      <div class="section-title">Playbook</div>
+      <div class="section-meta">The rules that decide what to do · tune per brand · saved locally on this device</div>
     </div>
     <div class="threshold-bar">
       <div class="threshold-brand">
         <span class="label">Editing</span>
-        <div class="group" role="group" aria-label="Threshold brand">
+        <div class="group" role="group" aria-label="Playbook brand">
           <button type="button" data-tbrand="via" aria-pressed="true">ViaTrading</button>
           <button type="button" data-tbrand="liq" aria-pressed="false">LiquidateNow</button>
         </div>
@@ -6111,51 +6121,82 @@ function renderSemrush(kwChannel, blChannel) {
 /* ── Thresholds editor ──────────────────────────────────────────── */
 const THRESHOLD_META = {
   ads: [
-    { key: 'KILL_SPEND',         label: 'KILL · spend ≥ $X with 0 conversions',     step: 50,    type: 'currency' },
-    { key: 'SCALE_CPA_MULT',     label: 'SCALE · CPA < median × X',                 step: 0.05,  type: 'number' },
-    { key: 'FIX_CREATIVE_CTR',   label: 'FIX_CREATIVE · CTR floor (%)',             step: 0.1,   type: 'percent' },
-    { key: 'FIX_CREATIVE_IMPR',  label: 'FIX_CREATIVE · min impressions',           step: 100,   type: 'integer' },
+    { key: 'KILL_SPEND',         label: 'KILL · spend ≥ $X with 0 conversions',     step: 50,    type: 'currency',
+      why: 'KILL fires for any campaign that spent at least this much without producing a single conversion. Default $500 catches sustained waste while letting one-day flukes ride.' },
+    { key: 'SCALE_CPA_MULT',     label: 'SCALE · CPA < median × X',                 step: 0.05,  type: 'number',
+      why: 'SCALE fires for campaigns whose cost-per-acquisition is below the median × this multiplier. 0.8 picks the genuine top performers without rewarding average ones.' },
+    { key: 'FIX_CREATIVE_CTR',   label: 'FIX_CREATIVE · CTR floor (%)',             step: 0.1,   type: 'percent',
+      why: 'Below this click-through rate, the campaign\'s creative gets flagged for refresh. 1% is the rough Search floor — drop it for Display where 0.5% is normal.' },
+    { key: 'FIX_CREATIVE_IMPR',  label: 'FIX_CREATIVE · min impressions',           step: 100,   type: 'integer',
+      why: 'Minimum impressions before FIX_CREATIVE fires. Pairs with the CTR floor so small / early campaigns aren\'t flagged before they have signal.' },
   ],
   keywords: [
-    { key: 'KILL_KW_SPEND',      label: 'KILL keyword · spend ≥ $X, 0 conv',        step: 25,    type: 'currency' },
-    { key: 'NEGATE_KW_IMPR',     label: 'NEGATE · min impressions',                 step: 100,   type: 'integer' },
-    { key: 'NEGATE_KW_CTR',      label: 'NEGATE · CTR floor (%)',                   step: 0.05,  type: 'percent' },
-    { key: 'SCALE_KW_CPA_MULT',  label: 'SCALE · CPA < median × X',                 step: 0.05,  type: 'number' },
-    { key: 'SCALE_KW_CONV_MIN',  label: 'SCALE · min conversions',                  step: 1,     type: 'integer' },
+    { key: 'KILL_KW_SPEND',      label: 'KILL keyword · spend ≥ $X, 0 conv',        step: 25,    type: 'currency',
+      why: 'KILL at the keyword grain. Threshold is lower than the campaign-level KILL because individual keywords can bleed silently inside an otherwise healthy campaign.' },
+    { key: 'NEGATE_KW_IMPR',     label: 'NEGATE · min impressions',                 step: 100,   type: 'integer',
+      why: 'Minimum impressions before a keyword qualifies for NEGATE — keeps low-volume keywords from being negated on stale data.' },
+    { key: 'NEGATE_KW_CTR',      label: 'NEGATE · CTR floor (%)',                   step: 0.05,  type: 'percent',
+      why: 'Below this CTR with enough impressions, the keyword gets suggested as a negative match. 0.5% is the typical Search floor — below that the audience isn\'t matching the intent.' },
+    { key: 'SCALE_KW_CPA_MULT',  label: 'SCALE · CPA < median × X',                 step: 0.05,  type: 'number',
+      why: 'Same logic as the campaign SCALE rule, applied per keyword. 0.8 = top 20% efficiency relative to the median.' },
+    { key: 'SCALE_KW_CONV_MIN',  label: 'SCALE · min conversions',                  step: 1,     type: 'integer',
+      why: 'Minimum conversions before a keyword qualifies for SCALE. Three+ avoids treating one-off lucky conversions as a trend worth investing into.' },
   ],
   gsc: [
-    { key: 'OPTIMIZE_PAGE_IMPR', label: 'OPTIMIZE · min impressions',               step: 1000,  type: 'integer' },
-    { key: 'OPTIMIZE_PAGE_POS_MIN', label: 'OPTIMIZE · position min',               step: 1,     type: 'number' },
-    { key: 'OPTIMIZE_PAGE_POS_MAX', label: 'OPTIMIZE · position max',               step: 1,     type: 'number' },
-    { key: 'FIX_TITLE_IMPR',     label: 'FIX_TITLE · min impressions',              step: 1000,  type: 'integer' },
-    { key: 'FIX_TITLE_CTR',      label: 'FIX_TITLE · CTR floor (%)',                step: 0.1,   type: 'percent' },
-    { key: 'INVESTIGATE_DROP_DELTA', label: 'INVESTIGATE · WoW change ≤ (negative)', step: 0.05, type: 'number' },
-    { key: 'INVESTIGATE_DROP_PRIOR', label: 'INVESTIGATE · min prior clicks',       step: 5,     type: 'integer' },
+    { key: 'OPTIMIZE_PAGE_IMPR', label: 'OPTIMIZE · min impressions',               step: 1000,  type: 'integer',
+      why: 'Minimum search impressions before a page is suggested for OPTIMIZE. Below this Google hasn\'t shown the page enough times to draw conclusions.' },
+    { key: 'OPTIMIZE_PAGE_POS_MIN', label: 'OPTIMIZE · position min',               step: 1,     type: 'number',
+      why: 'Pages ranking at this position or worse qualify for OPTIMIZE. Position 1–4 is already strong — leave alone.' },
+    { key: 'OPTIMIZE_PAGE_POS_MAX', label: 'OPTIMIZE · position max',               step: 1,     type: 'number',
+      why: 'Pages ranking better than this position qualify. Beyond 15 the lift from on-page tweaks alone is rarely enough — those need links, not titles.' },
+    { key: 'FIX_TITLE_IMPR',     label: 'FIX_TITLE · min impressions',              step: 1000,  type: 'integer',
+      why: 'Minimum impressions before FIX_TITLE is suggested. Same logic as OPTIMIZE — needs enough Google exposure to know the title isn\'t winning clicks.' },
+    { key: 'FIX_TITLE_CTR',      label: 'FIX_TITLE · CTR floor (%)',                step: 0.1,   type: 'percent',
+      why: 'Below this CTR with high impressions, the page title is the most likely lever. 1% is the rough floor for top-10 organic listings.' },
+    { key: 'INVESTIGATE_DROP_DELTA', label: 'INVESTIGATE · WoW change ≤ (negative)', step: 0.05, type: 'number',
+      why: 'Surfaces INVESTIGATE when week-over-week clicks drop by at least this much. -0.25 = a 25% drop — beyond normal noise but not yet "everything is broken".' },
+    { key: 'INVESTIGATE_DROP_PRIOR', label: 'INVESTIGATE · min prior clicks',       step: 5,     type: 'integer',
+      why: 'Minimum prior-week clicks before a drop is flagged. Below 20 a swing from 4 → 1 looks dramatic in % but is just noise.' },
   ],
   ga: [
-    { key: 'AUDIT_LANDING_SHARE', label: 'AUDIT · sessions share > (0–1)',          step: 0.05,  type: 'number' },
-    { key: 'AUDIT_LANDING_ENG',   label: 'AUDIT · engagement rate < (%)',           step: 5,     type: 'percent' },
+    { key: 'AUDIT_LANDING_SHARE', label: 'AUDIT · sessions share > (0–1)',          step: 0.05,  type: 'number',
+      why: 'Pages taking more than this share of total sessions get an AUDIT action. 15% means "a top-traffic page" — worth scrutinizing engagement on.' },
+    { key: 'AUDIT_LANDING_ENG',   label: 'AUDIT · engagement rate < (%)',           step: 5,     type: 'percent',
+      why: 'Engagement rate floor for AUDIT. High traffic + low engagement is the worst combination — the page is bringing people in and losing them.' },
   ],
   social: [
-    { key: 'REPLICATE_REACH_MULT', label: 'REPLICATE · reach > overall × X',        step: 0.1,   type: 'number' },
-    { key: 'REPLICATE_POSTS_MIN',  label: 'REPLICATE · min posts',                  step: 1,     type: 'integer' },
-    { key: 'PAUSE_POSTS_MIN',      label: 'PAUSE · min posts (zero reach)',         step: 1,     type: 'integer' },
+    { key: 'REPLICATE_REACH_MULT', label: 'REPLICATE · reach > overall × X',        step: 0.1,   type: 'number',
+      why: 'Posts reaching this multiple of the network\'s average get a REPLICATE action. 1.5× = clear outperformer; below that is normal variance.' },
+    { key: 'REPLICATE_POSTS_MIN',  label: 'REPLICATE · min posts',                  step: 1,     type: 'integer',
+      why: 'Minimum posts in the active range before REPLICATE qualifies — needs a baseline to compare against.' },
+    { key: 'PAUSE_POSTS_MIN',      label: 'PAUSE · min posts (zero reach)',         step: 1,     type: 'integer',
+      why: 'Minimum zero-reach posts before PAUSE fires for a network. Avoids killing a network for a single dud.' },
   ],
   aircall: [
-    { key: 'FIX_ROUTING_TOTAL_MIN', label: 'FIX_ROUTING · min total calls',         step: 5,     type: 'integer' },
-    { key: 'FIX_ROUTING_RATE_MIN',  label: 'FIX_ROUTING · miss rate > (0–1)',       step: 0.01,  type: 'number' },
-    { key: 'FIX_ROUTING_HIGH_RATE', label: 'FIX_ROUTING · HIGH if rate > (0–1)',    step: 0.01,  type: 'number' },
-    { key: 'STAFFING_DELTA',        label: 'STAFFING · WoW volume change > (0–1)',  step: 0.05,  type: 'number' },
+    { key: 'FIX_ROUTING_TOTAL_MIN', label: 'FIX_ROUTING · min total calls',         step: 5,     type: 'integer',
+      why: 'Minimum calls in the active range before FIX_ROUTING fires. Avoids flagging an after-hours number with a single missed call.' },
+    { key: 'FIX_ROUTING_RATE_MIN',  label: 'FIX_ROUTING · miss rate > (0–1)',       step: 0.01,  type: 'number',
+      why: 'Miss-rate floor. Above 5% missed calls the line gets flagged for routing review — humans answer faster than the IVR for this volume.' },
+    { key: 'FIX_ROUTING_HIGH_RATE', label: 'FIX_ROUTING · HIGH if rate > (0–1)',    step: 0.01,  type: 'number',
+      why: 'Severity escalation. Above this miss rate the FIX_ROUTING action is flagged HIGH priority instead of MEDIUM.' },
+    { key: 'STAFFING_DELTA',        label: 'STAFFING · WoW volume change > (0–1)',  step: 0.05,  type: 'number',
+      why: 'Surfaces STAFFING when call volume swings week-over-week by at least this much. 25% is well beyond normal seasonal noise.' },
   ],
   pagespeed: [
-    { key: 'LCP_MAX_S',  label: 'FIX_LCP · max LCP (seconds)',                     step: 0.1,   type: 'number' },
-    { key: 'CLS_MAX',    label: 'FIX_CLS · max CLS (0–1)',                         step: 0.01,  type: 'number' },
-    { key: 'INP_MAX_MS', label: 'FIX_INP · max INP (ms)',                          step: 10,    type: 'integer' },
-    { key: 'PERF_MIN',   label: 'FIX_PERF · min Lighthouse score (0–100)',         step: 5,     type: 'integer' },
+    { key: 'LCP_MAX_S',  label: 'FIX_LCP · max LCP (seconds)',                     step: 0.1,   type: 'number',
+      why: 'Largest Contentful Paint ceiling. Above 2.5s Google calls the page slow — and rankings start taking a hit.' },
+    { key: 'CLS_MAX',    label: 'FIX_CLS · max CLS (0–1)',                         step: 0.01,  type: 'number',
+      why: 'Cumulative Layout Shift ceiling. Above 0.1 visible elements jump around as the page loads — Google\'s ranking penalty starts here.' },
+    { key: 'INP_MAX_MS', label: 'FIX_INP · max INP (ms)',                          step: 10,    type: 'integer',
+      why: 'Interaction-to-Next-Paint ceiling in ms. Under 200ms feels instant — above it the page feels laggy on tap.' },
+    { key: 'PERF_MIN',   label: 'FIX_PERF · min Lighthouse score (0–100)',         step: 5,     type: 'integer',
+      why: 'Lighthouse Performance Score floor. Below 50 is "Poor" in Google\'s scale — under 90 is just "OK".' },
   ],
   cross: [
-    { key: 'ATTR_GAP_CALLS_MIN', label: 'ATTRIBUTION_GAP · min calls',              step: 10,    type: 'integer' },
-    { key: 'ATTR_GAP_MULT',      label: 'ATTRIBUTION_GAP · calls > conv × X',       step: 0.5,   type: 'number' },
+    { key: 'ATTR_GAP_CALLS_MIN', label: 'ATTRIBUTION_GAP · min calls',              step: 10,    type: 'integer',
+      why: 'Minimum calls in the active range before ATTRIBUTION_GAP fires — needs enough call volume to compare against ad conversions meaningfully.' },
+    { key: 'ATTR_GAP_MULT',      label: 'ATTRIBUTION_GAP · calls > conv × X',       step: 0.5,   type: 'number',
+      why: 'When phone calls exceed paid conversions × this multiplier, the dashboard flags an attribution gap — the ads are likely driving lead-gen calls that never get credited as paid conversions.' },
   ],
 };
 const THRESHOLD_SECTIONS = ['ads', 'keywords', 'gsc', 'ga', 'pagespeed', 'social', 'aircall', 'cross'];
@@ -6170,10 +6211,12 @@ function renderThresholds() {
     const items = THRESHOLD_META[src] || [];
     const rowsHtml = items.map(item => {
       const v = tbl[item.key] != null ? tbl[item.key] : THRESHOLD_DEFAULTS[item.key];
+      const why = item.why ? `<span class="threshold-why">${escapeHtml(item.why)}</span>` : '';
       return `
         <label class="threshold-row" data-key="${item.key}">
           <span class="threshold-label">${escapeHtml(item.label)}</span>
           <input class="threshold-input" type="number" step="${item.step}" value="${v}" data-tkey="${item.key}" data-ttype="${item.type}" />
+          ${why}
         </label>`;
     }).join('');
     return `
@@ -7131,6 +7174,16 @@ function renderLowHanging(scoped) {
 const APP_HISTORY = [
   {
     date: 'Apr 27, 2026',
+    title: 'Thresholds page renamed to Playbook with per-rule "why" explanations',
+    tags: ['Feature', 'Polish'],
+    bullets: [
+      'Renamed the "Thresholds" page to "Playbook" — across the sidebar, page title, page-title map, the brand toggle aria-label, the Decisions from Filters subtitle, and the reset confirm dialog. Code-side identifiers (state.thresholds, the localStorage key, CSS class names, function names, the URL hash) intentionally stay the same so saved playbooks are preserved.',
+      'Added a one-sentence "why" explanation under every rule on the Playbook page — what triggers the action, and why the default makes sense. Tone matches the existing GLOSSARY (concise "what + why"), rendered inline in dim small text so it always reads at a glance instead of hiding behind a tap.',
+      'All ~30 rules covered (Ads, Keywords, GSC, GA4, Page Speed, Social, Aircall, Cross). Section subtitle now reads "The rules that decide what to do · tune per brand · saved locally on this device".',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
     title: 'Brand spelled "ViaTrading" everywhere (capital T)',
     tags: ['Polish'],
     bullets: [
@@ -8005,7 +8058,7 @@ const NAV_LABEL = {
   decisions_filters: 'Decisions from Filters',
   decisions_claude: 'Decisions from Claude',
   decisions_gpt: 'Decisions from GPT',
-  thresholds: 'Thresholds',
+  thresholds: 'Playbook',
   sources: 'Data Sources',
   history: 'App History',
 };
@@ -8178,7 +8231,7 @@ function initThresholds() {
   });
   const reset = document.getElementById('thresholdsReset');
   if (reset) reset.addEventListener('click', () => {
-    if (!confirm('Reset thresholds to defaults for ' + (state.thresholdBrand === 'via' ? 'ViaTrading' : 'LiquidateNow') + '?')) return;
+    if (!confirm('Reset playbook to defaults for ' + (state.thresholdBrand === 'via' ? 'ViaTrading' : 'LiquidateNow') + '?')) return;
     state.thresholds[state.thresholdBrand] = { ...THRESHOLD_DEFAULTS };
     saveThresholds();
     renderThresholds();

@@ -1717,11 +1717,42 @@
     opacity: 0.3;
     filter: grayscale(0.6);
   }
+  /* Product sub-label below the brand logos. Treated as a small
+     "command center" header — uppercase, bolder, letter-spaced,
+     with a pulsing live-indicator dot to signal the dashboard is
+     actively reflecting the data. Sits visually distinct from the
+     Vicki-Intelligence gradient mark elsewhere in the chrome. */
   .side-brand-sub {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.72rem;
-    color: var(--text3);
-    font-weight: 500;
+    color: var(--text);
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+  .side-brand-sub::before {
+    content: '';
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  /* Subtle gradient flair on the "CMO" prefix only — picks up the
+     Vicki gradient stops so the brand stack feels unified without
+     duplicating the wordmark. */
+  .side-brand-sub .brand-sub-cmo {
+    background: linear-gradient(115deg, #6d28d9 0%, #a855f7 45%, #ec4899 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    font-weight: 800;
+    letter-spacing: 0.05em;
   }
   .side-nav { display: flex; flex-direction: column; padding: 0.5rem 0; gap: 1px; }
   .side-link {
@@ -2069,7 +2100,7 @@
       <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="ViaTrading" />
       <img class="side-brand-logo" data-brand-logo="liq" src="https://lh3.googleusercontent.com/d/10v7J_Mnp4v-NDAlwYUuuWCixcyIIx5as" alt="LiquidateNow" />
     </div>
-    <div class="side-brand-sub">CMO Command Center</div>
+    <div class="side-brand-sub" aria-label="CMO Command Center"><span class="brand-sub-cmo">CMO</span> Command Center</div>
     <button type="button" class="side-collapse-toggle" id="sideCollapseToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
     </button>
@@ -2913,7 +2944,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r21', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r22', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -8181,6 +8212,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Sidebar product label gets command-center treatment',
+    tags: ['Polish'],
+    bullets: [
+      'The "CMO Command Center" sub-label was rendering as small dim text — visually weaker than the brand logos above and the Vicki mark below. Reworked to look like a section header in an ops console: **uppercase**, bold (700), letter-spaced (0.09em), full-strength text color, with a small pulsing **green live-indicator dot** prefix borrowed from the existing `.status-dot` styling.',
+      'The "CMO" prefix gets a subtle Vicki gradient (purple→magenta→pink) so the brand stack reads as one family — brand logos, **CMO** Command Center (gradient + ops typography), Powered by Vicki Intelligence (full gradient). Three distinct visual weights, one shared palette.',
+      'Build tag bumped to r22.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Product renamed: "CMO Command Center"',

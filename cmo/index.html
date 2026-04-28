@@ -3126,7 +3126,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r23', startedAt: new Date() };
+const CMO_BUILD = { tag: 'Decision lifecycle · built 2026-04-28 r24', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -9030,6 +9030,19 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 28, 2026',
+    title: 'Decision lifecycle tracking — confidence scores, frozen baselines, outcomes',
+    tags: ['Feature'],
+    bullets: [
+      'Decisions are now durable workflow objects, not UI cards. New status flow: **Open → Confirm to do → In Progress → Completed** (any active state can also be Dismissed). Every card across **Filters, Claude, and GPT** carries the same status controls, confidence chip, and source chip — one shared `renderActionCardHtml` so they\'re visually identical.',
+      'Every decision now has a **confidence score (0–99)**. Rule-based: distance-from-threshold × priority weight (HIGH 1.2 / MEDIUM 1.0 / LOW 0.8) — a HIGH action whose CTR sits 60% below the floor scores higher than one barely under. Claude and GPT self-report confidence via an extended prompt; if the model omits it we fall back to the same formula.',
+      '**`metric_before` is captured and frozen** the first time `hydrateActions` sees an `action_id`. Rule-based decisions regenerate every render but the baseline never moves once written. After a decision sits in Completed for **14 days** (default observation window), `metric_after` is auto-captured from live drilldown data — once, frozen, never recomputed unless the user clicks the explicit ↻ Recapture button on the row. `actual_impact` and `outcome` (SUCCESS / NEUTRAL / FAIL) derive from a per-`action_type` direction map (CTR up = good; CPA / LCP / Miss-rate down = good) with a 5% NEUTRAL band so weekday noise doesn\'t flip outcomes.',
+      'New **Decision Tracking** sidebar page with a unified table across all three sources. Columns: Decision · Category · Source · Pri · Conf · Status · Before · After · Impact · Outcome · Owner · Notes · Date. Filters: Source, Priority, Status (now includes Confirm to do), Confidence ≥, Provider (Filters / Claude / GPT). Status, owner, and notes are inline-editable per row; clicking a row opens the existing decision modal — now with a Lifecycle KV grid and owner/notes editors.',
+      'Persistence is unchanged in spirit but extended in scope. The same `cmoActionLog_v1` localStorage entry now stores `status`, `date_created / date_confirmed / date_started / date_completed`, `owner`, `notes`, `metric_name`, `metric_before / metric_after` (with timestamps), `actual_impact`, `outcome`, `expected_impact`, `confidence_score`, `data_window`, and `source_refs`. Old log entries auto-migrate on read — no version bump.',
+      'Build tag bumped to r24.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Numeric headers right-align with their data across every table',

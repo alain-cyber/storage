@@ -423,10 +423,13 @@
     z-index: 1;
   }
   .footer-vicki {
+    /* Legacy class — kept for cached pages. Live footer uses .vicki-mark. */
     font-weight: 600;
     color: var(--text2);
     letter-spacing: -0.01em;
   }
+  .footer .vicki-mark { transition: none; cursor: default; }
+  .footer .vicki-mark:hover { transform: none; }
 
   /* AI Briefing hero */
   .ai-briefing {
@@ -1769,10 +1772,17 @@
     gap: 0.1rem;
   }
   .side-foot-vicki {
+    /* Legacy class — kept for cached pages that still reference it.
+       Live footer uses the .vicki-mark sparkle/gradient component. */
     color: var(--text);
     font-weight: 600;
     letter-spacing: -0.01em;
   }
+  /* Compact mark inside .side-foot needs a slightly smaller size and
+     no hover translation (sits inside a static panel, not a link). */
+  .side-foot .vicki-mark { transition: none; cursor: default; }
+  .side-foot .vicki-mark:hover { transform: none; }
+  .side-foot .vicki-mark .vicki-text { font-size: 0.85rem; }
   .pill {
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 20px; height: 18px;
@@ -2096,7 +2106,22 @@
   </nav>
   <div class="side-foot">
     <span class="side-foot-powered">Powered by</span>
-    <span class="side-foot-vicki">Vicki Intelligence</span>
+    <span class="vicki-mark vicki-mark-compact" aria-label="Vicki Intelligence">
+      <span class="vicki-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="vickiGradSideFoot" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#6d28d9"/>
+              <stop offset="50%" stop-color="#a855f7"/>
+              <stop offset="100%" stop-color="#ec4899"/>
+            </linearGradient>
+          </defs>
+          <path d="M16 2.5 L18.6 13.4 L29.5 16 L18.6 18.6 L16 29.5 L13.4 18.6 L2.5 16 L13.4 13.4 Z" fill="url(#vickiGradSideFoot)"/>
+          <circle cx="24.5" cy="6" r="1.7" fill="#c4b5fd"/>
+        </svg>
+      </span>
+      <span class="vicki-text"><span class="vicki-name">Vicki</span><span class="vicki-rest">Intelligence</span></span>
+    </span>
   </div>
 </aside>
 
@@ -2786,7 +2811,22 @@
 
 <footer class="footer">
   <span class="footer-powered">Powered by</span>
-  <span class="footer-vicki">Vicki Intelligence</span>
+  <span class="vicki-mark vicki-mark-compact" aria-label="Vicki Intelligence">
+    <span class="vicki-icon" aria-hidden="true">
+      <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="vickiGradPageFoot" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#6d28d9"/>
+            <stop offset="50%" stop-color="#a855f7"/>
+            <stop offset="100%" stop-color="#ec4899"/>
+          </linearGradient>
+        </defs>
+        <path d="M16 2.5 L18.6 13.4 L29.5 16 L18.6 18.6 L16 29.5 L13.4 18.6 L2.5 16 L13.4 13.4 Z" fill="url(#vickiGradPageFoot)"/>
+        <circle cx="24.5" cy="6" r="1.7" fill="#c4b5fd"/>
+      </svg>
+    </span>
+    <span class="vicki-text"><span class="vicki-name">Vicki</span><span class="vicki-rest">Intelligence</span></span>
+  </span>
 </footer>
 
 <div id="decisionModal" class="cmo-modal" hidden>
@@ -2817,7 +2857,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r16', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r17', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -7770,6 +7810,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Vicki brand mark now consistent across topbar + sidebar foot + page foot',
+    tags: ['Polish'],
+    bullets: [
+      'The topbar already used the styled `.vicki-mark` (sparkle + purple→magenta→pink gradient wordmark), but the sidebar footer ("Powered by Vicki Intelligence") and the page footer were rendering as plain text. Both now use the same component, so the brand identity reads consistently from every corner of the screen.',
+      'Each instance gets its own SVG gradient ID (`vickiGradTop`, `vickiGradSideFoot`, `vickiGradPageFoot`) to keep HTML valid; gradient stops are identical so the three marks render visually identical. Inside the static footers the hover-lift is suppressed (no `transform: translateY` and `cursor: default`) — the mark there is decorative, not a link.',
+      'Build tag bumped to r17.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Chat + Decisions personas now branded as Vicki',

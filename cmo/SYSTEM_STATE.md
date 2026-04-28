@@ -97,7 +97,9 @@ The dashboard never *writes* to any sheet. It is a read-only view.
 | Headers row | 2 |
 | Source system | Aircall → Coefficient (one row per call, with timestamp + line + team + agent + duration + status) |
 | Brand inference | Lines in `LIQ_AIRCALL_LINES` (Justin Prescott / LiquidateNow Department / Ashley Sheppard) and any team matching `/liquidate\s*now|liqnow/i` are tagged `liq`; everything else is tagged `via`. Defined in `cmo/index.html` ~line 1873. |
-| Timezone | Aircall reports timestamps in UTC. The dashboard pins the **daily bucket** (`row.Date`) to Pacific Time so a 5pm-PT call doesn't roll into the next UTC day. Hour-of-day and weekday logic still uses the raw UTC timestamp — TODO if the workday breakdown looks off. |
+| Timezone | Aircall reports timestamps in UTC. The dashboard pins everything that depends on a calendar/clock — daily bucket, hour-of-day, weekday, holiday check — to **Pacific Time** via a single `Intl.DateTimeFormat({ timeZone: 'America/Los_Angeles' })` formatter (`ptCallParts`). |
+| Business hours | Mon-Fri **8am–6pm PT**, excluding US federal holidays + day-after-Thanksgiving + Christmas Eve. Holidays are kept as a static `US_HOLIDAYS` set in `cmo/index.html` (~line 2995); update once a year before Q4 of the prior year. Saturday/Sunday holiday observances follow federal convention (Sat → observed Friday, Sun → observed Monday). |
+| Missed-call metrics | The `Miss Rate` KPI and the per-line "Worst lines" ranking are computed **only over in-hours calls** — after-hours misses are tracked separately so the rate reflects what the team can act on (staffing / routing). Total call volume KPIs still count all inbound calls. |
 | Refresh cadence | Coefficient — TBD: confirm schedule |
 
 ### 6. Metricool · Posts (per-post data)
@@ -219,8 +221,8 @@ The only thing in this repo is the read-side: `cmo/index.html`.
 2. **Confirm Metricool export cadence** for the Social sheet.
 3. **Document the Page Speed populator** — whoever set this up needs to record: tool used (Apps Script / GitHub Action / external service), schedule, list of URLs audited, and which device strategies (mobile / desktop / both).
 4. **Brand-split for Social** — all rows are now hardcoded `brand: 'via'` because LiquidateNow has no social presence yet. When LN spins up its own Metricool accounts, replace the hardcoded tag in `normalizeSocialRows` / `normalizeSocialAnalyticsRows` with `account`-based inference (mirror the Aircall pattern in `cmo/index.html`).
-5. **Aircall hour-of-day in PT** — currently the daily bucket is PT but `isCallInHours` still uses the raw UTC timestamp. If the in-hours breakdown looks shifted, switch it to PT too. Keep an eye out during the next review.
+5. ~~**Aircall hour-of-day in PT** — currently the daily bucket is PT but `isCallInHours` still uses the raw UTC timestamp.~~ **Resolved 2026-04-27.** `isCallInHours` now uses `ptCallParts` for dow/hour/holiday checks; missed-call metrics are filtered to in-hours only.
 
 ---
 
-_Last updated: 2026-04-27 — Metricool data source swapped to the new `Metricool_Social_Data_Template` workbook (`raw_social_post` + `raw_social_account_daily`); old `1_4zK8GX…PGjk` workbook retired._
+_Last updated: 2026-04-27 — Metricool source swap; Aircall in-hours filter (Mon-Fri 8am–6pm PT, holiday-aware) applied to missed-call metrics._

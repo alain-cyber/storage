@@ -2428,7 +2428,7 @@
         <div>
           <div class="chart-title">Answered vs missed</div>
           <div class="chart-value" id="callsAnsweredPct">—</div>
-          <div class="chart-help">Share of calls your team picked up. Below 90% during business hours means routing or staffing needs attention — every missed call is a paid lead that may not call back.</div>
+          <div class="chart-help">Share of business-hour calls your team picked up (Mon-Fri 8am–6pm PT, excluding US holidays). Below 90% means routing or staffing needs attention — every missed call is a paid lead that may not call back. After-hours calls are tracked separately and don't drag this number.</div>
         </div>
       </div>
       <div class="chart-wrap" style="height:200px"><canvas id="callsDonut"></canvas></div>
@@ -2817,7 +2817,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r14', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r15', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -2987,7 +2987,62 @@ const AIRCALL_ANSWERED_AT_COLS = ['Answered At','Answered_at','Answer Time','Ans
 const AIRCALL_STATUS_COLS = ['Status','Call Status','Result','Disposition','Outcome','Hangup Cause','Hangup Reason'];
 const AIRCALL_DURATION_COLS = ['Duration','Duration (s)','Call Duration','Duration_s','Total Duration','Duration Sec'];
 const AIRCALL_DIRECTION_COLS = ['Direction','Call Direction','Type'];
-const WORK_HOURS = { start: 9, end: 18, workDays: [1,2,3,4,5] }; /* Mon-Fri 9am-6pm */
+const WORK_HOURS = { start: 8, end: 18, workDays: [1,2,3,4,5] }; /* Mon-Fri 8am-6pm PT */
+
+/* US holidays the team observes — calls on these days do NOT count
+   toward in-hours missed-call metrics. Federal holidays + day-after-
+   Thanksgiving + Christmas Eve. When a holiday falls on Saturday it's
+   observed Friday; when on Sunday it's observed Monday — those observed
+   dates are what's listed (Saturday/Sunday are weekends and already
+   excluded by `workDays`).
+   Maintained as static dates (rather than computed) so the rules are
+   explicit and easy to audit. Update once a year before Q4 of the
+   prior year — see SYSTEM_STATE.md section 5. */
+const US_HOLIDAYS = new Set([
+  /* 2026 */
+  '2026-01-01', /* New Year's Day */
+  '2026-01-19', /* MLK Jr. Day (3rd Mon Jan) */
+  '2026-02-16', /* Presidents' Day (3rd Mon Feb) */
+  '2026-05-25', /* Memorial Day (last Mon May) */
+  '2026-06-19', /* Juneteenth */
+  '2026-07-03', /* Independence Day observed (Jul 4 = Sat) */
+  '2026-09-07', /* Labor Day (1st Mon Sep) */
+  '2026-10-12', /* Columbus Day (2nd Mon Oct) */
+  '2026-11-11', /* Veterans Day */
+  '2026-11-26', /* Thanksgiving (4th Thu Nov) */
+  '2026-11-27', /* Day after Thanksgiving */
+  '2026-12-24', /* Christmas Eve */
+  '2026-12-25', /* Christmas Day */
+  /* 2027 */
+  '2027-01-01', '2027-01-18', '2027-02-15', '2027-05-31',
+  '2027-06-18', /* Juneteenth observed (Jun 19 = Sat) */
+  '2027-07-05', /* Independence Day observed (Jul 4 = Sun) */
+  '2027-09-06', '2027-10-11', '2027-11-11',
+  '2027-11-25', '2027-11-26',
+  '2027-12-23', /* Christmas Eve (Dec 25 = Sat → observed Fri) */
+  '2027-12-24', /* Christmas observed */
+]);
+
+/* PT day-of-week + hour + YMD from a UTC timestamp. Browser-local
+   getDay()/getHours() would misfire when the dashboard is opened from
+   any non-PT zone (e.g. iPad in Spain). Single Intl formatter so we
+   pay one allocation and read every component from formatToParts. */
+const PT_PARTS_FMT = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Los_Angeles',
+  weekday: 'short',
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: 'numeric', hourCycle: 'h23',
+});
+const _DOW_BY_NAME = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+function ptCallParts(d) {
+  const out = {};
+  for (const p of PT_PARTS_FMT.formatToParts(d)) out[p.type] = p.value;
+  return {
+    dow: _DOW_BY_NAME[out.weekday],
+    hour: Number(out.hour),
+    ymd: `${out.year}-${out.month}-${out.day}`,
+  };
+}
 
 /* Case/space/underscore-insensitive key matching — Aircall exports sometimes
    arrive as "missed_call_reason" or "Started_At" depending on who exported. */
@@ -3061,10 +3116,12 @@ function isCallInHours(row) {
   if (!rowHasCallTimestamp(row)) return null;
   const d = parseCallDate(row);
   if (!d) return null;
-  const dow = d.getDay();
-  if (!WORK_HOURS.workDays.includes(dow)) return false;
-  const h = d.getHours();
-  return h >= WORK_HOURS.start && h < WORK_HOURS.end;
+  /* Pacific Time across the board — dow, hour, holiday check all need
+     to agree on the same calendar/clock. */
+  const p = ptCallParts(d);
+  if (!WORK_HOURS.workDays.includes(p.dow)) return false;
+  if (US_HOLIDAYS.has(p.ymd)) return false;
+  return p.hour >= WORK_HOURS.start && p.hour < WORK_HOURS.end;
 }
 
 /* Aircall reports timestamps in UTC; the team operates in PT. Pin the daily
@@ -3741,7 +3798,7 @@ const GLOSSARY = {
   'Best day':   { what: 'The day-of-week with the highest avg reach for this network this period — minimum 2 posts to qualify.', why: 'Posting on the day your audience is actually active typically lifts reach 30–50% with no extra effort.' },
   /* Calls */
   'Aircall':    { what: 'Cloud phone system the team uses for inbound and outbound sales calls.',                            why: 'Source of all call data here — line, agent, status, duration, miss reason.' },
-  'Miss Rate':  { what: 'Missed inbound calls divided by total inbound calls.',                                              why: 'Above 10% in business hours = staffing or routing problem. After-hours misses usually need voicemail / SMS catch.' },
+  'Miss Rate':  { what: 'In-hours missed inbound calls divided by in-hours inbound calls. Business hours = Mon-Fri 8am–6pm PT, excluding US holidays.', why: 'Above 10% during business hours = staffing or routing problem the team can act on. After-hours misses are tracked separately because the fix is voicemail / SMS catch, not headcount.' },
   /* Time windows */
   'MTD':        { what: 'Month To Date — from the 1st of the current month through today.',                                  why: 'Standard reporting window. Compare against last month\'s MTD-equivalent for trend.' },
   'QTD':        { what: 'Quarter To Date — from the start of the current quarter through today.',                            why: 'Useful for board / investor cadence (quarterly reviews).' },
@@ -4590,10 +4647,19 @@ function summarizeCalls(rows) {
   const break_ = breakdownCallsByHours(rows);
   const totalCalls = break_.total;
   const missed = break_.missed;
-  const missRate = totalCalls ? missed / totalCalls : 0;
-  /* Per-line breakdown */
+  /* Missed-call metrics are filtered to **business hours only** —
+     Mon-Fri 8am-6pm PT, excluding US federal holidays + day-after-
+     Thanksgiving + Christmas Eve (see WORK_HOURS / US_HOLIDAYS).
+     After-hours misses are real but not actionable for staffing /
+     routing decisions, and they were dragging the rate down to
+     unflattering numbers that didn't reflect what the team controls. */
+  const missRate = break_.inTotal ? break_.inMissed / break_.inTotal : 0;
+  /* Per-line breakdown — also in-hours-only, so the "Worst lines"
+     ranking surfaces lines that need staffing attention during the
+     workday rather than lines that simply got after-hours volume. */
   const lineMap = {};
   rows.forEach(r => {
+    if (isCallInHours(r) !== true) return;
     const line = String(getFirstFieldValue(r, AIRCALL_LINE_COLS) || '').trim();
     if (!line) return;
     const e = lineMap[line] || (lineMap[line] = { name: line, brand: r.brand || inferCallBrand(r), total: 0, missed: 0 });
@@ -7704,6 +7770,18 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Aircall missed-call metrics now respect business hours + US holidays',
+    tags: ['Fix', 'Foundation'],
+    bullets: [
+      'Miss Rate KPI and the per-line "Worst lines" ranking are now computed **only over in-hours calls** — Mon-Fri 8am–6pm PT, excluding US federal holidays + day-after-Thanksgiving + Christmas Eve. After-hours misses still show up in the breakdown chart but no longer drag the headline rate. Rationale: after-hours misses are tracked separately because the fix is voicemail / SMS catch, not staffing or routing.',
+      'Fixed a latent timezone bug: `isCallInHours` was using browser-local `getDay()/getHours()`, which would misclassify calls if the dashboard was opened from any non-PT zone (an iPad in Spain would have shifted 5pm-PT calls into the next day and out of business hours). Replaced with a single `Intl.DateTimeFormat({timeZone: "America/Los_Angeles"})` formatter that returns dow + hour + YMD all anchored to PT. SYSTEM_STATE.md Open Item #5 closed.',
+      'Holidays are maintained as a static `US_HOLIDAYS` set in cmo/index.html — 2026 + 2027 dates pre-loaded, with Saturday/Sunday holidays mapped to their observed Friday/Monday. Update once a year before Q4 of the prior year.',
+      'Business hours bumped from 9am-6pm to **8am-6pm PT** per the team\'s actual workday.',
+      'Build tag bumped to r15.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Prompt caching on chat — repeat questions cost ~10× less',

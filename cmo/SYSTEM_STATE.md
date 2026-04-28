@@ -110,7 +110,7 @@ The dashboard never *writes* to any sheet. It is a read-only view.
 | Source system | **Metricool** export — one row per post (`date, published_at, network, account, account_id, post_type, content_type_normalized, post_id, url, text, campaign, tag, impressions, reach, views, likes, comments, shares, saves, clicks, engagements, engagement_rate, day_of_week, hour, source, raw_json`) |
 | Date format quirk | Column A `date` is exported as the broken stub `[object Ob`. The real timestamp lives in column B `published_at` as a serialized struct, e.g. `{dateTime=2026-04-21T23:53:57, timezone=Europe/Madrid}`. `normalizeSocialRows` reads `published_at` first, extracts the inner `dateTime` / `date` substring, then normalizes. |
 | Refresh cadence | Metricool's Sheets export — TBD: confirm whether scheduled or manual |
-| Brand mapping | Currently shared across brands (no per-brand split). The `account` column is exported but populates as null on current rows; once Metricool fills it, brand inference can split via vs liquidatenow accounts (see Open Items #4). |
+| Brand mapping | All social activity is ViaTrading-only today (LiquidateNow has no social presence). `normalizeSocialRows` tags every row with `brand: 'via'`, so the Liq toggle on the dashboard filters cleanly to empty and the brand-pending banner stays hidden. When LN gets its own Metricool accounts, swap the hardcoded tag for `account`-based inference (see Open Items #4). |
 | Replaced | The legacy workbook `1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk` (gid `1914162846`) on 2026-04-27. Schema added `published_at`, `account`, `account_id`, `content_type_normalized`, `post_id`, `campaign`, `tag`, `views`, `saves`, `clicks`, `engagement_rate`, `day_of_week`, `hour`, `source`, `raw_json` and renamed `engagement` → `engagements`. |
 
 ### 6b. Metricool · Account daily (daily snapshots, wide format)
@@ -123,7 +123,7 @@ The dashboard never *writes* to any sheet. It is a read-only view.
 | Source system | Metricool export — one **wide** row per `(network, date)` with `followers, followers_delta, impressions, reach, profile_views, page_views, video_views, watch_time, likes, comments, shares, clicks, engagements, engagement_rate` as columns. |
 | Used for | "Followers", "Followers Growth", "Growth Rate" KPIs on the Social page. Earliest + latest snapshot per network within the active range = absolute and percent growth. |
 | Date format | Column A is a real `Date` type (not a string), so the default 60-day gviz `where date >= date 'YYYY-MM-DD'` filter applies cleanly via `dateColumn: 'A'`. |
-| Brand mapping | Single tab, no per-brand split. |
+| Brand mapping | ViaTrading-only today — `normalizeSocialAnalyticsRows` tags every row with `brand: 'via'` for the same reason as the Posts tab. |
 | Replaced | The legacy `Analytics` tab on the old workbook on 2026-04-27. Format changed **long → wide** — was one row per `(network, metric, date)` with a `value` column; now metrics are columns. `summarizeSocialAnalytics` was rewritten accordingly; `followers_delta` is exposed for future daily-growth charts. |
 
 ### 7. Page Speed (Lighthouse / Core Web Vitals)
@@ -218,7 +218,7 @@ The only thing in this repo is the read-side: `cmo/index.html`.
 1. **Confirm Coefficient schedules** for all 5 Coefficient-fed sheets (ads, keywords, gsc, ga, aircall). The dashboard has no way to enforce a schedule — what you see is whatever Coefficient last wrote.
 2. **Confirm Metricool export cadence** for the Social sheet.
 3. **Document the Page Speed populator** — whoever set this up needs to record: tool used (Apps Script / GitHub Action / external service), schedule, list of URLs audited, and which device strategies (mobile / desktop / both).
-4. **Brand-split for Social** — currently shared. If it should be per-brand, a `brandTabs` split + brand inference is a one-liner (mirror the Ads pattern in `SHEETS`).
+4. **Brand-split for Social** — all rows are now hardcoded `brand: 'via'` because LiquidateNow has no social presence yet. When LN spins up its own Metricool accounts, replace the hardcoded tag in `normalizeSocialRows` / `normalizeSocialAnalyticsRows` with `account`-based inference (mirror the Aircall pattern in `cmo/index.html`).
 5. **Aircall hour-of-day in PT** — currently the daily bucket is PT but `isCallInHours` still uses the raw UTC timestamp. If the in-hours breakdown looks shifted, switch it to PT too. Keep an eye out during the next review.
 
 ---

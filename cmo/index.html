@@ -2817,7 +2817,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r10', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r11', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -3470,6 +3470,8 @@ function normalizeSocialAnalyticsRows(rows, _cols) {
         if (!isNaN(n)) out[k] = n;
       }
     });
+    /* Tag as ViaTrading — see normalizeSocialRows for the rationale. */
+    if (!out.brand) out.brand = 'via';
     return out;
   });
 }
@@ -3507,6 +3509,12 @@ function normalizeSocialRows(rows, _cols) {
       const n = Number(out.reach);
       if (!isNaN(n)) out.reach = n;
     }
+    /* All social currently belongs to ViaTrading — LiquidateNow has no
+       social presence yet. Tag every row so the brand toggle filters
+       Liq cleanly to empty (the alternative was the brand-pending
+       banner showing "social not brand-tagged"). When LN gets its own
+       Metricool accounts, swap this for `account`-based inference. */
+    if (!out.brand) out.brand = 'via';
     return out;
   });
 }
@@ -7648,6 +7656,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Tagged all social rows as ViaTrading',
+    tags: ['Polish'],
+    bullets: [
+      'LiquidateNow has no social presence yet — every row in raw_social_post and raw_social_account_daily belongs to ViaTrading. normalizeSocialRows and normalizeSocialAnalyticsRows now stamp `brand: "via"` on every row, so the LiquidateNow brand toggle filters the Social page cleanly to empty instead of showing via data with the amber "social not brand-tagged — shown across both brands" banner.',
+      'When LN gets its own Metricool accounts, swap the hardcoded tag for `account`-based inference (mirror the Aircall pattern). Documented in SYSTEM_STATE.md Open Items #4.',
+      'Build tag bumped to r11.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Metricool data source swapped to the new Social Data Template workbook',

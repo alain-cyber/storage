@@ -2384,6 +2384,34 @@
       <tbody id="gaEngage"></tbody>
     </table>
   </div>
+  <div class="chart-card" style="margin-top:1rem">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Top 20 landing pages</div>
+        <div class="chart-value" id="gaLandingMeta">—</div>
+        <div class="chart-help">Pages where users actually land — the entrance to your site. Sessions = total entries, Conv % = Key events ÷ Sessions (a broader conversion proxy than the old Form_Submit count), Δ W/W = last 7d vs prior 7d sessions. Negative Δ in red is what to investigate first; the deeper the drop on a high-traffic page, the bigger the priority.</div>
+      </div>
+      <span class="chart-badge badge-blue">Landing</span>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Page</th><th class="num">Sessions</th><th class="num">Engaged</th><th class="num">Conv %</th><th class="num">Δ Sessions W/W</th></tr></thead>
+      <tbody id="gaLandingTop"></tbody>
+    </table>
+  </div>
+  <div class="chart-card" style="margin-top:1rem">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Landing pages dropped &gt;30% W/W</div>
+        <div class="chart-value">Last 7d vs prior 7d</div>
+        <div class="chart-help">Pages whose entry-session traffic fell more than 30% week-over-week with at least 50 prior-week sessions (so a noisy drop on a tiny page doesn't appear). These are the highest-priority items to investigate — could be a ranking slip, a 404 introduced this week, an internal link that broke, or a campaign turning off.</div>
+      </div>
+      <span class="chart-badge badge-red">Regression</span>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Page</th><th class="num">Prior 7d</th><th class="num">Last 7d</th><th class="num">Δ %</th></tr></thead>
+      <tbody id="gaLandingDrops"></tbody>
+    </table>
+  </div>
 </section>
 </section>
 
@@ -2885,7 +2913,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r18', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r19', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -2942,6 +2970,21 @@ const SHEETS = {
     label: 'Google Analytics', headers: 2,
     brandTabs: { via: 'raw_ga4_via', liq: 'raw_ga4_lnow' },
     dateColumn: 'A',
+  },
+  /* GA4 · Landing pages — separate workbook with a `landingPage`
+     dimension. Drives the Top-20 landing pages + W/W table on the
+     Web page. The two brand tabs export the same column NAMES but
+     Coefficient stubbornly emits them in different ORDERS — Date
+     sits in column **D** on the VIA tab and column **B** on the
+     lnow tab. Handled via `brandDateColumn` overrides so each
+     tab's gviz date-filter literal points at the right column.
+     Downstream parsing keys on column label, so the order quirk
+     doesn't propagate past the fetch. */
+  ga_landing: {
+    id: '1UblS1SJ-UCMUa0xqWK7tMAbNv5gZQii4x6FpEaH2tEs',
+    label: 'GA4 · Landing pages', headers: 2,
+    brandTabs: { via: 'Landing Page Metrics_VIA', liq: 'Landing Page Metrics_lnow' },
+    brandDateColumn: { via: 'D', liq: 'B' },
   },
   aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall', headers: 2,
     /* Aircall's Started At is column B and is a datetime, not a plain date. */
@@ -3693,9 +3736,17 @@ async function loadChannel(key, requiredCols = []) {
          a single channel's two-tab load (e.g. 5s → 10s) — acceptable
          trade for actually getting the data. */
       const entries = Object.entries(sheet.brandTabs); /* [['via','raw_..._via'], ['liq','raw_..._lnow']] */
-      const tq = buildTqDateFilter(sheet.dateColumn, sheet.dateType);
+      /* Per-brand dateColumn override: some workbooks (e.g. the GA4
+         Landing-pages sheet) export the two brand tabs with the same
+         column NAMES but in different positions, so the gviz date-
+         filter literal `where D >= …` works for via but not lnow.
+         When `brandDateColumn` is provided, build a separate tq per
+         brand and fall back to the channel-wide `dateColumn` when
+         the brand isn't listed. */
       const results = [];
-      for (const [, tab] of entries) {
+      for (const [brand, tab] of entries) {
+        const dateCol = (sheet.brandDateColumn && sheet.brandDateColumn[brand]) || sheet.dateColumn;
+        const tq = buildTqDateFilter(dateCol, sheet.dateType);
         try {
           const value = await fetchSheet(sheet.id, { sheetName: tab, headers: sheet.headers, tq });
           results.push({ status: 'fulfilled', value });
@@ -4604,6 +4655,77 @@ function summarizeGsc(rows) {
   return { queries, queryDeltas, pages, indexedPages };
 }
 
+/* GA4 Landing-pages summary — one row per (page, day, source/medium).
+   Group by `Landing page + query string`, sum Sessions / Engaged
+   sessions / Key events (the conversion proxy), and compute a W/W
+   delta on Sessions so we can flag pages whose traffic dropped past
+   a threshold. Mirrors the per-query / per-page deltas already done
+   in `summarizeGsc`. */
+function summarizeGaLanding(rows) {
+  const empty = { pages: [], totalSessions: 0, totalKeyEvents: 0, droppedPct: [] };
+  if (!rows || !rows.length) return empty;
+  const dayKeys = [...new Set(rows.map(r => typeof r.Date === 'string' ? r.Date.slice(0, 10) : null).filter(Boolean))].sort();
+  const recentSet = dayKeys.length >= 14 ? new Set(dayKeys.slice(-7))      : null;
+  const priorSet  = dayKeys.length >= 14 ? new Set(dayKeys.slice(-14, -7)) : null;
+  const map = {};
+  rows.forEach(r => {
+    const k = r['Landing page + query string'] || r.LandingPage || '—';
+    if (k === '—') return;
+    const e = map[k] || (map[k] = {
+      url: k, brand: r.brand || null,
+      Sessions: 0, EngagedSessions: 0, KeyEvents: 0, EventCount: 0, EngRateSum: 0, EngRateN: 0,
+      sessionsRecent: 0, sessionsPrior: 0,
+    });
+    if (!e.brand && r.brand) e.brand = r.brand;
+    const sessions = Number(r.Sessions) || 0;
+    e.Sessions        += sessions;
+    e.EngagedSessions += Number(r['Engaged sessions']) || 0;
+    e.KeyEvents       += Number(r['Key events'])       || 0;
+    e.EventCount      += Number(r['Event count'])      || 0;
+    const eng = Number(r['Engagement rate']);
+    if (!isNaN(eng)) { e.EngRateSum += eng; e.EngRateN += 1; }
+    if (recentSet || priorSet) {
+      const d = typeof r.Date === 'string' ? r.Date.slice(0, 10) : '';
+      if (d) {
+        if (recentSet && recentSet.has(d))     e.sessionsRecent += sessions;
+        else if (priorSet && priorSet.has(d))  e.sessionsPrior  += sessions;
+      }
+    }
+  });
+  const pages = Object.values(map).map(p => {
+    /* W/W session delta as a fraction. null when we don't have ≥14d
+       of history yet (so the column reads "—" instead of "+100%"
+       on the very first week). */
+    const wow = (recentSet && priorSet && p.sessionsPrior > 0)
+      ? (p.sessionsRecent - p.sessionsPrior) / p.sessionsPrior
+      : null;
+    return {
+      url: p.url, brand: p.brand,
+      Sessions: p.Sessions,
+      EngagedSessions: p.EngagedSessions,
+      KeyEvents: p.KeyEvents,
+      EventCount: p.EventCount,
+      /* "Conversion rate" = Key events / Sessions. Coefficient's
+         "Key events" rolls up every conversion event (Form_Submit
+         and any others wired into GA4), so it's a broader proxy
+         than the old single-event count. Surfaced as a percent. */
+      convRate: p.Sessions ? p.KeyEvents / p.Sessions : 0,
+      engagementRate: p.EngRateN ? p.EngRateSum / p.EngRateN : 0,
+      sessionsRecent: p.sessionsRecent, sessionsPrior: p.sessionsPrior,
+      wow,
+    };
+  }).sort((a, b) => b.Sessions - a.Sessions);
+  const totalSessions  = pages.reduce((a, p) => a + p.Sessions,  0);
+  const totalKeyEvents = pages.reduce((a, p) => a + p.KeyEvents, 0);
+  /* Pages whose Sessions fell more than 30% W/W with at least some
+     volume (≥ 50 prior-week sessions) so a noisy drop on a tiny
+     page doesn't generate alert spam. */
+  const droppedPct = pages
+    .filter(p => p.wow != null && p.wow <= -0.30 && p.sessionsPrior >= 50)
+    .sort((a, b) => a.wow - b.wow);
+  return { pages, totalSessions, totalKeyEvents, droppedPct };
+}
+
 function summarizeGa(rows) {
   const chMap = {};
   rows.forEach(r => {
@@ -5388,6 +5510,10 @@ const REQUIRED_COLS = {
   /* Social Analytics: raw_social_account_daily tab — one wide row per (network, date),
      followers exposed as a direct column. */
   social_analytics: ['network', 'followers'],
+  /* GA4 Landing pages: one row per (landing page, date, source/medium).
+     Sessions is the headline metric; "Key events" is the conversion
+     proxy (replaces the older "Key event count for Form_Submit"). */
+  ga_landing: ['Landing page + query string', 'Sessions'],
   /* Keywords: keyword-grain ads export — Spend + Clicks are enough to drive
      KILL/NEGATE/SCALE rules. Impressions checked too because NEGATE keys on it. */
   keywords:['Spend', 'Clicks'],
@@ -5411,6 +5537,7 @@ const SOURCE_DETAIL_REPORT = [
   { key: 'semrush_kw',  prop: 'semrush_kw',  label: 'SemRush · Keywords',      bucket: 'SEO / Authority' },
   { key: 'semrush_bl',  prop: 'semrush_bl',  label: 'SemRush · Backlinks',     bucket: 'SEO / Authority' },
   { key: 'ga',          prop: 'ga',          label: 'Google Analytics 4',      bucket: 'Web Analytics' },
+  { key: 'ga_landing',  prop: 'ga_landing',  label: 'GA4 · Landing pages',     bucket: 'Web Analytics' },
   { key: 'pagespeed',   prop: 'pagespeed',   label: 'Page Speed (Lighthouse)', bucket: 'Page Speed' },
   { key: 'aircall',     prop: 'ac',          label: 'Aircall',                 bucket: 'Calls' },
   { key: 'social',           prop: 'social',           label: 'Metricool · Posts',         bucket: 'Social' },
@@ -5814,7 +5941,8 @@ function paint(ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrus
   /* Cache the scoped channel rows for the drill-down modal + Top 5 + Low
      Hanging Fruit so they don't have to recompute scoping. */
   state._lastScoped = { ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrush_bl,
-    social_analytics: state.raw && state.raw.social_analytics ? scopeChannel(scopeByRange(state.raw.social_analytics, state.timeRange), state.brand) : { rows: [], cols: [], source: 'fail', reason: 'no channel' }
+    social_analytics: state.raw && state.raw.social_analytics ? scopeChannel(scopeByRange(state.raw.social_analytics, state.timeRange), state.brand) : { rows: [], cols: [], source: 'fail', reason: 'no channel' },
+    ga_landing:       state.raw && state.raw.ga_landing       ? scopeChannel(scopeByRange(state.raw.ga_landing,       state.timeRange), state.brand) : { rows: [], cols: [], source: 'fail', reason: 'no channel' },
   };
   renderRefreshStrip();
   const insights = generateInsights({ ads, gsc, ga, ac, social, keywords, pagespeed }, state.brand);
@@ -5847,12 +5975,13 @@ function paint(ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrus
 
 function repaint() {
   if (!state.raw) return;
-  const { ads, gsc, ga, ac, social, social_analytics, keywords, pagespeed, semrush_kw, semrush_bl } = state.raw;
+  const { ads, gsc, ga, ga_landing, ac, social, social_analytics, keywords, pagespeed, semrush_kw, semrush_bl } = state.raw;
   const range = state.timeRange;
   const scoped = {
     ads:        scopeChannel(scopeByRange(ads,        range), state.brand),
     gsc:        scopeChannel(scopeByRange(gsc,        range), state.brand),
     ga:         scopeChannel(scopeByRange(ga,         range), state.brand),
+    ga_landing: scopeChannel(scopeByRange(ga_landing, range), state.brand),
     ac:         scopeChannel(scopeByRange(ac,         range), state.brand),
     social:     scopeChannel(scopeByRange(social,     range), state.brand),
     social_analytics: scopeChannel(scopeByRange(social_analytics, range), state.brand),
@@ -5868,7 +5997,7 @@ function repaint() {
   const pending = document.getElementById('brandPending');
   if (pending) {
     const needsBrand = state.brand !== 'all';
-    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ac: 'aircall', social: 'social', social_analytics: 'social analytics', keywords: 'keywords', pagespeed: 'pagespeed', semrush_kw: 'semrush kw', semrush_bl: 'semrush bl' };
+    const NAME = { ads: 'ads', gsc: 'gsc', ga: 'ga4', ga_landing: 'ga4 landing', ac: 'aircall', social: 'social', social_analytics: 'social analytics', keywords: 'keywords', pagespeed: 'pagespeed', semrush_kw: 'semrush kw', semrush_bl: 'semrush bl' };
     const unsliceable = Object.entries(state.raw)
       .filter(([, c]) => c && c.source === 'live' && c.rows.length && !c.rows.some(r => r && r.brand))
       .map(([k]) => NAME[k] || k);
@@ -6041,9 +6170,11 @@ async function render(opts = {}) {
       ['ads', REQUIRED_COLS.ads],
       ['gsc', REQUIRED_COLS.gsc],
       ['ga', REQUIRED_COLS.ga],
+      ['ga_landing', REQUIRED_COLS.ga_landing],
       ['keywords', REQUIRED_COLS.keywords],
     ]);
     const ads = bigBatch.ads, gsc = bigBatch.gsc, ga = bigBatch.ga, ac = fastBatch.aircall;
+    const ga_landing = bigBatch.ga_landing;
     const social = fastBatch.social, social_analytics = fastBatch.social_analytics;
     const keywords = bigBatch.keywords, pagespeed = fastBatch.pagespeed;
     const semrush_kw = fastBatch.semrush_kw, semrush_bl = fastBatch.semrush_bl;
@@ -6052,6 +6183,7 @@ async function render(opts = {}) {
       { channel: 'ads',        source: ads.source,        rows: ads.rows.length,        reason: ads.reason || '',        cols: ads.cols.join(', ') },
       { channel: 'gsc',        source: gsc.source,        rows: gsc.rows.length,        reason: gsc.reason || '',        cols: gsc.cols.join(', ') },
       { channel: 'ga',         source: ga.source,         rows: ga.rows.length,         reason: ga.reason || '',         cols: ga.cols.join(', ') },
+      { channel: 'ga_landing', source: ga_landing.source, rows: ga_landing.rows.length, reason: ga_landing.reason || '', cols: ga_landing.cols.join(', ') },
       { channel: 'aircall',    source: ac.source,         rows: ac.rows.length,         reason: ac.reason || '',         cols: ac.cols.join(', ') },
       { channel: 'social',     source: social.source,     rows: social.rows.length,     reason: social.reason || '',     cols: social.cols.join(', ') },
       { channel: 'social_analytics', source: social_analytics.source, rows: social_analytics.rows.length, reason: social_analytics.reason || '', cols: social_analytics.cols.join(', ') },
@@ -6061,7 +6193,7 @@ async function render(opts = {}) {
       { channel: 'semrush_bl', source: semrush_bl.source, rows: semrush_bl.rows.length, reason: semrush_bl.reason || '', cols: semrush_bl.cols.join(', ') },
     ]);
 
-    state.raw = { ads, gsc, ga, ac, social, social_analytics, keywords, pagespeed, semrush_kw, semrush_bl };
+    state.raw = { ads, gsc, ga, ga_landing, ac, social, social_analytics, keywords, pagespeed, semrush_kw, semrush_bl };
     state.lastRefreshAt = new Date();
     repaint();
     /* Persist asynchronously — failure is non-fatal (e.g. private mode
@@ -6077,7 +6209,7 @@ async function render(opts = {}) {
     const reason = `render error: ${err && err.message || err}`;
     const failCh = () => ({ rows: [], cols: [], source: 'fail', reason });
     state.raw = {
-      ads: failCh(), gsc: failCh(), ga: failCh(), ac: failCh(), social: failCh(), social_analytics: failCh(),
+      ads: failCh(), gsc: failCh(), ga: failCh(), ga_landing: failCh(), ac: failCh(), social: failCh(), social_analytics: failCh(),
       keywords: failCh(), pagespeed: failCh(), semrush_kw: failCh(), semrush_bl: failCh(),
     };
     state.lastRefreshAt = new Date();
@@ -6315,6 +6447,55 @@ function renderGa({ rows, source, reason }, insight) {
         </tr>`).join('')
     : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">Not enough channel data.</td></tr>`;
   document.getElementById('gaEngage').innerHTML = engHtml;
+
+  /* Landing-pages tables — fed by the separate `ga_landing` channel
+     scoped on the same brand+range as the rest of GA. Lives in
+     state._lastScoped (set by paint()). */
+  const lp = (state._lastScoped && state._lastScoped.ga_landing) || { rows: [], source: 'fail', reason: 'no channel' };
+  const lpMeta = document.getElementById('gaLandingMeta');
+  if (lpMeta) lpMeta.innerHTML = `${SHEETS.ga_landing.label} · ${sourceTag(lp.source, lp.reason)}`;
+  const lpSum = summarizeGaLanding(lp.rows);
+  const fmtUrl = u => {
+    const s = String(u || '');
+    const display = s.length > 60 ? s.slice(0, 57) + '…' : s;
+    return `<span title="${escapeHtml(s)}">${escapeHtml(display)}</span>`;
+  };
+  const fmtDelta = (frac) => {
+    if (frac == null) return '<span style="color:var(--text3)">—</span>';
+    const pct = frac * 100;
+    const sign = pct > 0 ? '+' : '';
+    /* Match the SemRush / SEO Δ-color convention: red for material
+       drops, amber for moderate, green for gains. Thresholds chosen
+       to align with the >30% rule below. */
+    const color = pct <= -30 ? 'var(--red)' : pct <= -10 ? 'var(--amber)' : pct >= 10 ? 'var(--green)' : 'var(--text2)';
+    return `<span style="color:${color}">${sign}${pct.toFixed(0)}%</span>`;
+  };
+  const top20 = lpSum.pages.slice(0, 20);
+  const topBody = document.getElementById('gaLandingTop');
+  if (topBody) {
+    topBody.innerHTML = top20.length
+      ? top20.map(p => `
+          <tr>
+            <td>${fmtUrl(p.url)}</td>
+            <td class="num">${fmt(p.Sessions)}</td>
+            <td class="num">${fmt(p.EngagedSessions)}</td>
+            <td class="num">${fmtPct(p.convRate * 100)}</td>
+            <td class="num">${fmtDelta(p.wow)}</td>
+          </tr>`).join('')
+      : `<tr><td colspan="5" style="color:var(--text3);font-style:italic;padding:0.75rem 0">${lp.source === 'live' ? 'No landing-page rows in range.' : 'GA4 landing-pages source not connected — check Data Sources.'}</td></tr>`;
+  }
+  const dropsBody = document.getElementById('gaLandingDrops');
+  if (dropsBody) {
+    dropsBody.innerHTML = lpSum.droppedPct.length
+      ? lpSum.droppedPct.slice(0, 15).map(p => `
+          <tr>
+            <td>${fmtUrl(p.url)}</td>
+            <td class="num">${fmt(p.sessionsPrior)}</td>
+            <td class="num">${fmt(p.sessionsRecent)}</td>
+            <td class="num"><span style="color:var(--red)">${(p.wow * 100).toFixed(0)}%</span></td>
+          </tr>`).join('')
+      : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No landing pages dropped &gt;30% W/W (with ≥50 prior-week sessions). Top-traffic pages held steady.</td></tr>`;
+  }
 }
 
 function renderCalls({ rows, source, reason }, insight) {
@@ -6636,11 +6817,29 @@ function renderPagespeed({ rows, source, reason }, insight) {
      hides which profile is actually struggling. Show both as the
      headline numbers; the legacy combined median is still computed
      and surfaced via the chat / decisions paths. */
-  const fmtScore = v => v != null ? Math.round(v) : '—';
+  /* Score bands match Google's Lighthouse / PageSpeed Insights spec:
+       0–49   Poor              (red)
+       50–89  Needs improvement (amber)
+       90–100 Good              (green) */
+  const scoreBand = v => {
+    if (v == null) return { color: 'var(--text3)', label: '—' };
+    if (v >= 90)   return { color: 'var(--green)', label: 'Good' };
+    if (v >= 50)   return { color: 'var(--amber)', label: 'Needs improvement' };
+    return                { color: 'var(--red)',   label: 'Poor' };
+  };
+  const fmtScoreCell = v => {
+    if (v == null) return '—';
+    const band = scoreBand(v);
+    return `<span style="color:${band.color}">${Math.round(v)}</span><span style="color:var(--text3);font-weight:400;font-size:0.65em;margin-left:0.15em">/100</span>`;
+  };
+  const scoreBandDelta = v => {
+    const band = scoreBand(v);
+    return `Lighthouse score · <span style="color:${band.color}">${band.label}</span>`;
+  };
   renderKpis('pagespeedKpis', [
     { label: 'URLs sampled', value: fmt(sum.totalPages) },
-    { label: 'Site Perf · Mobile',  value: fmtScore(sum.medPerfMobile),  delta: 'median across pages' },
-    { label: 'Site Perf · Desktop', value: fmtScore(sum.medPerfDesktop), delta: 'median across pages' },
+    { label: 'Site Perf · Mobile',  value: fmtScoreCell(sum.medPerfMobile),  delta: scoreBandDelta(sum.medPerfMobile) },
+    { label: 'Site Perf · Desktop', value: fmtScoreCell(sum.medPerfDesktop), delta: scoreBandDelta(sum.medPerfDesktop) },
     { label: 'Failing LCP', value: fmt(failingLcp) },
     { label: 'Failing CLS', value: fmt(failingCls) },
     { label: 'Failing INP', value: fmt(failingInp) },
@@ -7167,13 +7366,14 @@ function buildLLMScopedPayload() {
   if (!state.raw) return null;
   const range = state.timeRange;
   const sc = (k) => scopeChannel(scopeByRange(state.raw[k], range), state.brand);
-  const ads = sc('ads'), gsc = sc('gsc'), ga = sc('ga'), ac = sc('ac');
+  const ads = sc('ads'), gsc = sc('gsc'), ga = sc('ga'), ga_landing = sc('ga_landing'), ac = sc('ac');
   const social = sc('social'), keywords = sc('keywords'), pagespeed = sc('pagespeed');
   const semrush_kw = sc('semrush_kw'), semrush_bl = sc('semrush_bl');
   const summaries = {
     adsSum:        ads      ? summarizeAds(ads.rows)            : { camps: [], totalSpend: 0, totalConv: 0, medianCpa: null },
     gscSum:        gsc      ? summarizeGsc(gsc.rows)            : { queries: [] },
     gaSum:         ga       ? summarizeGa(ga.rows)              : { channels: [], totalSessions: 0 },
+    gaLandingSum:  ga_landing ? summarizeGaLanding(ga_landing.rows) : { pages: [], totalSessions: 0, totalKeyEvents: 0, droppedPct: [] },
     callsSum:      ac       ? summarizeCalls(ac.rows)           : { totalCalls: 0, missRate: 0, lines: [], volumeDelta: null },
     socialSum:     social   ? summarizeSocial(social.rows)      : { platforms: [], totalPosts: 0, totalReach: 0 },
     kwSum:         keywords ? summarizeKeywords(keywords.rows)  : null,
@@ -7981,6 +8181,17 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'GA4 Landing pages connector + Top 20 + W/W drops on the Web page',
+    tags: ['Feature'],
+    bullets: [
+      'New `ga_landing` data source fed by a separate Coefficient workbook (`1UblS1SJ-…tEs`) that includes the `landingPage` dimension the original GA4 sheet was missing. Closes Open Item #6 in SYSTEM_STATE.md. Old `ga` connector stays in place — it still drives the Channel mix, Channels by engagement, and Sessions trend cards (those need the channel/device/country grain the new sheet doesn\'t carry).',
+      'Web page picks up two new tables. **Top 20 landing pages** lists the highest-traffic entries with Sessions, Engaged, Conv % (Key events ÷ Sessions — broader than the old Form_Submit count), and Δ Sessions W/W. Color convention matches the rest of the dashboard: red ≤−30%, amber ≤−10%, green ≥+10%, neutral otherwise. **Landing pages dropped >30% W/W** is a focused regression list — pages whose entry sessions fell more than 30% week-over-week with at least 50 prior-week sessions (so a noisy drop on a tiny page doesn\'t spam the alert). These are the highest-priority items to investigate.',
+      'Coefficient quirk handled in code: the two brand tabs export the same 11 columns in different orders — Date sits in column D on the VIA tab and column B on the lnow tab. Added a `brandDateColumn: { via: "D", liq: "B" }` config and extended `loadChannel` to build a per-brand `tq` literal so each tab\'s gviz date-filter points at the right column letter. Downstream parsing is by column label, so the order asymmetry doesn\'t propagate past the fetch.',
+      'Build tag bumped to r19.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'SEO + Page Speed: indexed pages, top-50 pages with rank deltas, mobile/desktop scores, CWV regressions',

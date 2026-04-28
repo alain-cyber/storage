@@ -87,6 +87,20 @@ The dashboard never *writes* to any sheet. It is a read-only view.
 | Headers row | 2 (Coefficient banner) |
 | Source system | GA4 → Coefficient |
 | Refresh cadence | Coefficient — TBD: confirm schedule |
+| Drives | Sessions trend, Channel mix, Channels-by-engagement on the Web page. Does NOT carry landing-page grain — that's a separate workbook (Section 4b). |
+
+### 4b. Google Analytics 4 · Landing pages
+
+| Field | Value |
+| --- | --- |
+| Spreadsheet ID | `1UblS1SJ-UCMUa0xqWK7tMAbNv5gZQii4x6FpEaH2tEs` |
+| Tabs | `Landing Page Metrics_VIA`, `Landing Page Metrics_lnow` |
+| Headers row | 2 (Coefficient banner) |
+| Source system | GA4 → Coefficient (with the `landingPage` dimension added — closed Open Item #6) |
+| Schema | `Landing page + query string`, `Date`, `Session source / medium`, `Session campaign`, `Total users` (lnow tab only), `Sessions`, `Engaged sessions`, `Engagement rate`, `Event count`, `Key events`, `Import Time` — 11 columns |
+| Column-order quirk | Both tabs carry the same column **names** but Coefficient emits them in different **orders**. Specifically `Date` is column **D** on the VIA tab and column **B** on the lnow tab. The dashboard handles this via `SHEETS.ga_landing.brandDateColumn = { via: 'D', liq: 'B' }` and a per-brand `tq` literal in `loadChannel`; downstream parsing keys on column label so the order asymmetry doesn't propagate. |
+| Drives | "Top 20 landing pages" + "Landing pages dropped >30% W/W" tables on the Web page. `Key events` is treated as the conversion proxy (broader than the legacy "Key event count for Form_Submit" — captures all GA4 conversion events, not just one). |
+| Refresh cadence | Coefficient — TBD: confirm schedule |
 
 ### 5. Aircall (calls)
 
@@ -222,9 +236,9 @@ The only thing in this repo is the read-side: `cmo/index.html`.
 3. **Document the Page Speed populator** — whoever set this up needs to record: tool used (Apps Script / GitHub Action / external service), schedule, list of URLs audited, and which device strategies (mobile / desktop / both).
 4. **Brand-split for Social** — all rows are now hardcoded `brand: 'via'` because LiquidateNow has no social presence yet. When LN spins up its own Metricool accounts, replace the hardcoded tag in `normalizeSocialRows` / `normalizeSocialAnalyticsRows` with `account`-based inference (mirror the Aircall pattern in `cmo/index.html`).
 5. ~~**Aircall hour-of-day in PT** — currently the daily bucket is PT but `isCallInHours` still uses the raw UTC timestamp.~~ **Resolved 2026-04-27.** `isCallInHours` now uses `ptCallParts` for dow/hour/holiday checks; missed-call metrics are filtered to in-hours only.
-6. **GA4 export needs a `landingPage` dimension** so the Web page can show "Top 20 landing pages — sessions, conversion rate, W/W" and flag landing pages whose traffic dropped >30% week-over-week. Current GA4 sheet has columns `Date, Total users, Sessions, Channel, Source/Medium, Device, Country, New users, Views, Engagement rate, Avg session duration, Key event count for Form_Submit, Event count` — no page path. **To unblock:** open the Coefficient GA4 connector, edit the report, add `landingPage` (or `pagePath`) as a dimension alongside the existing breakdowns. Once it lands, `summarizeGa` can mirror the new `summarizeGsc` per-page block: group by landing page, sum Sessions and `Key event count for Form_Submit` (= conversions), compute conv rate, and add a W/W delta. Once unblocked, also wire the >30% W/W flag.
+6. ~~**GA4 export needs a `landingPage` dimension**~~ **Resolved 2026-04-27** with the new `ga_landing` connector — see Section 4b above. Top-20 landing pages + "dropped >30% W/W" tables now render on the Web page from a separate workbook (`1UblS1SJ-…tEs`). Note: the two brand tabs export the same columns in different orders and the dashboard handles that via `brandDateColumn` overrides — keep this in mind if/when a third brand is added.
 7. **404 / de-indexed page detection** — was on the original ask but isn't possible from current data. GSC strips 404s and de-indexed pages invisibly (they just stop appearing). To do this honestly we'd need either a scheduled HTTP-check job writing status codes into a sheet (cheapest: an Apps Script cron over the top-N URLs from GSC), or a Google Indexing API integration. Track whoever owns Page Speed populating (Open Item #3) — they're the natural owner for an HTTP-check job too.
 
 ---
 
-_Last updated: 2026-04-27 — Metricool source swap; Aircall in-hours filter; GSC per-page aggregation + indexed-pages KPI; CWV regressions on top pages; site-wide perf split mobile/desktop. Open Items 6 & 7 added (GA4 landingPage dimension + 404 detection)._
+_Last updated: 2026-04-27 — Metricool source swap; Aircall in-hours filter; GSC per-page aggregation + indexed-pages KPI; CWV regressions on top pages; site-wide perf split mobile/desktop. **GA4 Landing-pages connector added** (Section 4b) closing Open Item #6. Open Item #7 (404 detection) still outstanding._

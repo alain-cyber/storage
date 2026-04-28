@@ -399,7 +399,13 @@
     color: var(--text2);
   }
   .data-table td:first-child { color: var(--text); font-weight: 600; }
-  .data-table td.num { font-family: 'Inter', system-ui, sans-serif; text-align: right; }
+  /* Right-align both the cell AND the header for numeric columns —
+     the universal `text-align: left` on .data-table th was leaving
+     headers at the left edge while the data they label sat at the
+     right edge. Same column, opposite ends — visually misaligned
+     across every table on the dashboard. */
+  .data-table td.num,
+  .data-table th.num { font-family: 'Inter', system-ui, sans-serif; text-align: right; }
 
   .placeholder-hint {
     font-family: 'Inter', system-ui, sans-serif;
@@ -2944,7 +2950,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r22', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r23', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -8212,6 +8218,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Numeric headers right-align with their data across every table',
+    tags: ['Fix'],
+    bullets: [
+      'Every numeric column on the dashboard had a quiet alignment bug: `<td class="num">` was right-aligned but `<th class="num">` inherited the universal `text-align: left` from `.data-table th`. Numbers sat at the right edge of the cell while their labels sat at the left edge — same column, opposite ends, visually misaligned. Most obvious on the new Top-20 landing pages and Channels-by-engagement tables but it was wrong everywhere a header existed for a numeric column.',
+      'One-line CSS fix: extended the `.num` right-align rule to cover `th` as well as `td`. Every table on the dashboard now reads cleanly — headers sit directly above the numbers they describe.',
+      'Build tag bumped to r23.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Sidebar product label gets command-center treatment',

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ViaTrading + LiquidateNow — CMO Dashboard</title>
+<title>ViaTrading + LiquidateNow — Marketing Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -2069,7 +2069,7 @@
       <img class="side-brand-logo" data-brand-logo="via" src="https://cdn.prod.website-files.com/621b04511126b643f8ef9494/67daed64c3f5ddb0bfbcb8b8_Via-Trading-logo.png" alt="ViaTrading" />
       <img class="side-brand-logo" data-brand-logo="liq" src="https://lh3.googleusercontent.com/d/10v7J_Mnp4v-NDAlwYUuuWCixcyIIx5as" alt="LiquidateNow" />
     </div>
-    <div class="side-brand-sub">CMO dashboard</div>
+    <div class="side-brand-sub">Marketing Intelligence</div>
     <button type="button" class="side-collapse-toggle" id="sideCollapseToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
     </button>
@@ -2913,7 +2913,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r19', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r20', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -8181,6 +8181,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Renamed product from "CMO dashboard" to "Marketing Intelligence"',
+    tags: ['Polish'],
+    bullets: [
+      'Sidebar sub-label, browser tab title, and SYSTEM_STATE.md heading now read "Marketing Intelligence" instead of "CMO dashboard". Positions the product as a marketing-team capability rather than an exec-only tool — broader audience, more accurate description of what the dashboard actually surfaces (campaign-level decisions, page-level diagnostics, channel-by-channel health).',
+      'Brand stack now reads top-down as: ViaTrading + LiquidateNow logos → "Marketing Intelligence" (the product) → "Powered by Vicki Intelligence" (the AI engine). Vicki branding stays intact in the topbar / footers / chat persona.',
+      'Build tag bumped to r20.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'GA4 Landing pages connector + Top 20 + W/W drops on the Web page',

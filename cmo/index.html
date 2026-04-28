@@ -2817,7 +2817,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r13', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r14', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -7706,6 +7706,16 @@ function renderLowHanging(scoped) {
 const APP_HISTORY = [
   {
     date: 'Apr 27, 2026',
+    title: 'Prompt caching on chat — repeat questions cost ~10× less',
+    tags: ['Polish'],
+    bullets: [
+      'The chat system prompt now splits into a static prefix (persona + SYSTEM_STATE.md, ~3,500 tokens) and a dynamic suffix (runtime status + scoped dashboard data, ~5–10K tokens). Anthropic gets the static block tagged with `cache_control: { type: "ephemeral" }`, so the first turn pays a 1.25× write fee and every turn within a 5-min window reads it at 0.1× cost. OpenAI auto-caches identical prefixes ≥1024 tokens with no API change — putting static-then-dynamic in the system message preserves the cacheable prefix.',
+      'Net effect on Claude Sonnet 4.5: a system question that used to cost ~$0.04 drops to ~$0.025 within a hot cache window (the docs portion alone goes from ~1¢ to ~0.1¢). A burst of questions stays cheap; a stale tab after 5 min idle pays the next fresh write.',
+      'Build tag bumped to r14.',
+    ],
+  },
+  {
+    date: 'Apr 27, 2026',
     title: 'Chat can now answer system / config / methodology questions',
     tags: ['Feature'],
     bullets: [
@@ -8712,7 +8722,15 @@ async function sendChatMessage() {
   const docsBlock = docs
     ? `# System docs (markdown — methodology, sources, brand mapping, refresh cadence)\n${docs}`
     : `# System docs\n(SYSTEM_STATE.md not available at this host — answer config questions only from the runtime block.)`;
-  const systemPrompt = `You are a CMO copilot for the dashboard. You answer two kinds of questions:\n\n1. Data questions (e.g. "what's our reach this month?", "which campaign is wasting spend?") — use the **scoped dashboard data** block. Cite specific numbers.\n2. System / config questions (e.g. "where does GSC data come from?", "what counts as a missed call?", "is the social source loading right now?", "what's the threshold for missed-call rate?") — use the **system docs** and **runtime status** blocks.\n\nAnswer concisely (2–4 sentences). If a question can't be answered from any of the three blocks, say so plainly.\n\n${docsBlock}\n\n# Runtime status (JSON — current toggle, date window, per-source live/demo/fail, thresholds)\n${JSON.stringify(runtime)}\n\n# Scoped dashboard data (JSON)\n${JSON.stringify(payload)}`;
+  /* Static prefix (persona + docs) is identical across turns within a
+     page session, so we can cache it. Dynamic suffix (runtime + scoped
+     data) changes every turn — leave it out of the cache. Anthropic's
+     ephemeral cache: 1.25× cost on first write, 0.1× on subsequent
+     reads (5-min TTL); cuts the per-turn docs cost ~10×. OpenAI auto-
+     caches identical prefixes ≥1024 tokens, so concatenated string
+     order matters — static first, dynamic second. */
+  const staticPrefix = `You are a CMO copilot for the dashboard. You answer two kinds of questions:\n\n1. Data questions (e.g. "what's our reach this month?", "which campaign is wasting spend?") — use the **scoped dashboard data** block. Cite specific numbers.\n2. System / config questions (e.g. "where does GSC data come from?", "what counts as a missed call?", "is the social source loading right now?", "what's the threshold for missed-call rate?") — use the **system docs** and **runtime status** blocks.\n\nAnswer concisely (2–4 sentences). If a question can't be answered from any of the three blocks, say so plainly.\n\n${docsBlock}`;
+  const dynamicSuffix = `# Runtime status (JSON — current toggle, date window, per-source live/demo/fail, thresholds)\n${JSON.stringify(runtime)}\n\n# Scoped dashboard data (JSON)\n${JSON.stringify(payload)}`;
   /* Last N turns of history, excluding the system context. Anthropic requires
      the first message to be `user` — drop any leading assistant messages from
      the slice. */
@@ -8722,13 +8740,24 @@ async function sendChatMessage() {
   try {
     let answer;
     if (usingClaude) {
+      /* Anthropic system param as an array of content blocks lets us
+         tag the static prefix with cache_control. Dynamic suffix is a
+         second block with no cache marker — re-billed every turn. */
+      const systemBlocks = [
+        { type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: dynamicSuffix },
+      ];
       const { text: t } = await callClaudeAPI(null, apiKey, {
-        system: systemPrompt,
+        system: systemBlocks,
         messages: recent,
         maxTokens: 600,
       });
       answer = (t || '').trim();
     } else {
+      /* OpenAI auto-caches identical prefixes ≥1024 tokens — no
+         opt-in needed. Concatenating static-then-dynamic preserves
+         the cacheable prefix across turns. */
+      const systemPrompt = `${staticPrefix}\n\n${dynamicSuffix}`;
       const messages = [{ role: 'system', content: systemPrompt }, ...recent];
       const { text: t } = await callOpenAIAPI(null, apiKey, { messages, maxTokens: 600 });
       answer = (t || '').trim();

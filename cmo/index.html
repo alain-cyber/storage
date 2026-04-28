@@ -980,8 +980,38 @@
     gap: 1rem;
     border-bottom: 1px solid var(--border);
   }
-  .cmo-modal-title { font-family: 'Inter', system-ui, sans-serif; font-weight: 600; font-size: 1rem; color: var(--text); line-height: 1.35; }
-  .cmo-modal-sub { font-family: 'Inter', system-ui, sans-serif; font-size: 0.72rem; color: var(--text3); margin-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  /* Lock the title block so it shrinks under the close button instead of
+     pushing it past the modal frame on narrow viewports (iPad portrait). */
+  .cmo-modal-head > div:first-child { min-width: 0; flex: 1 1 auto; }
+  .cmo-modal-title {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600; font-size: 1rem;
+    color: var(--text); line-height: 1.35;
+    word-break: break-word; overflow-wrap: anywhere;
+  }
+  .cmo-modal-sub {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem; color: var(--text3);
+    margin-top: 0.25rem;
+    display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+    max-width: 100%;
+  }
+  .cmo-modal-sub > span { white-space: nowrap; }
+  .cmo-modal-empty-scope { margin-top: 0.4rem; font-size: 0.74rem; color: var(--text2); }
+  .cmo-modal-empty-why   { margin-top: 0.5rem; font-size: 0.78rem; color: var(--text2); font-style: normal; line-height: 1.5; }
+  .cmo-modal-empty-suggest { margin-top: 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .cmo-modal-empty-suggest-label {
+    font-size: 0.7rem; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight: 600;
+  }
+  .cmo-modal-suggest {
+    text-align: left; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 0.4rem 0.6rem; font: inherit; color: var(--text);
+    cursor: pointer; transition: border-color 0.12s, background 0.12s;
+    word-break: break-word;
+  }
+  .cmo-modal-suggest:hover { border-color: var(--accent); background: var(--surface2); }
   .cmo-modal-close {
     background: transparent; border: 1px solid var(--border2);
     border-radius: 6px; padding: 0.25rem 0.55rem;
@@ -1722,6 +1752,31 @@
     line-height: 1.5;
   }
   .cmo-derivation-note strong { color: var(--text); font-weight: 600; }
+  .cmo-derivation-warn {
+    display: inline-block; margin-top: 0.4rem;
+    color: var(--amber); font-weight: 500; line-height: 1.5;
+  }
+  .cmo-derivation-warn strong { color: var(--amber); }
+  /* LLM staleness — banner above LLM/Tracking lists when cache scope drifted */
+  .llm-stale-banner {
+    display: flex; align-items: flex-start; gap: 0.6rem;
+    padding: 0.7rem 0.85rem;
+    background: var(--amber-dim);
+    border: 1px solid var(--amber);
+    border-radius: 6px;
+    margin: 0 0 0.9rem;
+    font-size: 0.78rem; color: var(--text); line-height: 1.5;
+  }
+  .llm-stale-icon { color: var(--amber); font-size: 1rem; line-height: 1.2; flex: 0 0 auto; }
+  .llm-stale-text { flex: 1 1 auto; min-width: 0; word-break: break-word; }
+  .llm-stale-text strong { color: var(--text); font-weight: 600; }
+  /* Per-card stale chip */
+  .rec-stale-chip {
+    background: var(--amber-dim) !important;
+    color: var(--amber) !important;
+    border: 1px solid var(--amber) !important;
+    font-weight: 500;
+  }
   .action-counter-value.confirmed { color: var(--blue); }
   .action-counter-value.progress  { color: var(--amber); }
 
@@ -2984,6 +3039,7 @@
         </div>
       </div>
     </div>
+    <div id="trackingStaleBanners"></div>
     <div class="tracking-table-wrap">
       <table class="data-table tracking-table">
         <thead>
@@ -3143,7 +3199,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'Decision lifecycle · built 2026-04-28 r25', startedAt: new Date() };
+const CMO_BUILD = { tag: 'Decision lifecycle · built 2026-04-28 r26', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -4702,6 +4758,14 @@ function renderActionCardHtml(a) {
   const sourceLabel = (SOURCE_DETAIL[a.source] && SOURCE_DETAIL[a.source].label) || a.source || '';
   if (sourceLabel) metaBits.push(`<span class="rec-source-chip">${escapeHtml(sourceLabel)}</span>`);
   if (isLLM) metaBits.push(`<span class="rec-source-chip">${escapeHtml(a._llm.provider)}</span>`);
+  /* Staleness chip: surface drift between when this LLM decision was generated
+     and the user's current scope. Helps explain why the rationale numbers
+     don't match the live drilldown. */
+  if (isLLM && isLLMActionStale(a)) {
+    const rangeLbl = a._llm.as_of_range_key || '?';
+    const dateLbl = a._llm.as_of_at ? new Date(a._llm.as_of_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    metaBits.push(`<span class="rec-stale-chip" title="Generated against a different range/brand than your current scope. The numbers in the rationale won't match live KPIs.">⚠ ${escapeHtml(rangeLbl)}${dateLbl ? ' · ' + escapeHtml(dateLbl) : ''}</span>`);
+  }
   metaBits.push('<span>click for numbers</span>');
   const conf = Number.isFinite(Number(a.confidence_score)) ? Number(a.confidence_score) : null;
   const confChip = conf != null
@@ -4723,14 +4787,19 @@ function renderActionCardHtml(a) {
     status: a.status,
     confidence_score: a.confidence_score,
     metric_name: a.metric_name,
-    metric_before: a.metric_before,
-    metric_after: a.metric_after,
+    metric_before: a.metric_before, metric_before_at: a.metric_before_at,
+    metric_after: a.metric_after, metric_after_at: a.metric_after_at,
     actual_impact: a.actual_impact,
     outcome: a.outcome,
     expected_impact: a.expected_impact,
+    data_window: a.data_window,
     owner: a.owner, notes: a.notes || a.impact_notes || '',
     date_created: a.date_created, date_confirmed: a.date_confirmed,
     date_started: a.date_started, date_completed: a.date_completed,
+    as_of_range_label: isLLM ? a._llm.as_of_range_label : '',
+    as_of_range_key:   isLLM ? a._llm.as_of_range_key   : '',
+    as_of_brand:       isLLM ? a._llm.as_of_brand       : '',
+    as_of_at:          isLLM ? a._llm.as_of_at          : '',
   }));
   /* Show "Confirm to do" while still OPEN; once confirmed/in-progress, the
      button collapses out and the row's status tag tells the story. */
@@ -7887,9 +7956,31 @@ function loadAnyCachedDecisions(storage) {
   } catch { return null; }
 }
 
+/* True iff the cached blob's generation scope (range + brand) doesn't match
+   the user's current scope. Used to drive the staleness banner / chip. */
+function isLLMCacheStale(cachedObj) {
+  if (!cachedObj) return false;
+  const sameRange = cachedObj.as_of_range_key && state.timeRange && cachedObj.as_of_range_key === state.timeRange.key;
+  const sameBrand = cachedObj.as_of_brand === state.brand;
+  /* Treat missing stamps (legacy cache) as stale so users see the banner
+     once and can regenerate to refresh. */
+  if (!cachedObj.as_of_range_key || cachedObj.as_of_brand == null) return true;
+  return !(sameRange && sameBrand);
+}
+
 function saveCachedDecisions(storage, key, decisions, raw) {
   try {
-    localStorage.setItem(storage, JSON.stringify({ key, decisions, raw, at: new Date().toISOString() }));
+    /* Stamp the cached blob with the scope it was generated against. The
+       Decisions / Tracking pages compare these to current state.timeRange /
+       state.brand to surface a staleness banner when they drift. */
+    const blob = {
+      key, decisions, raw,
+      at: new Date().toISOString(),
+      as_of_range_label: (state.timeRange && state.timeRange.label) || '',
+      as_of_range_key:   (state.timeRange && state.timeRange.key)   || '',
+      as_of_brand:       state.brand || 'all',
+    };
+    localStorage.setItem(storage, JSON.stringify(blob));
   } catch {}
 }
 
@@ -8034,8 +8125,37 @@ function llmDecisionToAction(provider, d) {
   if (d.confidence != null && isFinite(Number(d.confidence))) {
     a.confidence_score = Math.max(0, Math.min(100, Math.round(Number(d.confidence))));
   }
-  a._llm = { provider: String(provider), title: d.title || '' };
+  /* Stamp the action with the scope it was generated against, pulled from
+     the cached blob via state.{claude,gpt}. The Tracking + modal use these
+     to flag staleness when the user's current scope has drifted. */
+  const provState = _llmStateForProvider(provider);
+  a._llm = {
+    provider: String(provider),
+    title: d.title || '',
+    as_of_range_label: (provState && provState.as_of_range_label) || '',
+    as_of_range_key:   (provState && provState.as_of_range_key)   || '',
+    as_of_brand:       (provState && provState.as_of_brand)       || 'all',
+    as_of_at:          (provState && provState.lastAt)            || '',
+  };
   return a;
+}
+
+/* Pick state.claude or state.gpt for a given provider label. */
+function _llmStateForProvider(provider) {
+  const p = String(provider || '').toUpperCase();
+  if (p === 'CLAUDE') return state.claude;
+  if (p === 'GPT')    return state.gpt;
+  return null;
+}
+
+/* True iff this LLM-derived action was generated against a different
+   range/brand than the user's current scope. */
+function isLLMActionStale(a) {
+  if (!a || !a._llm) return false;
+  if (!a._llm.as_of_range_key) return true; /* legacy / never-stamped */
+  if (state.timeRange && a._llm.as_of_range_key !== state.timeRange.key) return true;
+  if ((a._llm.as_of_brand || 'all') !== (state.brand || 'all')) return true;
+  return false;
 }
 /* Build the merged + hydrated LLM-action list across both providers. Used by
    the Tracking page to surface every decision regardless of source. */
@@ -8100,11 +8220,15 @@ function renderLLMDecisions(list, mountId, badgeLabel) {
       </section>`;
   });
 
+  /* Staleness banner above source groups when cache scope drifted. */
+  const provState = _llmStateForProvider(provider);
+  const banner = llmStaleBannerHtml(provState, provider);
+
   if (!sections.length) {
-    el.innerHTML = `<div class="action-empty">No ${escapeHtml(badgeLabel || 'LLM')} decisions match the current filters.</div>`;
+    el.innerHTML = banner + `<div class="action-empty">No ${escapeHtml(badgeLabel || 'LLM')} decisions match the current filters.</div>`;
     return;
   }
-  el.innerHTML = sections.join('');
+  el.innerHTML = banner + sections.join('');
 
   /* Status buttons on the cards. */
   el.querySelectorAll('[data-action-set]').forEach(btn => {
@@ -8135,6 +8259,28 @@ function rerenderLLMPagesFromCache() {
   if (state.gpt && Array.isArray(state.gpt.result)) {
     renderLLMDecisions(state.gpt.result, 'gptRecs', 'GPT');
   }
+}
+
+/* HTML for the per-page "your cached LLM decisions are from a different
+   scope" banner. providerState is state.claude / state.gpt. Returns '' when
+   cache is up to date (or absent). */
+function llmStaleBannerHtml(providerState, providerLabel) {
+  if (!providerState || !Array.isArray(providerState.result) || !providerState.result.length) return '';
+  if (!isLLMCacheStale(providerState)) return '';
+  const generatedRange = providerState.as_of_range_label || providerState.as_of_range_key || 'an earlier range';
+  const generatedBrand = providerState.as_of_brand === 'via' ? 'ViaTrading' : providerState.as_of_brand === 'liq' ? 'LiquidateNow' : 'All brands';
+  const generatedAt = providerState.lastAt ? new Date(providerState.lastAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+  const currentRange = (state.timeRange && state.timeRange.label) || '?';
+  const currentBrand = state.brand === 'via' ? 'ViaTrading' : state.brand === 'liq' ? 'LiquidateNow' : 'All brands';
+  return `
+    <div class="llm-stale-banner" role="status">
+      <span class="llm-stale-icon" aria-hidden="true">⚠</span>
+      <div class="llm-stale-text">
+        These ${escapeHtml(providerLabel)} decisions reflect <strong>${escapeHtml(generatedRange)} · ${escapeHtml(generatedBrand)}</strong>${generatedAt ? ` (generated ${escapeHtml(generatedAt)})` : ''}.
+        Your current scope is <strong>${escapeHtml(currentRange)} · ${escapeHtml(currentBrand)}</strong>.
+        Numbers in the rationale won't match live KPIs in the drilldown — <strong>Regenerate</strong> to refresh.
+      </div>
+    </div>`;
 }
 
 /* ────────────────────────────────────────────────────────────────────
@@ -8261,6 +8407,14 @@ function renderTrackingPage() {
   const tbody = document.getElementById('trackingTableBody');
   if (!tbody) return; /* page not in DOM */
   const filters = trackingFilters();
+  /* Render staleness banners for any provider whose cache scope drifted. */
+  const banners = document.getElementById('trackingStaleBanners');
+  if (banners) {
+    banners.innerHTML = [
+      llmStaleBannerHtml(state.claude, 'CLAUDE'),
+      llmStaleBannerHtml(state.gpt, 'GPT'),
+    ].filter(Boolean).join('');
+  }
   const all = getAllTrackedActions().map(maybeCaptureMetricAfter);
   /* Sort: active first, then by priority, then by created date desc. */
   const sorted = [...all].sort((a, b) => {
@@ -8410,6 +8564,10 @@ function trackingRowHtml(a) {
     actual_impact: a.actual_impact, outcome: a.outcome,
     expected_impact: a.expected_impact,
     owner: a.owner, notes: a.notes || a.impact_notes || '',
+    as_of_range_label: a._llm ? a._llm.as_of_range_label : '',
+    as_of_range_key:   a._llm ? a._llm.as_of_range_key   : '',
+    as_of_brand:       a._llm ? a._llm.as_of_brand       : '',
+    as_of_at:          a._llm ? a._llm.as_of_at          : '',
   }));
   const statusOptions = ['OPEN', 'CONFIRM_TO_DO', 'IN_PROGRESS', 'COMPLETED', 'DISMISSED'].map(s =>
     `<option value="${s}"${s === a.status ? ' selected' : ''}>${s.replace(/_/g, ' ')}</option>`
@@ -8500,10 +8658,54 @@ function installSidebarIcons() {
    or LLM) to see the underlying numbers behind the decision.
    ──────────────────────────────────────────────────────────────────── */
 function _norm(s) { return String(s || '').toLowerCase().trim(); }
+/* Strip Google Ads match-type suffixes from a keyword display string so an
+   entity_name like "online liquidation [BROAD]" matches the row's raw
+   "online liquidation". Idempotent on inputs without a suffix. */
+function _stripMatchType(s) { return String(s || '').replace(/\s*\[(?:BROAD|EXACT|PHRASE)\]\s*/gi, '').trim(); }
 function _entityMatch(name, target) {
-  const a = _norm(name), b = _norm(target);
+  /* Strict equality after normalization. Substring matching used to leak
+     across siblings (a row "liquidation" matched a target "online
+     liquidation [BROAD]" because the target string contained the row's
+     keyword). Now: exact match only, modulo match-type suffix + case +
+     surrounding whitespace. */
+  const a = _norm(_stripMatchType(name));
+  const b = _norm(_stripMatchType(target));
   if (!a || !b) return false;
-  return a === b || a.includes(b) || b.includes(a);
+  return a === b;
+}
+/* Loose URL match for pagespeed: drilldown rows often have ?query strings or
+   trailing slashes that differ from the canonical URL. Strip those before
+   comparing. Used only inside the pagespeed branch. */
+function _urlMatch(rowUrl, target) {
+  const clean = u => _norm(String(u || '').replace(/[?#].*$/, '').replace(/\/+$/, ''));
+  const a = clean(rowUrl), b = clean(target);
+  if (!a || !b) return false;
+  return a === b || a.endsWith(b) || b.endsWith(a);
+}
+/* Find the N closest existing names to a target — used when entity match
+   fails so we can surface "did you mean" suggestions. Cheap heuristic:
+   shared-prefix length minus length-difference penalty. Avoids pulling in
+   a Levenshtein implementation. */
+function _closestMatches(target, candidates, n) {
+  const t = _norm(_stripMatchType(target));
+  if (!t || !candidates || !candidates.length) return [];
+  const score = name => {
+    const c = _norm(_stripMatchType(name));
+    if (!c) return -Infinity;
+    let prefix = 0;
+    const max = Math.min(c.length, t.length);
+    while (prefix < max && c[prefix] === t[prefix]) prefix++;
+    /* Bonus for substring containment, penalty for length mismatch. */
+    const contains = c.includes(t) || t.includes(c) ? 4 : 0;
+    const lenDiff = Math.abs(c.length - t.length);
+    return prefix + contains - lenDiff * 0.05;
+  };
+  return candidates
+    .map(name => ({ name, s: score(name) }))
+    .filter(x => x.s > 0)
+    .sort((a, b) => b.s - a.s)
+    .slice(0, n)
+    .map(x => x.name);
 }
 
 /* Look up the numeric breakdown + raw rows for a given (source, entity).
@@ -8511,15 +8713,22 @@ function _entityMatch(name, target) {
 function getDrilldownData(source, entity) {
   const sc = state._lastScoped;
   if (!sc) return null;
-  const out = { kpis: [], rows: [], rowCols: [], emptyReason: '' };
+  const out = { kpis: [], rows: [], rowCols: [], emptyReason: '', closestMatches: [] };
   const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; } };
   const fmtN  = v => (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const fmtN2 = v => (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmt$  = v => (v == null || isNaN(v)) ? '—' : '$' + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtP  = v => (v == null || isNaN(v)) ? '—' : Number(v).toFixed(2) + '%';
 
+  /* Bag of candidate entity names per source — used by _closestMatches when
+     the requested entity isn't found, so we can suggest "did you mean".
+     Populated even when we DO find a match (cheap; the modal ignores it
+     when KPIs are present). */
+  let candidateNames = [];
+
   if (source === 'ads') {
     const sum = safe(() => summarizeAds(sc.ads.rows), { camps: [] });
+    candidateNames = (sum.camps || []).map(c => c.name).filter(Boolean);
     const c = sum.camps.find(c => _entityMatch(c.name, entity));
     if (c) {
       out.kpis = [
@@ -8530,11 +8739,12 @@ function getDrilldownData(source, entity) {
         { label: 'Conversions', value: fmtN2(c.Conversions) },
         { label: 'CPA',         value: c.cpa ? fmt$(c.cpa) : '—' },
       ];
-      out.rows = sc.ads.rows.filter(r => _entityMatch(r.Campaign, entity)).slice(0, 5);
+      out.rows = sc.ads.rows.filter(r => _entityMatch(r.Campaign, c.name)).slice(0, 5);
       out.rowCols = ['Date', 'Campaign', 'Spend', 'Clicks', 'Impressions', 'Conversions', 'brand'];
     }
   } else if (source === 'keywords') {
     const sum = safe(() => summarizeKeywords(sc.keywords.rows), { kws: [] });
+    candidateNames = (sum.kws || []).map(k => k.name).filter(Boolean);
     const k = sum.kws.find(k => _entityMatch(k.name, entity));
     if (k) {
       out.kpis = [
@@ -8545,11 +8755,12 @@ function getDrilldownData(source, entity) {
         { label: 'Conversions', value: fmtN2(k.Conversions) },
         { label: 'CPA',         value: k.cpa ? fmt$(k.cpa) : '—' },
       ];
-      out.rows = sc.keywords.rows.filter(r => _entityMatch(r.Keyword, entity)).slice(0, 5);
+      out.rows = sc.keywords.rows.filter(r => _entityMatch(r.Keyword, k.name)).slice(0, 5);
       out.rowCols = ['Date', 'Keyword', 'Match Type', 'Campaign', 'Clicks', 'Impressions', 'Conversions'];
     }
   } else if (source === 'gsc') {
     const sum = safe(() => summarizeGsc(sc.gsc.rows), { queries: [] });
+    candidateNames = (sum.queries || []).map(q => q.name).filter(Boolean);
     const q = sum.queries.find(q => _entityMatch(q.name, entity));
     if (q) {
       out.kpis = [
@@ -8558,11 +8769,12 @@ function getDrilldownData(source, entity) {
         { label: 'CTR',          value: fmtP(q.ctr) },
         { label: 'Avg Position', value: q.avgPos != null ? Number(q.avgPos).toFixed(1) : '—' },
       ];
-      out.rows = sc.gsc.rows.filter(r => _entityMatch(r.Query, entity)).slice(0, 5);
+      out.rows = sc.gsc.rows.filter(r => _entityMatch(r.Query, q.name)).slice(0, 5);
       out.rowCols = ['Date', 'Query', 'Clicks', 'Impressions', 'Avg Position', 'brand'];
     }
   } else if (source === 'ga') {
     const sum = safe(() => summarizeGa(sc.ga.rows), { channels: [] });
+    candidateNames = (sum.channels || []).map(c => c.name).filter(Boolean);
     const ch = sum.channels.find(c => _entityMatch(c.name, entity));
     if (ch) {
       out.kpis = [
@@ -8570,12 +8782,15 @@ function getDrilldownData(source, entity) {
         { label: 'Share',      value: fmtP(ch.share * 100) },
         { label: 'Engagement', value: fmtP(ch.engagement) },
       ];
-      out.rows = sc.ga.rows.filter(r => _entityMatch(r.Channel, entity)).slice(0, 5);
+      out.rows = sc.ga.rows.filter(r => _entityMatch(r.Channel, ch.name)).slice(0, 5);
       out.rowCols = ['Date', 'Channel', 'Sessions', 'Users', 'Engagement Rate', 'brand'];
     }
   } else if (source === 'pagespeed') {
+    /* Pagespeed needs prefix matching (URLs may have ?query strings). Use
+       _urlMatch only here. */
     const sum = safe(() => summarizePagespeed(sc.pagespeed.rows), { pages: [] });
-    const p = sum.pages.find(p => _entityMatch(p.url, entity) || _entityMatch(p.name, entity));
+    candidateNames = (sum.pages || []).map(p => p.url || p.name).filter(Boolean);
+    const p = sum.pages.find(p => _urlMatch(p.url, entity) || _entityMatch(p.name, entity));
     if (p) {
       out.kpis = [
         { label: 'Perf Score', value: p.perf != null ? Number(p.perf).toFixed(0) : '—' },
@@ -8584,11 +8799,12 @@ function getDrilldownData(source, entity) {
         { label: 'INP',        value: p.inp != null ? Number(p.inp).toFixed(0) + 'ms' : '—' },
         { label: 'Device',     value: p.device || '—' },
       ];
-      out.rows = sc.pagespeed.rows.filter(r => _entityMatch(r.URL, p.url)).slice(0, 5);
+      out.rows = sc.pagespeed.rows.filter(r => _urlMatch(r.URL, p.url)).slice(0, 5);
       out.rowCols = ['Date', 'URL', 'Device', 'Perf Score', 'LCP', 'CLS', 'INP'];
     }
   } else if (source === 'semrush_kw') {
     const sum = safe(() => summarizeSemrushKw(sc.semrush_kw.rows), { all: [] });
+    candidateNames = (sum.all || []).map(k => k.keyword).filter(Boolean);
     const k = (sum.all || []).find(k => _entityMatch(k.keyword, entity));
     if (k) {
       out.kpis = [
@@ -8597,11 +8813,12 @@ function getDrilldownData(source, entity) {
         { label: 'Difficulty', value: k.difficulty != null ? String(k.difficulty) : '—' },
         { label: 'Δ Position', value: k.delta ? (k.delta > 0 ? '+' : '') + k.delta : '0' },
       ];
-      out.rows = sc.semrush_kw.rows.filter(r => _entityMatch(r.Keyword, entity)).slice(0, 5);
+      out.rows = sc.semrush_kw.rows.filter(r => _entityMatch(r.Keyword, k.keyword)).slice(0, 5);
       out.rowCols = ['Date', 'Keyword', 'Position', 'Search Volume', 'Difficulty', 'URL', 'brand'];
     }
   } else if (source === 'aircall') {
     const sum = safe(() => summarizeCalls(sc.ac.rows), { lines: [] });
+    candidateNames = (sum.lines || []).map(l => l.name).filter(Boolean);
     const line = sum.lines.find(l => _entityMatch(l.name, entity));
     if (line) {
       out.kpis = [
@@ -8609,11 +8826,12 @@ function getDrilldownData(source, entity) {
         { label: 'Missed',      value: fmtN(line.missed) },
         { label: 'Miss Rate',   value: fmtP(line.rate * 100) },
       ];
-      out.rows = sc.ac.rows.filter(r => _entityMatch(r['Number Name'], entity)).slice(0, 5);
+      out.rows = sc.ac.rows.filter(r => _entityMatch(r['Number Name'], line.name)).slice(0, 5);
       out.rowCols = ['Date', 'Time', 'User', 'Number Name', 'Status'];
     }
   } else if (source === 'social') {
     const sum = safe(() => summarizeSocial(sc.social.rows), { platforms: [] });
+    candidateNames = (sum.platforms || []).map(p => p.name).filter(Boolean);
     const p = sum.platforms.find(p => _entityMatch(p.name, entity));
     if (p) {
       out.kpis = [
@@ -8621,14 +8839,15 @@ function getDrilldownData(source, entity) {
         { label: 'Total Reach',    value: fmtN(p.reach) },
         { label: 'Reach per Post', value: fmtN(p.reachPer) },
       ];
-      out.rows = sc.social.rows.filter(r => _entityMatch(r.network, entity)).slice(0, 5);
+      out.rows = sc.social.rows.filter(r => _entityMatch(r.network, p.name)).slice(0, 5);
       out.rowCols = ['Date', 'network', 'post_type', 'reach', 'brand'];
     }
   }
 
   if (!out.kpis.length) {
+    out.closestMatches = _closestMatches(entity, candidateNames, 3);
     out.emptyReason = entity
-      ? `No exact join for "${entity}" in ${source} — showing rationale only.`
+      ? `No campaign/entity named "${entity}" in the current scope.`
       : `No entity supplied — showing rationale only.`;
   }
   return out;
@@ -8680,14 +8899,41 @@ function openDecisionModal(payload) {
 
   const reason = payload.reason || '(no rationale supplied)';
   const trigger = payload.metric_trigger ? `<div class="trigger">${escapeHtml(payload.metric_trigger)}</div>` : '';
-  const entity = payload.entity_name || payload.entity || '';
+  /* Prefer entity_id (clean key, e.g. "online liquidation") over entity_name
+     (display label, e.g. "online liquidation [BROAD]"). Match-type suffix
+     bypassed _entityMatch's strip when carried inline. */
+  const entity = payload.entity_id || payload.entity_name || payload.entity || '';
   const drill = getDrilldownData(payload.source, entity);
 
   let numbersHtml = '';
   if (drill && drill.kpis.length) {
     numbersHtml = `<div><div class="cmo-modal-section-title">The numbers</div>${_renderKVGrid(drill.kpis)}</div>`;
   } else if (drill && drill.emptyReason) {
-    numbersHtml = `<div><div class="cmo-modal-section-title">The numbers</div><div class="cmo-modal-empty">${escapeHtml(drill.emptyReason)}</div></div>`;
+    /* Smart empty state: explain WHY there's no match in plain English and
+       offer up to 3 closest existing names so the user can spot the typo /
+       sibling. Each suggestion is a button — clicking re-opens the modal
+       with that entity instead. */
+    const scopeNote = `<div class="cmo-modal-empty-scope">Scope: <strong>${escapeHtml(detail.label)}</strong> · <strong>${escapeHtml(brandLabel)}</strong> · <strong>${escapeHtml((state.timeRange && state.timeRange.label) || rangeSuffix())}</strong></div>`;
+    const guess = providerLabel === 'RULES'
+      ? `The rule recorded this entity name when the rule fired, but it's no longer present in the live data — it may have been renamed, paused, or fall outside the current brand/range filter.`
+      : `${providerLabel || 'The model'} may have referenced a slightly different name, or named an entity outside the current brand/range filter.`;
+    let suggestionsHtml = '';
+    if (drill.closestMatches && drill.closestMatches.length) {
+      const items = drill.closestMatches.map(name =>
+        `<button type="button" class="cmo-modal-suggest" data-suggest="${escapeHtml(name)}">${escapeHtml(name)}</button>`
+      ).join('');
+      suggestionsHtml = `<div class="cmo-modal-empty-suggest"><div class="cmo-modal-empty-suggest-label">Closest matches in scope — click to drill into one instead:</div>${items}</div>`;
+    }
+    numbersHtml = `
+      <div>
+        <div class="cmo-modal-section-title">The numbers</div>
+        <div class="cmo-modal-empty">
+          <div>${escapeHtml(drill.emptyReason)}</div>
+          ${scopeNote}
+          <div class="cmo-modal-empty-why">${escapeHtml(guess)}</div>
+          ${suggestionsHtml}
+        </div>
+      </div>`;
   }
   let rowsHtml = '';
   if (drill && drill.rows && drill.rows.length) {
@@ -8703,6 +8949,17 @@ function openDecisionModal(payload) {
       : Math.abs(Number(v)) >= 1000
         ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 })
         : Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    /* For LLM decisions, surface the scope they were generated against so a
+       mismatch with current state.timeRange is obvious in the modal too
+       (not just the per-card chip). */
+    const isLLMPayload = payload.kind === 'llm';
+    const asOfRangeLabel = isLLMPayload ? (payload.as_of_range_label || payload.as_of_range_key || '') : '';
+    const asOfBrand = isLLMPayload ? payload.as_of_brand : '';
+    const asOfBrandLabel = asOfBrand === 'via' ? 'ViaTrading' : asOfBrand === 'liq' ? 'LiquidateNow' : asOfBrand === 'all' ? 'All brands' : '';
+    const asOfAtLabel = isLLMPayload && payload.as_of_at ? new Date(payload.as_of_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    const generatedValue = isLLMPayload && asOfRangeLabel
+      ? `${asOfRangeLabel}${asOfBrandLabel ? ' · ' + asOfBrandLabel : ''}${asOfAtLabel ? ' · ' + asOfAtLabel : ''}`
+      : '—';
     const lifeKPIs = [
       { label: 'Status', value: (payload.status || 'OPEN').replace(/_/g, ' ') },
       { label: 'Confidence', value: payload.confidence_score != null ? `${payload.confidence_score}%` : '—' },
@@ -8713,6 +8970,7 @@ function openDecisionModal(payload) {
       { label: 'Outcome', value: payload.outcome || (payload.status === 'COMPLETED' ? 'observing…' : '—') },
       { label: 'Expected', value: payload.expected_impact || '—' },
     ];
+    if (isLLMPayload) lifeKPIs.push({ label: 'Generated', value: generatedValue });
     /* Plain-English derivation note so the user knows where Before came from
        and when After will be available. Mirrors the row tooltip but lives in
        the modal too for users who never hover. */
@@ -8728,11 +8986,18 @@ function openDecisionModal(payload) {
       : (payload.status === 'COMPLETED'
         ? `<strong>After</strong> auto-captures from live data <strong>${TRACKING_OBSERVATION_DAYS} days</strong> after status moves to Completed, then locks. Until then this stays "observing…".`
         : `<strong>After</strong> is captured once the decision is marked Completed and ${TRACKING_OBSERVATION_DAYS} days have passed.`);
+    /* Flag scope drift on LLM decisions so users understand why the
+       rationale numbers above won't match the live drilldown below. */
+    let staleNote = '';
+    if (isLLMPayload && asOfRangeLabel && state.timeRange && payload.as_of_range_key && payload.as_of_range_key !== state.timeRange.key) {
+      const currentRange = state.timeRange.label || '';
+      staleNote = `<br><span class="cmo-derivation-warn">⚠ Generated against <strong>${escapeHtml(asOfRangeLabel)}</strong> — your current scope is <strong>${escapeHtml(currentRange)}</strong>. Numbers in the "Why" above may not match the live drilldown below. Regenerate from the ${escapeHtml(payload.provider || 'LLM')} page to refresh.</span>`;
+    }
     lifecycleHtml = `
       <div>
         <div class="cmo-modal-section-title">Lifecycle</div>
         ${_renderKVGrid(lifeKPIs)}
-        <div class="cmo-derivation-note">${beforeNote}<br>${afterNote}</div>
+        <div class="cmo-derivation-note">${beforeNote}<br>${afterNote}${staleNote}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.6rem">
           <label style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.72rem;color:var(--text3)">
             Owner
@@ -8762,6 +9027,15 @@ function openDecisionModal(payload) {
     if (ownerInput) ownerInput.addEventListener('change', () => updateActionField(payload.action_id, 'owner', ownerInput.value));
     if (notesInput) notesInput.addEventListener('change', () => updateActionField(payload.action_id, 'notes', notesInput.value));
   }
+  /* "Did you mean" suggestion buttons — re-open modal pointed at the picked
+     entity so the user can drill into the actual data without leaving. */
+  bodyEl.querySelectorAll('button.cmo-modal-suggest').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const next = { ...payload, entity_id: btn.dataset.suggest, entity_name: btn.dataset.suggest, entity: btn.dataset.suggest };
+      openDecisionModal(next);
+    });
+  });
   modal.hidden = false;
   document.body.style.overflow = 'hidden';
 }
@@ -9108,6 +9382,18 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 28, 2026',
+    title: 'Decision modal: right numbers, smarter "no match", no overflow, LLM staleness',
+    tags: ['Fix'],
+    bullets: [
+      'Decision modal was showing the wrong KPIs because `_entityMatch` did **bidirectional substring** matching. A row with Keyword `"liquidation"` matched a target `"online liquidation [BROAD]"` (because the target string contains the row\'s keyword), so a kill-keyword decision about *online liquidation* was rendering numbers for the unrelated keyword *liquidation* — same campaign, same data sheet, totally different action. Tightened to **exact equality** after stripping Google Ads match-type suffixes (`[BROAD]`, `[EXACT]`, `[PHRASE]`). The modal also now prefers `entity_id` (clean key) over `entity_name` (display label with the suffix), and the per-source `out.rows` filter uses the *matched entity\'s own name* so source-row leakage closes too. Pagespeed keeps a local `_urlMatch` so URL-with-querystring drilldowns still work.',
+      'When no entity matches in scope, the modal used to dump a terse italic gray *"No exact join for X — showing rationale only"*. Now it explains in plain English which scope is being queried (source · brand · range), why the LLM may have gotten the name wrong, and lists the **3 closest existing names** as clickable buttons — clicking one re-opens the modal pointed at that entity\'s real drilldown.',
+      'Modal title used to overflow the rounded box on narrow viewports because `.cmo-modal-title` had no `word-break` and the flex parent didn\'t constrain growth, so a long title pushed the close button past the right edge. Added `min-width: 0; flex: 1 1 auto` to the title block, `word-break: break-word; overflow-wrap: anywhere` to the title text, and `white-space: nowrap` per chip in the sub-row so the row wraps cleanly without fragmenting individual chips.',
+      'LLM decisions (Claude / GPT) were displaying with **stale numbers** when the user changed time range or brand after generating: the cached blob shows whatever range it was generated against, but the modal\'s "The numbers" pulls *live* drilldown data, producing silent mismatches. Now `saveCachedDecisions` stamps `as_of_range_label / as_of_range_key / as_of_brand` on the cached blob; `state.{claude,gpt}` and each LLM-derived action carry the same fields. When current scope drifts from generation scope: a yellow ⚠ banner appears above the Claude / GPT / Tracking lists ("These decisions reflect *Last 90 days · ViaTrading* (generated Apr 25). Your current scope is *Month to date · All brands*. Numbers in the rationale won\'t match live KPIs — Regenerate to refresh."), each card gets a `⚠ 90d · Apr 25` chip in its meta-row, and the modal Lifecycle section gets a "Generated" KV plus an inline warning. **No automatic invalidation** — your statuses, owners, notes survive the staleness, just made visible.',
+      'Build tag bumped to r26.',
+    ],
+  },
   {
     date: 'Apr 28, 2026',
     title: 'Tracking page Before / After numbers explain themselves',
@@ -10007,7 +10293,12 @@ async function generateDecisions(opts) {
 
   const cached = loadCachedDecisions(storageKey, cacheKey);
   if (cached) {
-    state[stateProp] = { result: cached.decisions, status: 'ok', error: null, lastAt: cached.at, cached: true };
+    state[stateProp] = {
+      result: cached.decisions, status: 'ok', error: null, lastAt: cached.at, cached: true,
+      as_of_range_label: cached.as_of_range_label || '',
+      as_of_range_key:   cached.as_of_range_key   || '',
+      as_of_brand:       cached.as_of_brand       || 'all',
+    };
     renderLLMDecisions(cached.decisions, mountId, badgeLabel);
     setLLMStatus(statusId, `Loaded ${cached.decisions.length} decisions from cache · ${new Date(cached.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, 'ok');
     return;
@@ -10021,7 +10312,12 @@ async function generateDecisions(opts) {
     const { text, raw } = await callFn(payload, key, { jsonMode: provider === 'OpenAI' });
     const decisions = parseDecisionsJson(text);
     saveCachedDecisions(storageKey, cacheKey, decisions, raw);
-    state[stateProp] = { result: decisions, status: 'ok', error: null, lastAt: new Date().toISOString(), cached: false };
+    state[stateProp] = {
+      result: decisions, status: 'ok', error: null, lastAt: new Date().toISOString(), cached: false,
+      as_of_range_label: (state.timeRange && state.timeRange.label) || '',
+      as_of_range_key:   (state.timeRange && state.timeRange.key)   || '',
+      as_of_brand:       state.brand || 'all',
+    };
     renderLLMDecisions(decisions, mountId, badgeLabel);
     setLLMStatus(statusId, `${decisions.length} decisions generated · ${new Date().toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, 'ok');
   } catch (e) {
@@ -10646,7 +10942,12 @@ function initClaude() {
   try {
     const obj = loadAnyCachedDecisions(CLAUDE_RESULT_STORAGE);
     if (obj) {
-      state.claude = { result: obj.decisions, status: 'ok', error: null, lastAt: obj.at, cached: true };
+      state.claude = {
+        result: obj.decisions, status: 'ok', error: null, lastAt: obj.at, cached: true,
+        as_of_range_label: obj.as_of_range_label || '',
+        as_of_range_key:   obj.as_of_range_key   || '',
+        as_of_brand:       obj.as_of_brand       || 'all',
+      };
       renderClaudeDecisions(obj.decisions);
       setClaudeStatus(`${obj.decisions.length} decisions cached · ${new Date(obj.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, '');
     } else {
@@ -10687,7 +10988,12 @@ function initGpt() {
   try {
     const obj = loadAnyCachedDecisions(OPENAI_RESULT_STORAGE);
     if (obj) {
-      state.gpt = { result: obj.decisions, status: 'ok', error: null, lastAt: obj.at, cached: true };
+      state.gpt = {
+        result: obj.decisions, status: 'ok', error: null, lastAt: obj.at, cached: true,
+        as_of_range_label: obj.as_of_range_label || '',
+        as_of_range_key:   obj.as_of_range_key   || '',
+        as_of_brand:       obj.as_of_brand       || 'all',
+      };
       renderLLMDecisions(obj.decisions, 'gptRecs', 'GPT');
       setGptStatus(`${obj.decisions.length} decisions cached · ${new Date(obj.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, '');
     } else {

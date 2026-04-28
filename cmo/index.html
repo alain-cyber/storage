@@ -2817,7 +2817,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r12', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r13', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -6841,6 +6841,49 @@ function compactSummariesForLLM(summaries) {
   };
 }
 
+/* Cached fetch of SYSTEM_STATE.md so the chat can answer "how does X
+   work?" / "where does Y come from?" methodology questions from the
+   same prose humans read. Single in-memory fetch per page session;
+   degrades to '' if the host doesn't serve .md (chat then answers
+   config questions from the runtime block alone). */
+let _systemDocsCache = null;
+async function loadSystemDocs() {
+  if (_systemDocsCache !== null) return _systemDocsCache;
+  try {
+    const res = await fetch('SYSTEM_STATE.md', { cache: 'no-cache' });
+    _systemDocsCache = res.ok ? await res.text() : '';
+  } catch (e) {
+    _systemDocsCache = '';
+  }
+  return _systemDocsCache;
+}
+
+/* Snapshot of the things SYSTEM_STATE.md *can't* know — current toggle
+   state, resolved date window, per-source live/demo/fail status, the
+   user's actual threshold values. Lets the chat answer "is GSC loading
+   right now?" or "what's my INP threshold for Liq?" accurately. */
+function buildRuntimeConfig() {
+  const range = state.timeRange || {};
+  const sources = {};
+  Object.entries(state.raw || {}).forEach(([k, c]) => {
+    if (!c) return;
+    sources[k] = {
+      status: c.source || 'unknown',
+      rows: Array.isArray(c.rows) ? c.rows.length : 0,
+      reason: c.reason || null,
+      cols: c.cols || [],
+      lastModified: c.lastModified || null,
+    };
+  });
+  return {
+    brand: state.brand || 'all',
+    dateRange: { key: range.key || null, label: range.label || null, start: range.start || null, end: range.end || null, days: range.days || null },
+    sources,
+    thresholds: state.thresholds || null,
+    build: (typeof CMO_BUILD !== 'undefined' ? CMO_BUILD.tag : null),
+  };
+}
+
 /* Build the same scoped + summarized payload we feed both decision pages
    and the chat. Returns null if data isn't loaded yet. */
 function buildLLMScopedPayload() {
@@ -7661,6 +7704,17 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Chat can now answer system / config / methodology questions',
+    tags: ['Feature'],
+    bullets: [
+      'The Chat sidebar previously only knew the scoped dashboard data — it could answer "what\'s our reach this month?" but not "where does GSC data come from?" or "is the social source loading right now?". Now the system prompt carries three blocks: SYSTEM_STATE.md (the prose that documents every connector, refresh cadence, methodology quirk, and brand mapping), a runtime status JSON (current brand toggle, date window, per-source live/demo/fail with row counts, thresholds), and the existing scoped data JSON.',
+      'SYSTEM_STATE.md is fetched once per page session via `loadSystemDocs()` and cached in memory. If the host doesn\'t serve .md files (404), the chat degrades to runtime-only — config answers will still work for current state, just without the methodology prose.',
+      'Runtime status comes from `buildRuntimeConfig()` and reflects the actual `state.raw[*].source / rows / reason / lastModified` — so questions like "what\'s the latest pull time for ads?" or "why is keywords showing FAIL?" get truthful answers.',
+      'Build tag bumped to r13.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Fixed Google Search Console showing FAIL · empty (wrong date column)',
@@ -8653,7 +8707,12 @@ async function sendChatMessage() {
   setLLMStatus('chatStatus', `Asking ${usingClaude ? CLAUDE_MODEL : OPENAI_MODEL}…`, 'busy');
 
   const payload = buildLLMScopedPayload();
-  const systemPrompt = `You are a CMO copilot. Answer concisely (2–4 sentences). Cite specific numbers from the dashboard summary when relevant. If a question can't be answered from the summary, say so. Current scoped dashboard data follows as JSON:\n${JSON.stringify(payload)}`;
+  const runtime = buildRuntimeConfig();
+  const docs = await loadSystemDocs();
+  const docsBlock = docs
+    ? `# System docs (markdown — methodology, sources, brand mapping, refresh cadence)\n${docs}`
+    : `# System docs\n(SYSTEM_STATE.md not available at this host — answer config questions only from the runtime block.)`;
+  const systemPrompt = `You are a CMO copilot for the dashboard. You answer two kinds of questions:\n\n1. Data questions (e.g. "what's our reach this month?", "which campaign is wasting spend?") — use the **scoped dashboard data** block. Cite specific numbers.\n2. System / config questions (e.g. "where does GSC data come from?", "what counts as a missed call?", "is the social source loading right now?", "what's the threshold for missed-call rate?") — use the **system docs** and **runtime status** blocks.\n\nAnswer concisely (2–4 sentences). If a question can't be answered from any of the three blocks, say so plainly.\n\n${docsBlock}\n\n# Runtime status (JSON — current toggle, date window, per-source live/demo/fail, thresholds)\n${JSON.stringify(runtime)}\n\n# Scoped dashboard data (JSON)\n${JSON.stringify(payload)}`;
   /* Last N turns of history, excluding the system context. Anthropic requires
      the first message to be `user` — drop any leading assistant messages from
      the slice. */

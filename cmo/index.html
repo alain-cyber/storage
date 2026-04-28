@@ -2817,7 +2817,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r11', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r12', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -2862,7 +2862,12 @@ const SHEETS = {
     id: '1UZ7fp46L83YdPEcjEp7Zdl4-8-taK5zMueZNd1pI7k8',
     label: 'Search Console', headers: 2,
     brandTabs: { via: 'raw_gsc_via', liq: 'raw_gsc_lnow' },
-    dateColumn: 'A',
+    /* Column C is Date in this sheet — column A is the Page URL.
+       The previous `dateColumn: 'A'` made the 60-day gviz filter
+       compare a date literal against URL strings, returning zero
+       rows on every load (Data Sources card showed FAIL · empty
+       even though the sheet had 91k via rows + 7.5k lnow rows). */
+    dateColumn: 'C',
   },
   ga: {
     id: '1gZ_ahjqHMMSmqF2av0pOV2nkLj0oA5IVGqTHm6w7_nw',
@@ -7656,6 +7661,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Fixed Google Search Console showing FAIL · empty (wrong date column)',
+    tags: ['Fix'],
+    bullets: [
+      'Data Sources card was reporting `raw_gsc_via: empty · raw_gsc_lnow: empty` and the SEO page was rendering against mock fallbacks even though the sheet had 91,955 via rows + 7,547 lnow rows live. Cause: SHEETS.gsc.dateColumn was set to `A`, but column A in the GSC sheet is the Page URL — column C is the Date. The 60-day gviz filter `where A >= date \'YYYY-MM-DD\'` was comparing date literals against URL strings, so every row got rejected before the response left Google.',
+      'Switched to `dateColumn: "C"`. Verified directly against the sheet: `count where A >= cutoff` returns 0 rows, `count where C >= cutoff` returns 91,955.',
+      'Build tag bumped to r12.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Tagged all social rows as ViaTrading',

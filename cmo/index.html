@@ -48,6 +48,36 @@
     --shadow-card-hover: 0 2px 6px rgba(15,20,25,0.06);
   }
 
+  /* Dark theme — applied via body[data-theme="dark"]. Same variable names
+     so every existing rule swaps colors transparently. Surfaces are warm
+     near-black, accent stays Semrush blue but slightly brighter for
+     legibility on dark backgrounds. */
+  body[data-theme="dark"] {
+    --bg:        #0d0f0e;
+    --surface:   #141714;
+    --surface2:  #1a1d1a;
+    --border:    rgba(255,255,255,0.07);
+    --border2:   rgba(255,255,255,0.14);
+    --text:      #eef1ec;
+    --text2:     #c8cdc4;
+    --text3:     #8a9082;
+    --accent:    #5b9cf6;
+    --accent-dim:rgba(91,156,246,0.16);
+    --green:     #4caf7d;
+    --green-dim: rgba(76,175,125,0.16);
+    --red:       #e05a4e;
+    --red-dim:   rgba(224,90,78,0.16);
+    --amber:     #d4a843;
+    --amber-dim: rgba(212,168,67,0.18);
+    --blue:      #5b9cf6;
+    --blue-dim:  rgba(91,156,246,0.16);
+    --purple:    #b57dd6;
+    --purple-dim:rgba(181,125,214,0.18);
+    --on-accent: #0d0f0e;
+    --shadow-card:       0 1px 2px rgba(0,0,0,0.45);
+    --shadow-card-hover: 0 2px 8px rgba(0,0,0,0.55);
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -2064,6 +2094,25 @@
   .refresh-btn[disabled] { color: var(--text3); cursor: default; }
   .refresh-btn.is-spinning svg { animation: refresh-spin 0.9s linear infinite; }
   @keyframes refresh-spin { to { transform: rotate(360deg); } }
+  /* Theme toggle reuses refresh-btn styling. Sun shown in light mode,
+     moon in dark mode — the inactive icon is hidden so the button
+     always shows the icon for the OPPOSITE theme (what clicking gets you). */
+  .theme-toggle {
+    width: 30px; height: 30px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .theme-toggle:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+  .theme-toggle .theme-toggle-sun  { display: none; }
+  .theme-toggle .theme-toggle-moon { display: inline-block; }
+  body[data-theme="dark"] .theme-toggle .theme-toggle-sun  { display: inline-block; }
+  body[data-theme="dark"] .theme-toggle .theme-toggle-moon { display: none; }
   .topbar-spacer { flex: 1; }
 
   /* ── Sidebar collapsible state ──────────────────────────────────────
@@ -2353,6 +2402,10 @@
     </select>
   </div>
   <span class="last-updated is-hype" id="lastUpdated">Negotiating with the spreadsheet…</span>
+  <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+    <svg class="theme-toggle-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    <svg class="theme-toggle-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
   <button type="button" class="refresh-btn" id="refreshDataBtn" aria-label="Refresh data" title="Pull fresh data from all sources">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
   </button>
@@ -3337,12 +3390,23 @@ const RED    = '#d4351c';
 const AMBER  = '#b45f06';
 const BLUE   = '#1f77ff';
 const PURPLE = '#1f77ff';
-const TEXT2  = '#3c4452';
-const GRID   = 'rgba(15,20,25,0.06)';
+/* Theme-aware: TEXT2 + GRID flip when dark mode toggles. They're read at
+   chart-construction time inside makeChart(), so a repaint() after a theme
+   flip rebuilds every chart with the new values. */
+let TEXT2 = '#3c4452';
+let GRID  = 'rgba(15,20,25,0.06)';
 
 Chart.defaults.color = TEXT2;
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size = 12;
+
+function refreshChartTheme() {
+  const dark = document.body.getAttribute('data-theme') === 'dark';
+  const cs = getComputedStyle(document.body);
+  TEXT2 = (cs.getPropertyValue('--text2').trim()) || (dark ? '#c8cdc4' : '#3c4452');
+  GRID  = dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,20,25,0.06)';
+  Chart.defaults.color = TEXT2;
+}
 
 const fmt = (n, p='', s='') => (n==null||isNaN(n)) ? '—' : p + Number(n).toLocaleString(undefined,{maximumFractionDigits:2}) + s;
 const fmtCur = n => (n==null||isNaN(n)) ? '—' : '$' + Number(n).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
@@ -9384,6 +9448,16 @@ function renderLowHanging(scoped) {
 const APP_HISTORY = [
   {
     date: 'Apr 28, 2026',
+    title: 'Dark mode toggle in the topbar',
+    tags: ['Feature'],
+    bullets: [
+      'Sun/moon button next to the refresh button flips the dashboard between the existing light Semrush palette and a warm near-black dark palette. Choice persists in localStorage (`cmoTheme_v1`) and is restored on every load. Default stays light.',
+      'Dark palette is an additive override — every CSS variable name stays the same, so all existing rules pick up the new colors without per-component changes. Surfaces #0d0f0e / #141714 / #1a1d1a, text #eef1ec / #c8cdc4 / #8a9082, accent #5b9cf6, status hues retuned for legibility on dark.',
+      'Chart.js axis tick / legend / grid colors flip on toggle: TEXT2 + GRID are now `let` and get refreshed from CSS at theme change time, then `repaint()` rebuilds every chart so they match the new theme immediately — no full reload needed.',
+    ],
+  },
+  {
+    date: 'Apr 28, 2026',
     title: 'Decision modal: right numbers, smarter "no match", no overflow, LLM staleness',
     tags: ['Fix'],
     bullets: [
@@ -11038,6 +11112,26 @@ function initChat() {
   renderChatLog();
 }
 
+function initThemeToggle() {
+  const THEME_KEY = 'cmoTheme_v1';
+  let saved = null;
+  try { saved = localStorage.getItem(THEME_KEY); } catch {}
+  const initial = saved === 'dark' || saved === 'light' ? saved : 'light';
+  document.body.setAttribute('data-theme', initial);
+  refreshChartTheme();
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const next = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    try { localStorage.setItem(THEME_KEY, next); } catch {}
+    refreshChartTheme();
+    /* Rebuild charts so axis/legend/grid colors flip immediately. */
+    if (typeof repaint === 'function' && state && state.raw) repaint();
+  });
+}
+
+initThemeToggle();
 initBrandToggle();
 initActionFilters();
 initTrackingFilters();

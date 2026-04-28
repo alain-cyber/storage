@@ -1612,13 +1612,17 @@
     color: var(--text2);
     letter-spacing: 0.02em;
   }
+  .rec-card.status-CONFIRM_TO_DO { border-color: var(--blue); border-left: 3px solid var(--blue); }
   .rec-card.status-IN_PROGRESS { border-color: var(--amber); border-left: 3px solid var(--amber); }
   .rec-card.status-COMPLETED { opacity: 0.55; border-left: 3px solid var(--green); }
   .rec-card.status-DISMISSED { opacity: 0.35; border-left: 3px solid var(--text3); }
+  .rec-card-head { display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; }
   .rec-btn-complete { background: var(--green-dim); color: var(--green); border-color: transparent; }
   .rec-btn-complete:hover { background: var(--green); color: var(--on-accent); }
   .rec-btn-progress { background: var(--amber-dim); color: var(--amber); border-color: transparent; }
   .rec-btn-progress:hover { background: var(--amber); color: var(--on-accent); }
+  .rec-btn-confirm { background: var(--blue-dim); color: var(--blue); border-color: transparent; }
+  .rec-btn-confirm:hover { background: var(--blue); color: var(--on-accent); }
   .rec-btn-dismiss { background: transparent; color: var(--text3); }
   .rec-btn-dismiss:hover { color: var(--red); border-color: var(--red); }
   .rec-status-tag {
@@ -1630,9 +1634,79 @@
     align-self: flex-start;
   }
   .rec-status-OPEN { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .rec-status-CONFIRM_TO_DO { background: var(--blue-dim); color: var(--blue); }
   .rec-status-IN_PROGRESS { background: var(--amber-dim); color: var(--amber); }
   .rec-status-COMPLETED { background: var(--green-dim); color: var(--green); }
   .rec-status-DISMISSED { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
+  .rec-confidence {
+    margin-left: auto;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    color: var(--text2);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    align-self: flex-start;
+    font-variant-numeric: tabular-nums;
+  }
+  .rec-confidence-pct { color: var(--text3); margin-left: 1px; }
+  .rec-source-chip { font-weight: 500; }
+
+  /* Tracking table */
+  .tracking-table-wrap { overflow-x: auto; margin-top: 0.6rem; }
+  .tracking-table { width: 100%; min-width: 1100px; font-size: 0.78rem; }
+  .tracking-table thead th {
+    position: sticky; top: 0; background: var(--surface); z-index: 1;
+    text-align: left; font-weight: 600; color: var(--text2);
+    border-bottom: 1px solid var(--border); padding: 0.4rem 0.5rem;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .tracking-table tbody tr { cursor: pointer; }
+  .tracking-table tbody tr:hover td { background: var(--surface2); }
+  .tracking-table td { padding: 0.4rem 0.5rem; vertical-align: top; }
+  .tracking-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tracking-table .track-decision { font-weight: 500; color: var(--text); max-width: 320px; }
+  .tracking-table .track-decision-sub { color: var(--text3); font-size: 0.72rem; margin-top: 2px; display: block; }
+  .tracking-table .track-status-cell { min-width: 130px; }
+  .tracking-table .track-owner-input,
+  .tracking-table .track-notes-input {
+    width: 100%; min-width: 80px; max-width: 200px;
+    background: transparent; color: var(--text);
+    border: 1px solid transparent; border-radius: 3px;
+    padding: 2px 4px; font: inherit;
+  }
+  .tracking-table .track-owner-input:hover,
+  .tracking-table .track-notes-input:hover,
+  .tracking-table .track-owner-input:focus,
+  .tracking-table .track-notes-input:focus {
+    border-color: var(--border2); background: var(--surface);
+    outline: none;
+  }
+  .tracking-table .track-status-select {
+    background: var(--surface2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 3px;
+    padding: 2px 4px; font: inherit;
+  }
+  .track-outcome { font-weight: 600; padding: 1px 6px; border-radius: 3px; font-size: 0.72rem; }
+  .track-outcome-SUCCESS { background: var(--green-dim); color: var(--green); }
+  .track-outcome-NEUTRAL { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .track-outcome-FAIL    { background: var(--red-dim); color: var(--red); }
+  .track-outcome-pending { color: var(--text3); }
+  .track-impact-up   { color: var(--green); }
+  .track-impact-down { color: var(--red); }
+  .track-impact-flat { color: var(--text3); }
+  .track-recapture {
+    background: transparent; color: var(--text3);
+    border: 1px solid var(--border); border-radius: 3px;
+    padding: 1px 6px; font-size: 0.72rem; cursor: pointer; margin-left: 4px;
+  }
+  .track-recapture:hover { color: var(--text); border-color: var(--border2); }
+  .tracking-empty {
+    padding: 2rem 1rem; text-align: center; color: var(--text3); font-style: italic;
+  }
+  .action-counter-value.confirmed { color: var(--blue); }
+  .action-counter-value.progress  { color: var(--amber); }
 
   /* Brand-scope hint on the briefing */
   .brand-scope {
@@ -2130,6 +2204,7 @@
     <a class="side-link" data-route="decisions_filters" href="#/decisions_filters"><span class="side-link-text">Decisions from Filters</span> <span class="pill" id="sideDecisionsCount"></span></a>
     <a class="side-link" data-route="decisions_claude"  href="#/decisions_claude"><span class="side-link-text">Decisions from Claude</span></a>
     <a class="side-link" data-route="decisions_gpt"     href="#/decisions_gpt"><span class="side-link-text">Decisions from GPT</span></a>
+    <a class="side-link" data-route="tracking"          href="#/tracking"><span class="side-link-text">Decision Tracking</span> <span class="pill" id="sideTrackingCount"></span></a>
     <a class="side-link" data-route="thresholds" href="#/thresholds"><span class="side-link-text">Playbook</span></a>
     <a class="side-link" data-route="sources"   href="#/sources"><span class="side-link-text">Data Sources</span> <span class="pill" id="sideSourcesPill"></span></a>
     <a class="side-link" data-route="diagnostics" href="#/diagnostics"><span class="side-link-text">Diagnostics</span></a>
@@ -2678,12 +2753,23 @@
         <div class="action-filter">
           <label for="filterStatus">Status</label>
           <select id="filterStatus">
-            <option value="active">Active (Open + In Progress)</option>
+            <option value="active">Active (Open + Confirm + In Progress)</option>
             <option value="OPEN">Open</option>
+            <option value="CONFIRM_TO_DO">Confirm to do</option>
             <option value="IN_PROGRESS">In Progress</option>
             <option value="COMPLETED">Completed</option>
             <option value="DISMISSED">Dismissed</option>
             <option value="all">All</option>
+          </select>
+        </div>
+        <div class="action-filter">
+          <label for="filterConfidence">Confidence ≥</label>
+          <select id="filterConfidence">
+            <option value="all">Any</option>
+            <option value="80">80+</option>
+            <option value="60">60+</option>
+            <option value="40">40+</option>
+            <option value="20">20+</option>
           </select>
         </div>
       </div>
@@ -2813,6 +2899,96 @@
     </div>
     <div class="claude-status" id="gptStatus"></div>
     <div class="ai-recs" id="gptRecs"></div>
+  </section>
+</section>
+
+<section class="page" data-page="tracking" hidden>
+  <section class="section" id="trackingSection">
+    <div class="section-head">
+      <div class="section-title">Decision Tracking</div>
+      <div class="section-meta">Lifecycle &amp; outcomes across rule, Claude, and GPT decisions. Statuses, owners, notes, and metric snapshots persist across refresh.</div>
+    </div>
+    <div class="action-bar">
+      <div class="action-counters" id="trackingCounters"></div>
+      <div class="action-filters">
+        <div class="action-filter">
+          <label for="trackingSource">Source</label>
+          <select id="trackingSource">
+            <option value="all">All sources</option>
+            <option value="ads">Ads</option>
+            <option value="keywords">Keywords</option>
+            <option value="gsc">SEO / Search</option>
+            <option value="ga">Web Analytics</option>
+            <option value="pagespeed">Page Speed</option>
+            <option value="social">Social</option>
+            <option value="aircall">Calls</option>
+            <option value="cross">Cross-Channel</option>
+          </select>
+        </div>
+        <div class="action-filter">
+          <label for="trackingPriority">Priority</label>
+          <select id="trackingPriority">
+            <option value="all">All</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+        <div class="action-filter">
+          <label for="trackingStatus">Status</label>
+          <select id="trackingStatus">
+            <option value="all">All</option>
+            <option value="active" selected>Active</option>
+            <option value="OPEN">Open</option>
+            <option value="CONFIRM_TO_DO">Confirm to do</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="DISMISSED">Dismissed</option>
+          </select>
+        </div>
+        <div class="action-filter">
+          <label for="trackingConfidence">Confidence ≥</label>
+          <select id="trackingConfidence">
+            <option value="all">Any</option>
+            <option value="80">80+</option>
+            <option value="60">60+</option>
+            <option value="40">40+</option>
+            <option value="20">20+</option>
+          </select>
+        </div>
+        <div class="action-filter">
+          <label for="trackingProvider">Provider</label>
+          <select id="trackingProvider">
+            <option value="all">All</option>
+            <option value="rule">Filters (rules)</option>
+            <option value="CLAUDE">Claude</option>
+            <option value="GPT">GPT</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="tracking-table-wrap">
+      <table class="data-table tracking-table">
+        <thead>
+          <tr>
+            <th>Decision</th>
+            <th>Category</th>
+            <th>Source</th>
+            <th class="num">Pri</th>
+            <th class="num">Conf</th>
+            <th>Status</th>
+            <th class="num">Before</th>
+            <th class="num">After</th>
+            <th class="num">Impact</th>
+            <th>Outcome</th>
+            <th>Owner</th>
+            <th>Notes</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="trackingTableBody"></tbody>
+      </table>
+    </div>
   </section>
 </section>
 
@@ -4095,8 +4271,10 @@ function renderBriefing({ narrative, brand }) {
    (`${source}:${grain}:${slug(entity)}:${action_type}`) so status
    persistence survives refresh and data re-pulls. */
 
-const ACTION_STATUS = { OPEN: 'OPEN', IN_PROGRESS: 'IN_PROGRESS', COMPLETED: 'COMPLETED', DISMISSED: 'DISMISSED' };
+const ACTION_STATUS = { OPEN: 'OPEN', CONFIRM_TO_DO: 'CONFIRM_TO_DO', IN_PROGRESS: 'IN_PROGRESS', COMPLETED: 'COMPLETED', DISMISSED: 'DISMISSED' };
+const ACTIVE_STATUSES = new Set([ACTION_STATUS.OPEN, ACTION_STATUS.CONFIRM_TO_DO, ACTION_STATUS.IN_PROGRESS]);
 const PRIORITY_ORDER = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+const PRIORITY_WEIGHT = { HIGH: 1.2, MEDIUM: 1.0, LOW: 0.8 };
 const ACTION_TYPE_LABELS = {
   SCALE: 'Scale budget',
   KILL: 'Kill campaign',
@@ -4112,7 +4290,94 @@ const ACTION_TYPE_LABELS = {
   KILL_KEYWORD: 'Kill keyword',
   NEGATE_KEYWORD: 'Add as negative',
   SCALE_KEYWORD: 'Scale keyword',
+  FIX_PAGESPEED_LCP: 'Fix LCP',
+  FIX_PAGESPEED_CLS: 'Fix CLS',
+  FIX_PAGESPEED_INP: 'Fix INP',
+  FIX_PAGESPEED_PERF: 'Fix Perf score',
 };
+/* Per-action_type direction the metric should move for SUCCESS. INCREASE means
+   metric_after > metric_before is good (CTR, conversions, sessions). DECREASE
+   means metric_after < metric_before is good (CPA, missed-rate, LCP, INP, CLS,
+   waste-spend). Used by computeOutcome() to classify the result. */
+const ACTION_DIRECTION_MAP = {
+  SCALE: 'INCREASE',
+  KILL: 'DECREASE',
+  FIX_CREATIVE: 'INCREASE',
+  OPTIMIZE_PAGE: 'INCREASE',
+  FIX_TITLE: 'INCREASE',
+  INVESTIGATE_DROP: 'INCREASE',
+  REPLICATE_FORMAT: 'INCREASE',
+  PAUSE_OR_REVIEW_CHANNEL: 'DECREASE',
+  AUDIT_LANDING_PAGE: 'INCREASE',
+  FIX_ROUTING: 'DECREASE',
+  STAFFING_REVIEW: 'DECREASE',
+  KILL_KEYWORD: 'DECREASE',
+  NEGATE_KEYWORD: 'DECREASE',
+  SCALE_KEYWORD: 'INCREASE',
+  FIX_PAGESPEED_LCP: 'DECREASE',
+  FIX_PAGESPEED_CLS: 'DECREASE',
+  FIX_PAGESPEED_INP: 'DECREASE',
+  FIX_PAGESPEED_PERF: 'INCREASE',
+};
+/* Human-readable category derived from source. Used in the Tracking table so
+   "ads" reads as "Performance Marketing" instead of a code. */
+const SOURCE_CATEGORY = {
+  ads: 'Performance Marketing',
+  keywords: 'Performance Marketing',
+  gsc: 'SEO',
+  semrush_kw: 'SEO',
+  semrush_bl: 'SEO',
+  ga: 'Web Analytics',
+  pagespeed: 'Web Performance',
+  social: 'Social',
+  aircall: 'Calls',
+  cross: 'Cross-Channel',
+};
+/* Best-guess metric name for the trigger that fired the action. Drilldown data
+   uses these labels too, so capturing one here lets us look the value back up
+   later in captureMetricAfter(). */
+function deriveMetricName(action_type, source) {
+  if (action_type === 'SCALE' || action_type === 'KILL') return 'CPA';
+  if (action_type === 'FIX_CREATIVE') return 'CTR';
+  if (action_type === 'OPTIMIZE_PAGE' || action_type === 'FIX_TITLE') return 'CTR';
+  if (action_type === 'INVESTIGATE_DROP') return 'Clicks';
+  if (action_type === 'REPLICATE_FORMAT') return 'Reach per Post';
+  if (action_type === 'PAUSE_OR_REVIEW_CHANNEL') return 'Sessions';
+  if (action_type === 'AUDIT_LANDING_PAGE') return 'Engagement';
+  if (action_type === 'FIX_ROUTING') return 'Miss Rate';
+  if (action_type === 'STAFFING_REVIEW') return 'Miss Rate';
+  if (action_type === 'KILL_KEYWORD' || action_type === 'NEGATE_KEYWORD') return 'Spend';
+  if (action_type === 'SCALE_KEYWORD') return 'Conversions';
+  if (action_type === 'FIX_PAGESPEED_LCP') return 'LCP';
+  if (action_type === 'FIX_PAGESPEED_CLS') return 'CLS';
+  if (action_type === 'FIX_PAGESPEED_INP') return 'INP';
+  if (action_type === 'FIX_PAGESPEED_PERF') return 'Perf Score';
+  return source === 'ads' ? 'Spend' : 'Metric';
+}
+/* Confidence score (0-99) for rule-based actions: how far past the threshold
+   the trigger fired, weighted by priority. LLMs self-report confidence; this
+   formula is the fallback when they don't. */
+function computeConfidenceScore(action) {
+  const weight = PRIORITY_WEIGHT[action.priority] || 1.0;
+  const cur = Number(action.current_value);
+  const bench = Number(action.benchmark_value);
+  if (!isFinite(cur) || !isFinite(bench) || bench === 0) {
+    return Math.round(weight * 50); /* fallback: priority-only ~60/50/40 */
+  }
+  const gap = Math.abs(cur - bench) / Math.max(Math.abs(bench), 1e-9);
+  return Math.max(0, Math.min(99, Math.round(gap * weight * 100)));
+}
+/* SUCCESS / NEUTRAL / FAIL classification. NEUTRAL band is ±5% of the before
+   value — small enough to detect real movement, big enough to ignore noise. */
+function computeOutcome(before, after, direction) {
+  if (before == null || after == null || !isFinite(before) || !isFinite(after)) return '';
+  const denom = Math.max(Math.abs(before), 1e-9);
+  const change = (after - before) / denom;
+  if (Math.abs(change) < 0.05) return 'NEUTRAL';
+  const desiredUp = direction === 'INCREASE';
+  const actualUp = change > 0;
+  return (desiredUp === actualUp) ? 'SUCCESS' : 'FAIL';
+}
 const SOURCE_LABELS = { ads: 'Ads', gsc: 'SEO', ga: 'GA4', aircall: 'Calls', social: 'Social', cross: 'Cross', keywords: 'Keywords', semrush_kw: 'SemRush Kw', semrush_bl: 'SemRush BL' };
 /* Display order + descriptive copy for the grouped Decisions view. Cards are
    bucketed under these headers so it's obvious which source generated what,
@@ -4177,10 +4442,14 @@ function saveActionLog() {
 function newAction(p) {
   const entity = p.entity_id || p.entity_name || 'x';
   const now = new Date().toISOString();
-  return {
+  const metric_name = p.metric_name || deriveMetricName(p.action_type, p.source);
+  const data_window = p.data_window
+    || (typeof state !== 'undefined' && state && state.timeRange ? state.timeRange.label : '');
+  const base = {
     action_id: p.action_id || `${p.source}:${p.grain}:${slug(entity)}:${p.action_type}`,
     brand: p.brand || 'all',
     source: p.source,
+    category: SOURCE_CATEGORY[p.source] || (p.source || 'Other'),
     grain: p.grain,
     entity_id: String(entity),
     entity_name: String(p.entity_name || entity),
@@ -4193,28 +4462,84 @@ function newAction(p) {
     status: ACTION_STATUS.OPEN,
     owner: p.owner || '',
     created_at: now,
+    date_created: now,
+    date_confirmed: '',
+    date_started: '',
+    date_completed: '',
     due_date: p.due_date || '',
     completed_at: '',
     result_metric: p.result_metric || '',
     impact_notes: p.impact_notes || '',
+    notes: p.notes || p.impact_notes || '',
+    metric_name,
+    metric_before: p.current_value ?? null,
+    metric_before_at: now,
+    metric_after: null,
+    metric_after_at: '',
+    actual_impact: null,
+    outcome: '',
+    expected_impact: p.expected_impact || '',
+    confidence_score: 0,
+    data_window,
+    source_refs: p.source_refs || { source: p.source, grain: p.grain, entity_id: String(entity), data_window },
   };
+  base.confidence_score = computeConfidenceScore(base);
+  return base;
 }
 
-/* Merge localStorage log overrides onto freshly generated action rows. */
+/* Merge localStorage log overrides onto freshly generated action rows.
+   First-sight side effect: when a never-before-seen action_id appears, we
+   freeze its baseline (metric_before, metric_name, confidence_score, dates,
+   data_window, source_refs) into the log so later regenerations don't move
+   the baseline even though the rule itself re-fires from current numbers. */
 function hydrateActions(actionsByDataset, log) {
   const out = {};
+  let logChanged = false;
   Object.keys(actionsByDataset).forEach(key => {
     out[key] = actionsByDataset[key].map(a => {
-      const override = log[a.action_id];
-      if (!override) return a;
+      let override = log[a.action_id];
+      if (!override) {
+        /* First sight — freeze baseline into the log. */
+        override = {
+          status: ACTION_STATUS.OPEN,
+          date_created: a.date_created || new Date().toISOString(),
+          metric_name: a.metric_name,
+          metric_before: a.metric_before,
+          metric_before_at: a.date_created || new Date().toISOString(),
+          confidence_score: a.confidence_score,
+          expected_impact: a.expected_impact,
+          data_window: a.data_window,
+          source_refs: a.source_refs,
+        };
+        log[a.action_id] = override;
+        logChanged = true;
+      }
       return {
         ...a,
         status: override.status || a.status,
-        completed_at: override.completed_at || a.completed_at,
-        impact_notes: override.impact_notes || a.impact_notes,
+        date_created: override.date_created || a.date_created,
+        date_confirmed: override.date_confirmed || a.date_confirmed,
+        date_started: override.date_started || a.date_started,
+        date_completed: override.date_completed || override.completed_at || a.date_completed,
+        completed_at: override.completed_at || override.date_completed || a.completed_at,
+        owner: override.owner != null ? override.owner : a.owner,
+        notes: override.notes != null ? override.notes : (override.impact_notes != null ? override.impact_notes : a.notes),
+        impact_notes: override.impact_notes != null ? override.impact_notes : (override.notes != null ? override.notes : a.impact_notes),
+        metric_name: override.metric_name || a.metric_name,
+        metric_before: override.metric_before != null ? override.metric_before : a.metric_before,
+        metric_before_at: override.metric_before_at || a.metric_before_at,
+        metric_after: override.metric_after != null ? override.metric_after : a.metric_after,
+        metric_after_at: override.metric_after_at || a.metric_after_at,
+        actual_impact: override.actual_impact != null ? override.actual_impact : a.actual_impact,
+        outcome: override.outcome || a.outcome,
+        expected_impact: override.expected_impact || a.expected_impact,
+        confidence_score: override.confidence_score != null ? override.confidence_score : a.confidence_score,
+        data_window: override.data_window || a.data_window,
+        source_refs: override.source_refs || a.source_refs,
       };
     });
   });
+  if (logChanged) saveActionLog();
   return out;
 }
 
@@ -4224,9 +4549,17 @@ function flattenActions(actionsByDataset) {
 
 function updateActionStatus(actionId, status) {
   const entry = state.actionLog[actionId] || {};
+  const now = new Date().toISOString();
   entry.status = status;
-  if (status === ACTION_STATUS.COMPLETED) entry.completed_at = new Date().toISOString();
-  else entry.completed_at = '';
+  if (status === ACTION_STATUS.CONFIRM_TO_DO && !entry.date_confirmed) entry.date_confirmed = now;
+  if (status === ACTION_STATUS.IN_PROGRESS && !entry.date_started) entry.date_started = now;
+  if (status === ACTION_STATUS.COMPLETED) {
+    entry.completed_at = now;
+    entry.date_completed = entry.date_completed || now;
+  } else {
+    entry.completed_at = '';
+    entry.date_completed = '';
+  }
   state.actionLog[actionId] = entry;
   saveActionLog();
   /* Re-merge overrides onto the in-memory actions and re-render the UI
@@ -4239,6 +4572,52 @@ function updateActionStatus(actionId, status) {
     renderOverviewTopActions(state.actions, state.filters);
     renderSideDecisionsCount(state.actions, state.filters);
   }
+  /* LLM-derived actions live in state.llmActions; mutate + re-render those
+     too so a status set from any page reflects everywhere. */
+  if (state.llmActions) {
+    state.llmActions = state.llmActions.map(a =>
+      a.action_id === actionId ? { ...a, ...hydrateActions({ x: [a] }, state.actionLog).x[0] } : a
+    );
+  }
+  if (typeof renderTrackingPage === 'function') renderTrackingPage();
+  if (typeof rerenderLLMPagesFromCache === 'function') rerenderLLMPagesFromCache();
+}
+
+/* Persist a free-text field (owner / notes) for one action. */
+function updateActionField(actionId, field, value) {
+  const entry = state.actionLog[actionId] || {};
+  entry[field] = value;
+  if (field === 'notes') entry.impact_notes = value; /* keep alias in sync */
+  state.actionLog[actionId] = entry;
+  saveActionLog();
+  if (state.actions) state.actions = hydrateActions(state.actions, state.actionLog);
+  if (state.llmActions) {
+    state.llmActions = state.llmActions.map(a =>
+      a.action_id === actionId ? { ...a, [field]: value, ...(field === 'notes' ? { impact_notes: value } : {}) } : a
+    );
+  }
+  if (typeof renderTrackingPage === 'function') renderTrackingPage();
+}
+
+/* Persist a captured metric_after + derived impact + outcome. Called once
+   per action when the observation window closes; never recomputed unless the
+   user explicitly clicks "Recapture". */
+function persistMetricAfter(actionId, metric_after, actual_impact, outcome) {
+  const entry = state.actionLog[actionId] || {};
+  entry.metric_after = metric_after;
+  entry.metric_after_at = new Date().toISOString();
+  entry.actual_impact = actual_impact;
+  entry.outcome = outcome;
+  state.actionLog[actionId] = entry;
+  saveActionLog();
+  if (state.actions) state.actions = hydrateActions(state.actions, state.actionLog);
+  if (state.llmActions) {
+    state.llmActions = state.llmActions.map(a =>
+      a.action_id === actionId
+        ? { ...a, metric_after, metric_after_at: entry.metric_after_at, actual_impact, outcome }
+        : a
+    );
+  }
 }
 
 /* ── Filtering ─────────────────────────────────────────────────── */
@@ -4248,9 +4627,13 @@ function filterActions(flat, filters) {
     if (filters.source && filters.source !== 'all' && a.source !== filters.source) return false;
     if (filters.priority && filters.priority !== 'all' && a.priority !== filters.priority) return false;
     if (filters.status === 'active') {
-      if (a.status !== 'OPEN' && a.status !== 'IN_PROGRESS') return false;
+      if (!ACTIVE_STATUSES.has(a.status)) return false;
     } else if (filters.status && filters.status !== 'all') {
       if (a.status !== filters.status) return false;
+    }
+    if (filters.minConfidence != null && filters.minConfidence !== '' && filters.minConfidence !== 'all') {
+      const min = Number(filters.minConfidence);
+      if (isFinite(min) && (Number(a.confidence_score) || 0) < min) return false;
     }
     return true;
   });
@@ -4260,7 +4643,7 @@ function sortActions(list) {
   return [...list].sort((a, b) => {
     const p = (PRIORITY_ORDER[b.priority] || 0) - (PRIORITY_ORDER[a.priority] || 0);
     if (p) return p;
-    const statusOrder = { OPEN: 0, IN_PROGRESS: 1, COMPLETED: 2, DISMISSED: 3 };
+    const statusOrder = { OPEN: 0, CONFIRM_TO_DO: 1, IN_PROGRESS: 2, COMPLETED: 3, DISMISSED: 4 };
     return (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
   });
 }
@@ -4274,12 +4657,16 @@ function renderActionCounters(actionsByDataset) {
      source/priority/status filters (those are view filters). */
   const scope = flat.filter(a => !state.filters.brand || state.filters.brand === 'all' || a.brand === state.filters.brand || a.brand === 'all');
   const open = scope.filter(a => a.status === 'OPEN').length;
-  const high = scope.filter(a => a.priority === 'HIGH' && (a.status === 'OPEN' || a.status === 'IN_PROGRESS')).length;
+  const confirmed = scope.filter(a => a.status === 'CONFIRM_TO_DO').length;
+  const inProgress = scope.filter(a => a.status === 'IN_PROGRESS').length;
+  const high = scope.filter(a => a.priority === 'HIGH' && ACTIVE_STATUSES.has(a.status)).length;
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const completedWeek = scope.filter(a => a.status === 'COMPLETED' && a.completed_at && new Date(a.completed_at).getTime() >= weekAgo).length;
+  const completedWeek = scope.filter(a => a.status === 'COMPLETED' && (a.date_completed || a.completed_at) && new Date(a.date_completed || a.completed_at).getTime() >= weekAgo).length;
   const dismissed = scope.filter(a => a.status === 'DISMISSED').length;
   el.innerHTML = `
     <div class="action-counter"><div class="action-counter-value">${open}</div><div class="action-counter-label">Open</div></div>
+    <div class="action-counter"><div class="action-counter-value confirmed">${confirmed}</div><div class="action-counter-label">Confirmed</div></div>
+    <div class="action-counter"><div class="action-counter-value progress">${inProgress}</div><div class="action-counter-label">In progress</div></div>
     <div class="action-counter"><div class="action-counter-value high">${high}</div><div class="action-counter-label">High priority</div></div>
     <div class="action-counter"><div class="action-counter-value completed">${completedWeek}</div><div class="action-counter-label">Done this week</div></div>
     <div class="action-counter"><div class="action-counter-value dismissed">${dismissed}</div><div class="action-counter-label">Dismissed</div></div>
@@ -4288,35 +4675,66 @@ function renderActionCounters(actionsByDataset) {
 
 function renderActionCardHtml(a) {
   const sev = a.priority.toLowerCase();
-  const label = ACTION_TYPE_LABELS[a.action_type] || a.action_type;
+  const isLLM = !!a._llm;
+  const label = isLLM
+    ? (a._llm.title || ACTION_TYPE_LABELS[a.action_type] || a.action_type)
+    : (ACTION_TYPE_LABELS[a.action_type] || a.action_type);
   const trigger = a.metric_trigger ? `<div class="rec-trigger">${escapeHtml(a.metric_trigger)}</div>` : '';
-  const metaBits = [`<span>${a.grain}</span>`];
+  const metaBits = [`<span>${a.grain || ''}</span>`];
   if (a.brand && a.brand !== 'all') metaBits.push(`<span>${a.brand === 'via' ? 'ViaTrading' : a.brand === 'liq' ? 'LiquidateNow' : a.brand}</span>`);
+  const sourceLabel = (SOURCE_DETAIL[a.source] && SOURCE_DETAIL[a.source].label) || a.source || '';
+  if (sourceLabel) metaBits.push(`<span class="rec-source-chip">${escapeHtml(sourceLabel)}</span>`);
+  if (isLLM) metaBits.push(`<span class="rec-source-chip">${escapeHtml(a._llm.provider)}</span>`);
   metaBits.push('<span>click for numbers</span>');
+  const conf = Number.isFinite(Number(a.confidence_score)) ? Number(a.confidence_score) : null;
+  const confChip = conf != null
+    ? `<span class="rec-confidence" title="Confidence">${conf}<span class="rec-confidence-pct">%</span></span>`
+    : '';
+  const statusLabel = (a.status || 'OPEN').replace(/_/g, ' ');
   const decisionPayload = encodeURIComponent(JSON.stringify({
-    kind: 'rule',
+    kind: isLLM ? 'llm' : 'rule',
+    provider: isLLM ? a._llm.provider : 'RULES',
     action_id: a.action_id,
     source: a.source, grain: a.grain,
     entity_id: a.entity_id, entity_name: a.entity_name,
+    entity: a.entity_name,
     brand: a.brand, priority: a.priority,
     action_type: a.action_type, label,
+    title: isLLM ? a._llm.title : label,
     reason: a.reason, metric_trigger: a.metric_trigger,
     current_value: a.current_value, benchmark_value: a.benchmark_value,
     status: a.status,
+    confidence_score: a.confidence_score,
+    metric_name: a.metric_name,
+    metric_before: a.metric_before,
+    metric_after: a.metric_after,
+    actual_impact: a.actual_impact,
+    outcome: a.outcome,
+    expected_impact: a.expected_impact,
+    owner: a.owner, notes: a.notes || a.impact_notes || '',
+    date_created: a.date_created, date_confirmed: a.date_confirmed,
+    date_started: a.date_started, date_completed: a.date_completed,
   }));
+  /* Show "Confirm to do" while still OPEN; once confirmed/in-progress, the
+     button collapses out and the row's status tag tells the story. */
+  const confirmBtn = a.status === ACTION_STATUS.OPEN
+    ? `<button class="rec-btn rec-btn-confirm" type="button" data-action-set="${a.action_id}:CONFIRM_TO_DO">Confirm to do</button>`
+    : '';
   return `
     <div class="rec-card status-${a.status}" data-action-id="${a.action_id}" data-decision="${decisionPayload}">
-      <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+      <div class="rec-card-head">
         <span class="rec-sev rec-sev-${sev}">${a.priority}</span>
-        <span class="rec-status-tag rec-status-${a.status}">${a.status.replace('_', ' ')}</span>
+        <span class="rec-status-tag rec-status-${a.status}">${escapeHtml(statusLabel)}</span>
+        ${confChip}
       </div>
       <div class="rec-title">${escapeHtml(label)} — ${escapeHtml(a.entity_name || '—')}</div>
       <div class="rec-rationale">${escapeHtml(a.reason)}</div>
       ${trigger}
       <div class="rec-meta-row">${metaBits.join('')}</div>
       <div class="rec-actions">
-        <button class="rec-btn rec-btn-complete" type="button" data-action-set="${a.action_id}:COMPLETED">Complete</button>
+        ${confirmBtn}
         <button class="rec-btn rec-btn-progress" type="button" data-action-set="${a.action_id}:IN_PROGRESS">In Progress</button>
+        <button class="rec-btn rec-btn-complete" type="button" data-action-set="${a.action_id}:COMPLETED">Complete</button>
         <button class="rec-btn rec-btn-dismiss" type="button" data-action-set="${a.action_id}:DISMISSED">Dismiss</button>
       </div>
     </div>
@@ -4369,7 +4787,7 @@ function renderOverviewTopActions(actionsByDataset, filters) {
   if (!el) return;
   const flat = flattenActions(actionsByDataset);
   const scoped = flat.filter(a =>
-    (a.status === 'OPEN' || a.status === 'IN_PROGRESS') &&
+    ACTIVE_STATUSES.has(a.status) &&
     (!filters.brand || filters.brand === 'all' || a.brand === filters.brand || a.brand === 'all')
   );
   const top = sortActions(scoped).slice(0, 5);
@@ -4396,7 +4814,7 @@ function renderSideDecisionsCount(actionsByDataset, filters) {
   if (!el) return;
   const flat = flattenActions(actionsByDataset);
   const n = flat.filter(a =>
-    (a.status === 'OPEN' || a.status === 'IN_PROGRESS') &&
+    ACTIVE_STATUSES.has(a.status) &&
     (!filters.brand || filters.brand === 'all' || a.brand === filters.brand || a.brand === 'all')
   ).length;
   el.textContent = n ? String(n) : '';
@@ -4416,7 +4834,7 @@ function renderTodoList(actionsByDataset, filters) {
     )
   ).slice(0, 10);
   const brandScope = flat.filter(a => !filters.brand || filters.brand === 'all' || a.brand === filters.brand || a.brand === 'all');
-  const totalOpen = brandScope.filter(a => a.status === 'OPEN' || a.status === 'IN_PROGRESS').length;
+  const totalOpen = brandScope.filter(a => ACTIVE_STATUSES.has(a.status)).length;
   meta.textContent = `${picks.length} shown · ${totalOpen} active`;
   if (!picks.length) {
     list.innerHTML = `<li class="todo-empty">No high or medium priority actions open. Nice.</li>`;
@@ -5992,6 +6410,7 @@ function paint(ads, gsc, ga, ac, social, keywords, pagespeed, semrush_kw, semrus
   renderOverviewTopActions(state.actions, state.filters);
   renderSideDecisionsCount(state.actions, state.filters);
   renderTodoList(state.actions, state.filters);
+  if (typeof renderTrackingPage === 'function') renderTrackingPage();
   renderOverview(ads, gsc, ga, ac);
   renderOverviewTop5(state._lastScoped);
   renderLowHanging(state._lastScoped);
@@ -7438,13 +7857,26 @@ function loadCachedDecisions(storage, key) {
   } catch { return null; }
 }
 
+/* Read whatever the most recent cached run was, ignoring the data-scope key.
+   The Tracking page uses this so persisted decisions from any earlier run
+   still surface even if the current dashboard scope produces a different
+   cache key. */
+function loadAnyCachedDecisions(storage) {
+  try {
+    const raw = localStorage.getItem(storage);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    return obj && Array.isArray(obj.decisions) ? obj : null;
+  } catch { return null; }
+}
+
 function saveCachedDecisions(storage, key, decisions, raw) {
   try {
     localStorage.setItem(storage, JSON.stringify({ key, decisions, raw, at: new Date().toISOString() }));
   } catch {}
 }
 
-const LLM_DECISIONS_PROMPT = `You are **Vicki**, the marketing intelligence copilot for ViaTrading and LiquidateNow, reviewing the marketing data summarized below for the period the user selected. Pick the 12–20 highest-leverage decisions for the team — diverse across sources, with at least one per source that has signal. Skip boilerplate ("monitor performance"); only return decisions backed by a number in the data. Output strict JSON: {"decisions":[{"title":"…","source":"ads|keywords|gsc|semrush_kw|semrush_bl|ga|pagespeed|social|aircall|cross","brand":"all|via|liq","priority":"HIGH|MEDIUM|LOW","entity":"…","reason":"…","metric_trigger":"…"}]}`;
+const LLM_DECISIONS_PROMPT = `You are **Vicki**, the marketing intelligence copilot for ViaTrading and LiquidateNow, reviewing the marketing data summarized below for the period the user selected. Pick the 12–20 highest-leverage decisions for the team — diverse across sources, with at least one per source that has signal. Skip boilerplate ("monitor performance"); only return decisions backed by a number in the data. Output strict JSON: {"decisions":[{"title":"…","source":"ads|keywords|gsc|semrush_kw|semrush_bl|ga|pagespeed|social|aircall|cross","brand":"all|via|liq","priority":"HIGH|MEDIUM|LOW","entity":"…","reason":"…","metric_trigger":"…","metric_name":"…","metric_value":<number>,"expected_impact":"…","confidence":<0-100>}]}. confidence is your self-rated 0–100 certainty that acting on this will improve the metric. metric_name is the KPI you'd track to measure success (e.g. "CPA", "CTR", "Sessions", "LCP"). metric_value is the current numeric reading of that KPI for this entity, captured from the data summaries — this becomes the "before" baseline.`;
 
 async function callClaudeAPI(payload, apiKey, opts = {}) {
   const userContent = opts.userContent || `${LLM_DECISIONS_PROMPT}\n\nDATA:\n${JSON.stringify(payload)}`;
@@ -7545,10 +7977,67 @@ function flashSavedButton(btnId) {
   }, 1200);
 }
 
-/* Shared renderer for Claude + GPT decisions. The badge label distinguishes
-   which model produced the cards visually. */
-/* Track per-mount, per-source expanded state so toggling Show all on the
-   Claude page doesn't expand the GPT page's groups. */
+/* LLM source → grain best-guess so action_ids stay deterministic. The grain
+   slot in the id mostly exists to make rule-engine ids unique by entity-type;
+   for LLM decisions we fall back to the source itself when nothing better
+   fits. */
+const LLM_GRAIN_FOR_SOURCE = {
+  ads: 'campaign', keywords: 'keyword', gsc: 'query',
+  semrush_kw: 'keyword', semrush_bl: 'site', ga: 'channel',
+  pagespeed: 'url', social: 'platform', aircall: 'line', cross: 'cross',
+};
+/* Convert one LLM decision (raw JSON from the model) into an action object
+   that flows through the same hydrate/persist/render machinery as rule-based
+   actions. The action_id namespaces by provider so Claude and GPT entries for
+   the same entity don't collide. */
+function llmDecisionToAction(provider, d) {
+  const source = String(d.source || 'cross');
+  const grain = LLM_GRAIN_FOR_SOURCE[source] || 'cross';
+  const entity = d.entity || d.entity_name || '';
+  const titleSlug = slug(d.title || d.action_type || 'decision');
+  const action_id = `llm-${String(provider).toLowerCase()}:${source}:${slug(entity)}:${titleSlug}`;
+  const action_type = String(d.action_type || d.title || titleSlug.toUpperCase().replace(/-/g, '_')).slice(0, 60);
+  const metric_value = (d.metric_value != null && isFinite(Number(d.metric_value))) ? Number(d.metric_value) : null;
+  const a = newAction({
+    action_id,
+    source,
+    grain,
+    entity_id: entity,
+    entity_name: entity,
+    brand: d.brand || 'all',
+    priority: (d.priority || 'MEDIUM').toUpperCase(),
+    action_type,
+    reason: d.reason || '',
+    metric_trigger: d.metric_trigger || '',
+    metric_name: d.metric_name || '',
+    current_value: metric_value,
+    expected_impact: d.expected_impact || '',
+  });
+  /* If the LLM self-reported a confidence, trust it over the formula. */
+  if (d.confidence != null && isFinite(Number(d.confidence))) {
+    a.confidence_score = Math.max(0, Math.min(100, Math.round(Number(d.confidence))));
+  }
+  a._llm = { provider: String(provider), title: d.title || '' };
+  return a;
+}
+/* Build the merged + hydrated LLM-action list across both providers. Used by
+   the Tracking page to surface every decision regardless of source. */
+function buildLLMActions() {
+  const out = [];
+  const claudeRes = state.claude && state.claude.result;
+  if (Array.isArray(claudeRes)) claudeRes.forEach(d => out.push(llmDecisionToAction('CLAUDE', d)));
+  const gptRes = state.gpt && state.gpt.result;
+  if (Array.isArray(gptRes)) gptRes.forEach(d => out.push(llmDecisionToAction('GPT', d)));
+  /* Run hydrate so persisted status / dates / metric_after merge in. We wrap
+     in a single-key object since hydrateActions expects a dataset map. */
+  const hydrated = hydrateActions({ llm: out }, state.actionLog).llm;
+  state.llmActions = hydrated;
+  return hydrated;
+}
+
+/* Shared renderer for Claude + GPT decisions. Cards render through the same
+   renderActionCardHtml as rule-based decisions, so status controls and the
+   "Confirm to do" flow work identically. */
 const llmExpanded = {};
 function renderLLMDecisions(list, mountId, badgeLabel) {
   const el = document.getElementById(mountId);
@@ -7557,46 +8046,32 @@ function renderLLMDecisions(list, mountId, badgeLabel) {
     el.innerHTML = `<div class="action-empty">No decisions yet. Save your API key and click Generate.</div>`;
     return;
   }
-  /* Group by source like the Filters page */
+  /* Convert raw LLM JSON → action objects, then hydrate so persisted status /
+     metric_after / dates merge in. We also rebuild state.llmActions every
+     render so the Tracking page sees the freshest cross-provider view. */
+  const provider = badgeLabel || 'LLM';
+  const actions = list.map(d => llmDecisionToAction(provider, d));
+  const hydrated = hydrateActions({ llm: actions }, state.actionLog).llm;
+  /* Merge into state.llmActions: replace this provider's slice. */
+  const others = (state.llmActions || []).filter(a => !a._llm || a._llm.provider !== provider);
+  state.llmActions = others.concat(hydrated);
+
+  /* Apply current view filters (source / priority / status / minConfidence). */
+  const filtered = sortActions(filterActions(hydrated, state.filters));
   const grouped = {};
-  list.forEach(d => { (grouped[d.source] || (grouped[d.source] = [])).push(d); });
+  filtered.forEach(a => { (grouped[a.source] || (grouped[a.source] = [])).push(a); });
   const visible = SOURCE_ORDER.filter(s => grouped[s] && grouped[s].length);
-  /* Tail bucket for sources the LLM made up that aren't in our taxonomy. */
   const otherSources = Object.keys(grouped).filter(s => !SOURCE_ORDER.includes(s));
   if (!llmExpanded[mountId]) llmExpanded[mountId] = {};
   const expandedMap = llmExpanded[mountId];
 
-  const renderCard = d => {
-    const sev = (d.priority || 'MEDIUM').toLowerCase();
-    const brandLine = d.brand && d.brand !== 'all' ? ` · ${d.brand === 'via' ? 'ViaTrading' : d.brand === 'liq' ? 'LiquidateNow' : d.brand}` : '';
-    const detail = SOURCE_DETAIL[d.source] || { label: d.source || '', hint: '' };
-    const decisionPayload = encodeURIComponent(JSON.stringify({
-      kind: 'llm',
-      provider: badgeLabel,
-      title: d.title, source: d.source, entity: d.entity,
-      brand: d.brand, priority: d.priority, reason: d.reason,
-      metric_trigger: d.metric_trigger,
-    }));
-    return `
-      <div class="rec-card status-OPEN" data-decision="${decisionPayload}">
-        <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
-          <span class="rec-sev rec-sev-${sev}">${(d.priority || 'MEDIUM').toUpperCase()}</span>
-          <span class="rec-status-tag rec-status-OPEN">${escapeHtml(badgeLabel)}</span>
-        </div>
-        <div class="rec-title">${escapeHtml(d.title || 'Decision')} — ${escapeHtml(d.entity || '—')}</div>
-        <div class="rec-rationale">${escapeHtml(d.reason || '')}</div>
-        ${d.metric_trigger ? `<div class="rec-trigger">${escapeHtml(d.metric_trigger)}</div>` : ''}
-        <div class="rec-meta-row"><span>${escapeHtml(detail.label)}${escapeHtml(brandLine)} · click for numbers</span></div>
-      </div>`;
-  };
-
-  el.innerHTML = [...visible, ...otherSources].map(src => {
+  const sections = [...visible, ...otherSources].map(src => {
     const detail = SOURCE_DETAIL[src] || { label: src, hint: '' };
     const all = grouped[src];
     const expanded = !!expandedMap[src];
     const visibleList = expanded ? all : all.slice(0, 5);
     const more = all.length - visibleList.length;
-    const cards = visibleList.map(renderCard).join('');
+    const cards = visibleList.map(renderActionCardHtml).join('');
     const toggle = all.length > 5
       ? `<button type="button" class="rec-source-toggle" data-llm-toggle="${src}">${expanded ? `Show top 5` : `Show all ${all.length}`}</button>`
       : '';
@@ -7606,9 +8081,23 @@ function renderLLMDecisions(list, mountId, badgeLabel) {
         <div class="rec-source-grid">${cards}</div>
         ${!expanded && more > 0 ? `<div class="rec-source-hint" style="margin-top:0.4rem">+ ${more} more — click "Show all ${all.length}"</div>` : ''}
       </section>`;
-  }).join('');
+  });
 
-  /* Wire toggle buttons. */
+  if (!sections.length) {
+    el.innerHTML = `<div class="action-empty">No ${escapeHtml(badgeLabel || 'LLM')} decisions match the current filters.</div>`;
+    return;
+  }
+  el.innerHTML = sections.join('');
+
+  /* Status buttons on the cards. */
+  el.querySelectorAll('[data-action-set]').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const [id, status] = btn.dataset.actionSet.split(':');
+      updateActionStatus(id, status);
+    });
+  });
+  /* Show all / Show top 5 toggle buttons. */
   el.querySelectorAll('[data-llm-toggle]').forEach(btn => {
     btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
@@ -7616,6 +8105,285 @@ function renderLLMDecisions(list, mountId, badgeLabel) {
       expandedMap[src] = !expandedMap[src];
       renderLLMDecisions(list, mountId, badgeLabel);
     });
+  });
+}
+
+/* When a status changes anywhere (Filters / Tracking / a card), re-render the
+   per-provider LLM pages so they pick up the new persisted state. Reads from
+   the cached raw decisions in state.{claude,gpt}.result. */
+function rerenderLLMPagesFromCache() {
+  if (state.claude && Array.isArray(state.claude.result)) {
+    renderLLMDecisions(state.claude.result, 'claudeRecs', 'CLAUDE');
+  }
+  if (state.gpt && Array.isArray(state.gpt.result)) {
+    renderLLMDecisions(state.gpt.result, 'gptRecs', 'GPT');
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Decision Tracking: unified table across rule + LLM decisions, with
+   lifecycle status, owner/notes editors, and computed before/after
+   metrics. Statuses persist via the same actionLog as the per-source
+   pages, so changes here reflect everywhere.
+   ──────────────────────────────────────────────────────────────────── */
+
+const TRACKING_OBSERVATION_DAYS = 14;
+
+/* Pull a numeric "current" value for one metric_name from the live drilldown
+   data. Used to capture metric_after once the observation window closes. */
+function lookupMetricValue(source, entity, metric_name) {
+  const drill = getDrilldownData(source, entity);
+  if (!drill || !drill.kpis || !drill.kpis.length) return null;
+  const target = String(metric_name || '').toLowerCase();
+  if (!target) return null;
+  const hit = drill.kpis.find(k => String(k.label || '').toLowerCase() === target);
+  if (!hit) return null;
+  /* KPI values are pre-formatted ($1,234.56 / 12.34% / etc.). Strip the
+     formatting back to a number so we can compute a delta. */
+  const num = Number(String(hit.value).replace(/[^0-9.\-]/g, ''));
+  return isFinite(num) ? num : null;
+}
+
+/* If a COMPLETED decision is past its observation window and has no
+   metric_after captured yet, capture it now and persist. Idempotent —
+   skips anything already filled in. */
+function maybeCaptureMetricAfter(action) {
+  if (action.status !== ACTION_STATUS.COMPLETED) return action;
+  if (action.metric_after != null) return action;
+  const completed = action.date_completed || action.completed_at;
+  if (!completed) return action;
+  const ageMs = Date.now() - new Date(completed).getTime();
+  if (ageMs < TRACKING_OBSERVATION_DAYS * 24 * 60 * 60 * 1000) return action;
+  const after = lookupMetricValue(action.source, action.entity_name || action.entity_id, action.metric_name);
+  if (after == null) return action;
+  const before = Number(action.metric_before);
+  const direction = ACTION_DIRECTION_MAP[action.action_type] || 'INCREASE';
+  const impact = isFinite(before) ? (after - before) : null;
+  const outcome = computeOutcome(before, after, direction);
+  persistMetricAfter(action.action_id, after, impact, outcome);
+  return { ...action, metric_after: after, actual_impact: impact, outcome };
+}
+
+/* Force-recapture (user clicks the "Recapture" link). Bypasses the window
+   check and overwrites metric_after with whatever the live data says now. */
+function forceRecaptureMetricAfter(actionId) {
+  const all = getAllTrackedActions();
+  const a = all.find(x => x.action_id === actionId);
+  if (!a) return;
+  const after = lookupMetricValue(a.source, a.entity_name || a.entity_id, a.metric_name);
+  if (after == null) return;
+  const before = Number(a.metric_before);
+  const direction = ACTION_DIRECTION_MAP[a.action_type] || 'INCREASE';
+  const impact = isFinite(before) ? (after - before) : null;
+  const outcome = computeOutcome(before, after, direction);
+  persistMetricAfter(actionId, after, impact, outcome);
+  renderTrackingPage();
+}
+
+/* Merged hydrated list of every action across rule + LLM sources. */
+function getAllTrackedActions() {
+  const rule = state.actions ? flattenActions(state.actions) : [];
+  const llm = buildLLMActions();
+  return rule.concat(llm);
+}
+
+function fmtTrackingNumber(v) {
+  if (v == null || !isFinite(Number(v))) return '—';
+  const n = Number(v);
+  if (Math.abs(n) >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  if (Math.abs(n) >= 1) return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return n.toFixed(3);
+}
+
+function fmtShortDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch { return '—'; }
+}
+
+function trackingFilterMatch(a, f) {
+  if (f.brand && f.brand !== 'all' && a.brand !== f.brand && a.brand !== 'all') return false;
+  if (f.source && f.source !== 'all' && a.source !== f.source) return false;
+  if (f.priority && f.priority !== 'all' && a.priority !== f.priority) return false;
+  if (f.status === 'active') {
+    if (!ACTIVE_STATUSES.has(a.status)) return false;
+  } else if (f.status && f.status !== 'all') {
+    if (a.status !== f.status) return false;
+  }
+  if (f.minConfidence != null && f.minConfidence !== '' && f.minConfidence !== 'all') {
+    const min = Number(f.minConfidence);
+    if (isFinite(min) && (Number(a.confidence_score) || 0) < min) return false;
+  }
+  if (f.provider && f.provider !== 'all') {
+    const isLLM = !!a._llm;
+    if (f.provider === 'rule' && isLLM) return false;
+    if (f.provider !== 'rule' && (!isLLM || a._llm.provider !== f.provider)) return false;
+  }
+  return true;
+}
+
+function renderTrackingCounters(rows) {
+  const el = document.getElementById('trackingCounters');
+  if (!el) return;
+  const open = rows.filter(a => a.status === 'OPEN').length;
+  const confirmed = rows.filter(a => a.status === 'CONFIRM_TO_DO').length;
+  const inProgress = rows.filter(a => a.status === 'IN_PROGRESS').length;
+  const completed = rows.filter(a => a.status === 'COMPLETED').length;
+  const dismissed = rows.filter(a => a.status === 'DISMISSED').length;
+  el.innerHTML = `
+    <div class="action-counter"><div class="action-counter-value">${open}</div><div class="action-counter-label">Open</div></div>
+    <div class="action-counter"><div class="action-counter-value confirmed">${confirmed}</div><div class="action-counter-label">Confirmed</div></div>
+    <div class="action-counter"><div class="action-counter-value progress">${inProgress}</div><div class="action-counter-label">In progress</div></div>
+    <div class="action-counter"><div class="action-counter-value completed">${completed}</div><div class="action-counter-label">Completed</div></div>
+    <div class="action-counter"><div class="action-counter-value dismissed">${dismissed}</div><div class="action-counter-label">Dismissed</div></div>
+  `;
+}
+
+function renderTrackingPage() {
+  const tbody = document.getElementById('trackingTableBody');
+  if (!tbody) return; /* page not in DOM */
+  const filters = trackingFilters();
+  const all = getAllTrackedActions().map(maybeCaptureMetricAfter);
+  /* Sort: active first, then by priority, then by created date desc. */
+  const sorted = [...all].sort((a, b) => {
+    const aActive = ACTIVE_STATUSES.has(a.status) ? 0 : 1;
+    const bActive = ACTIVE_STATUSES.has(b.status) ? 0 : 1;
+    if (aActive !== bActive) return aActive - bActive;
+    const p = (PRIORITY_ORDER[b.priority] || 0) - (PRIORITY_ORDER[a.priority] || 0);
+    if (p) return p;
+    const ad = new Date(a.date_created || a.created_at || 0).getTime();
+    const bd = new Date(b.date_created || b.created_at || 0).getTime();
+    return bd - ad;
+  });
+  const filtered = sorted.filter(a => trackingFilterMatch(a, filters));
+  renderTrackingCounters(sorted.filter(a => !filters.brand || filters.brand === 'all' || a.brand === filters.brand || a.brand === 'all'));
+  const sideCount = document.getElementById('sideTrackingCount');
+  if (sideCount) sideCount.textContent = filtered.length ? String(filtered.length) : '';
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="13" class="tracking-empty">No decisions match the current filters.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(a => trackingRowHtml(a)).join('');
+  /* Wire status selects + owner / notes editors + recapture buttons. */
+  tbody.querySelectorAll('select.track-status-select').forEach(sel => {
+    sel.addEventListener('change', (ev) => {
+      ev.stopPropagation();
+      updateActionStatus(sel.dataset.actionId, sel.value);
+    });
+    sel.addEventListener('click', (ev) => ev.stopPropagation());
+  });
+  tbody.querySelectorAll('input.track-owner-input, input.track-notes-input').forEach(inp => {
+    inp.addEventListener('click', (ev) => ev.stopPropagation());
+    inp.addEventListener('change', () => {
+      updateActionField(inp.dataset.actionId, inp.dataset.field, inp.value);
+    });
+  });
+  tbody.querySelectorAll('button.track-recapture').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      forceRecaptureMetricAfter(btn.dataset.actionId);
+    });
+  });
+  /* Click row → open the decision modal so the user sees the full numbers. */
+  tbody.querySelectorAll('tr[data-decision]').forEach(tr => {
+    tr.addEventListener('click', () => {
+      try {
+        const payload = JSON.parse(decodeURIComponent(tr.dataset.decision));
+        openDecisionModal(payload);
+      } catch (e) { console.error('tracking row payload parse failed', e); }
+    });
+  });
+}
+
+function trackingFilters() {
+  const get = id => {
+    const el = document.getElementById(id);
+    return el ? el.value : 'all';
+  };
+  return {
+    brand: state.filters.brand,
+    source: get('trackingSource'),
+    priority: get('trackingPriority'),
+    status: get('trackingStatus'),
+    minConfidence: get('trackingConfidence'),
+    provider: get('trackingProvider'),
+  };
+}
+
+function trackingRowHtml(a) {
+  const label = ACTION_TYPE_LABELS[a.action_type] || a.action_type || (a._llm && a._llm.title) || 'Decision';
+  const sevClass = (a.priority || 'MEDIUM').toLowerCase();
+  const provider = a._llm ? a._llm.provider : 'RULES';
+  const sourceLabel = (SOURCE_DETAIL[a.source] && SOURCE_DETAIL[a.source].label) || a.source || '';
+  const before = a.metric_before;
+  const after = a.metric_after;
+  const impact = a.actual_impact;
+  const direction = ACTION_DIRECTION_MAP[a.action_type] || 'INCREASE';
+  const impactClass = impact == null ? 'track-impact-flat'
+    : Math.abs(impact) < (Math.abs(Number(before) || 1) * 0.05) ? 'track-impact-flat'
+    : ((impact > 0) === (direction === 'INCREASE') ? 'track-impact-up' : 'track-impact-down');
+  const outcomeBadge = a.outcome
+    ? `<span class="track-outcome track-outcome-${a.outcome}">${a.outcome === 'SUCCESS' ? '✓' : a.outcome === 'FAIL' ? '✗' : '~'} ${a.outcome}</span>`
+    : (a.status === 'COMPLETED' ? `<span class="track-outcome-pending">observing…</span>` : '<span class="track-outcome-pending">—</span>');
+  const recaptureBtn = a.status === 'COMPLETED' && a.metric_after != null
+    ? `<button type="button" class="track-recapture" data-action-id="${escapeHtml(a.action_id)}" title="Recapture metric_after from live data">↻</button>`
+    : '';
+  const date = a.status === 'COMPLETED' ? a.date_completed
+    : a.status === 'IN_PROGRESS' ? a.date_started
+    : a.status === 'CONFIRM_TO_DO' ? a.date_confirmed
+    : a.date_created;
+  const conf = Number.isFinite(Number(a.confidence_score)) ? Number(a.confidence_score) : 0;
+  const decisionPayload = encodeURIComponent(JSON.stringify({
+    kind: a._llm ? 'llm' : 'rule',
+    provider,
+    action_id: a.action_id,
+    source: a.source, grain: a.grain,
+    entity_id: a.entity_id, entity_name: a.entity_name,
+    entity: a.entity_name,
+    brand: a.brand, priority: a.priority,
+    action_type: a.action_type, label,
+    title: (a._llm && a._llm.title) || label,
+    reason: a.reason, metric_trigger: a.metric_trigger,
+    current_value: a.current_value, benchmark_value: a.benchmark_value,
+    status: a.status,
+    confidence_score: a.confidence_score,
+    metric_name: a.metric_name,
+    metric_before: a.metric_before, metric_after: a.metric_after,
+    actual_impact: a.actual_impact, outcome: a.outcome,
+    expected_impact: a.expected_impact,
+    owner: a.owner, notes: a.notes || a.impact_notes || '',
+  }));
+  const statusOptions = ['OPEN', 'CONFIRM_TO_DO', 'IN_PROGRESS', 'COMPLETED', 'DISMISSED'].map(s =>
+    `<option value="${s}"${s === a.status ? ' selected' : ''}>${s.replace(/_/g, ' ')}</option>`
+  ).join('');
+  return `
+    <tr data-decision="${decisionPayload}" data-action-id="${escapeHtml(a.action_id)}">
+      <td class="track-decision">
+        ${escapeHtml(label)} — ${escapeHtml(a.entity_name || '—')}
+        <span class="track-decision-sub">${escapeHtml(a.metric_trigger || a.reason || '')}</span>
+      </td>
+      <td>${escapeHtml(SOURCE_CATEGORY[a.source] || a.source || '—')}</td>
+      <td>${escapeHtml(sourceLabel)}<span class="track-decision-sub">${escapeHtml(provider)}</span></td>
+      <td class="num"><span class="rec-sev rec-sev-${sevClass}">${escapeHtml(a.priority || 'MEDIUM')}</span></td>
+      <td class="num">${conf}</td>
+      <td class="track-status-cell">
+        <select class="track-status-select" data-action-id="${escapeHtml(a.action_id)}">${statusOptions}</select>
+      </td>
+      <td class="num" title="${escapeHtml(a.metric_name || '')}">${fmtTrackingNumber(before)}</td>
+      <td class="num">${fmtTrackingNumber(after)}${recaptureBtn}</td>
+      <td class="num ${impactClass}">${impact == null ? '—' : (impact > 0 ? '+' : '') + fmtTrackingNumber(impact)}</td>
+      <td>${outcomeBadge}</td>
+      <td><input type="text" class="track-owner-input" data-action-id="${escapeHtml(a.action_id)}" data-field="owner" value="${escapeHtml(a.owner || '')}" placeholder="—"/></td>
+      <td><input type="text" class="track-notes-input" data-action-id="${escapeHtml(a.action_id)}" data-field="notes" value="${escapeHtml(a.notes || a.impact_notes || '')}" placeholder="—"/></td>
+      <td>${escapeHtml(fmtShortDate(date))}</td>
+    </tr>`;
+}
+
+function initTrackingFilters() {
+  ['trackingSource', 'trackingPriority', 'trackingStatus', 'trackingConfidence', 'trackingProvider'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => renderTrackingPage());
   });
 }
 
@@ -7649,7 +8417,7 @@ const SIDEBAR_ICONS = {
   semrush: 'trendup', web: 'bar', pagespeed: 'gauge', calls: 'phone',
   social: 'share', content: 'file', email: 'mail', chat: 'chat',
   pinned: 'bookmark', lowhanging: 'zap',
-  decisions_filters: 'filter', decisions_claude: 'sparkles', decisions_gpt: 'sparkles',
+  decisions_filters: 'filter', decisions_claude: 'sparkles', decisions_gpt: 'sparkles', tracking: 'bar',
   thresholds: 'sliders', sources: 'database', history: 'history',
 };
 function cmoIcon(name, className) {
@@ -7864,14 +8632,58 @@ function openDecisionModal(payload) {
     rowsHtml = `<div><div class="cmo-modal-section-title">Source rows (sample)</div>${_renderRowsTable(drill.rows, drill.rowCols)}</div>`;
   }
 
+  /* Lifecycle section — confidence, status, owner/notes, baseline metrics,
+     outcome. Only renders when we actually have an action_id (so this stays
+     hidden for synthetic Top-5 modal openings). */
+  let lifecycleHtml = '';
+  if (payload.action_id) {
+    const fmtN = v => (v == null || !isFinite(Number(v))) ? '—'
+      : Math.abs(Number(v)) >= 1000
+        ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 })
+        : Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const lifeKPIs = [
+      { label: 'Status', value: (payload.status || 'OPEN').replace(/_/g, ' ') },
+      { label: 'Confidence', value: payload.confidence_score != null ? `${payload.confidence_score}%` : '—' },
+      { label: 'Metric', value: payload.metric_name || '—' },
+      { label: 'Before', value: fmtN(payload.metric_before) },
+      { label: 'After', value: fmtN(payload.metric_after) },
+      { label: 'Impact', value: payload.actual_impact == null ? '—' : (Number(payload.actual_impact) > 0 ? '+' : '') + fmtN(payload.actual_impact) },
+      { label: 'Outcome', value: payload.outcome || (payload.status === 'COMPLETED' ? 'observing…' : '—') },
+      { label: 'Expected', value: payload.expected_impact || '—' },
+    ];
+    lifecycleHtml = `
+      <div>
+        <div class="cmo-modal-section-title">Lifecycle</div>
+        ${_renderKVGrid(lifeKPIs)}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.6rem">
+          <label style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.72rem;color:var(--text3)">
+            Owner
+            <input type="text" id="modalOwnerInput" value="${escapeHtml(payload.owner || '')}" placeholder="—" style="padding:4px 6px;border:1px solid var(--border);border-radius:3px;background:var(--surface);color:var(--text);font:inherit"/>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.72rem;color:var(--text3)">
+            Notes
+            <input type="text" id="modalNotesInput" value="${escapeHtml(payload.notes || '')}" placeholder="—" style="padding:4px 6px;border:1px solid var(--border);border-radius:3px;background:var(--surface);color:var(--text);font:inherit"/>
+          </label>
+        </div>
+      </div>`;
+  }
+
   bodyEl.innerHTML = `
     <div>
       <div class="cmo-modal-section-title">Why</div>
       <div class="cmo-modal-why">${escapeHtml(reason)}${trigger}</div>
     </div>
+    ${lifecycleHtml}
     ${numbersHtml}
     ${rowsHtml}
   `;
+  /* Wire owner / notes editors so changes persist via the same actionLog. */
+  if (payload.action_id) {
+    const ownerInput = document.getElementById('modalOwnerInput');
+    const notesInput = document.getElementById('modalNotesInput');
+    if (ownerInput) ownerInput.addEventListener('change', () => updateActionField(payload.action_id, 'owner', ownerInput.value));
+    if (notesInput) notesInput.addEventListener('change', () => updateActionField(payload.action_id, 'notes', notesInput.value));
+  }
   modal.hidden = false;
   document.body.style.overflow = 'hidden';
 }
@@ -9506,6 +10318,7 @@ const NAV_LABEL = {
   decisions_filters: 'Decisions from Filters',
   decisions_claude: 'Decisions from Claude',
   decisions_gpt: 'Decisions from GPT',
+  tracking: 'Decision Tracking',
   thresholds: 'Playbook',
   sources: 'Data Sources',
   diagnostics: 'Diagnostics',
@@ -9536,6 +10349,7 @@ function route() {
   /* Refresh the Diagnostics page header on every visit so the build tag
      and last-refresh timestamps reflect the current state. */
   if (key === 'diagnostics') renderDiagnostics();
+  if (key === 'tracking' && typeof renderTrackingPage === 'function') renderTrackingPage();
   window.scrollTo({ top: 0 });
 }
 
@@ -9544,7 +10358,7 @@ const state = {
   raw: null,
   actions: null,
   actionLog: loadActionLog(),
-  filters: { brand: 'all', source: 'all', priority: 'all', status: 'active' },
+  filters: { brand: 'all', source: 'all', priority: 'all', status: 'active', minConfidence: 'all' },
   activeChannel: 'overview',
   lastRefreshAt: null,
   thresholds: loadThresholds(),
@@ -9595,11 +10409,14 @@ function initActionFilters() {
         renderOverviewTopActions(state.actions, state.filters);
         renderSideDecisionsCount(state.actions, state.filters);
       }
+      if (typeof renderTrackingPage === 'function') renderTrackingPage();
+      if (typeof rerenderLLMPagesFromCache === 'function') rerenderLLMPagesFromCache();
     });
   };
   wire('filterSource', 'source');
   wire('filterPriority', 'priority');
   wire('filterStatus', 'status');
+  wire('filterConfidence', 'minConfidence');
 }
 
 function initRangePicker() {
@@ -9724,15 +10541,11 @@ function initClaude() {
   if (gen) gen.addEventListener('click', generateClaudeDecisions);
   /* Restore last cached result so the page isn't empty after a refresh. */
   try {
-    const raw = localStorage.getItem(CLAUDE_RESULT_STORAGE);
-    if (raw) {
-      const obj = JSON.parse(raw);
-      if (obj && Array.isArray(obj.decisions)) {
-        renderClaudeDecisions(obj.decisions);
-        setClaudeStatus(`${obj.decisions.length} decisions cached · ${new Date(obj.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, '');
-      } else {
-        renderClaudeDecisions([]);
-      }
+    const obj = loadAnyCachedDecisions(CLAUDE_RESULT_STORAGE);
+    if (obj) {
+      state.claude = { result: obj.decisions, status: 'ok', error: null, lastAt: obj.at, cached: true };
+      renderClaudeDecisions(obj.decisions);
+      setClaudeStatus(`${obj.decisions.length} decisions cached · ${new Date(obj.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, '');
     } else {
       renderClaudeDecisions([]);
     }
@@ -9769,15 +10582,11 @@ function initGpt() {
   if (gen) gen.addEventListener('click', generateGptDecisions);
   /* Restore last cached result. */
   try {
-    const raw = localStorage.getItem(OPENAI_RESULT_STORAGE);
-    if (raw) {
-      const obj = JSON.parse(raw);
-      if (obj && Array.isArray(obj.decisions)) {
-        renderLLMDecisions(obj.decisions, 'gptRecs', 'GPT');
-        setGptStatus(`${obj.decisions.length} decisions cached · ${new Date(obj.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, '');
-      } else {
-        renderLLMDecisions([], 'gptRecs', 'GPT');
-      }
+    const obj = loadAnyCachedDecisions(OPENAI_RESULT_STORAGE);
+    if (obj) {
+      state.gpt = { result: obj.decisions, status: 'ok', error: null, lastAt: obj.at, cached: true };
+      renderLLMDecisions(obj.decisions, 'gptRecs', 'GPT');
+      setGptStatus(`${obj.decisions.length} decisions cached · ${new Date(obj.at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute: '2-digit' })}`, '');
     } else {
       renderLLMDecisions([], 'gptRecs', 'GPT');
     }
@@ -9822,6 +10631,7 @@ function initChat() {
 
 initBrandToggle();
 initActionFilters();
+initTrackingFilters();
 initRangePicker();
 initNav();
 initThresholds();

@@ -2322,6 +2322,20 @@
       <tbody id="seoOpps"></tbody>
     </table>
   </div>
+  <div class="chart-card" style="margin-top:1rem">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Top 50 pages by clicks</div>
+        <div class="chart-value">With W/W rank delta</div>
+        <div class="chart-help">Pages sending you the most organic traffic right now. The Δ Pos column compares last 7 days vs the prior 7 days — negative is good (moved up toward #1), positive means rankings dropped. Red = dropped a full position or more, amber = drifting, green = climbing. Investigate red rows first.</div>
+      </div>
+      <span class="chart-badge badge-blue">Pages</span>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Page</th><th class="num">Clicks</th><th class="num">Impr</th><th class="num">Pos</th><th class="num">Δ Pos W/W</th></tr></thead>
+      <tbody id="seoTopPages"></tbody>
+    </table>
+  </div>
 </section>
 </section>
 
@@ -2423,6 +2437,20 @@
       <table class="data-table">
         <thead><tr><th>URL</th><th>Device</th><th class="num">INP (ms)</th><th class="num">TBT (ms)</th><th class="num">Perf</th></tr></thead>
         <tbody id="pagespeedWorstInp"></tbody>
+      </table>
+    </div>
+    <div class="chart-card" style="margin-top:1rem">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">CWV regressions on top pages</div>
+          <div class="chart-value">Last 7d vs prior 7d</div>
+          <div class="chart-help">Pages in your GSC top 20 by clicks where Largest Contentful Paint, Cumulative Layout Shift, or Interaction-to-Next-Paint got measurably worse this week AND are now in the failing band. Mobile and desktop tracked separately — a regression on just one device profile usually points at a device-specific code path. Empty list means top-traffic pages held steady.</div>
+        </div>
+        <span class="chart-badge badge-red">Regression</span>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Page</th><th>Device</th><th>Metric · prior → recent</th></tr></thead>
+        <tbody id="pagespeedRegressions"></tbody>
       </table>
     </div>
   </section>
@@ -2857,7 +2885,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r17', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r18', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -4481,7 +4509,12 @@ function summarizePagespeed(rows) {
   }));
   const valid = pages.filter(p => p.perf != null);
   const medPerf = median(valid.map(p => p.perf));
-  return { pages, medPerf, totalPages: pages.length };
+  /* Site-wide score split by device — Lighthouse runs the same URL on
+     mobile and desktop with very different budgets, so the combined
+     median hides which device profile is actually struggling. */
+  const medPerfMobile  = median(pages.filter(p => p.device === 'mobile'  && p.perf != null).map(p => p.perf));
+  const medPerfDesktop = median(pages.filter(p => p.device === 'desktop' && p.perf != null).map(p => p.perf));
+  return { pages, medPerf, medPerfMobile, medPerfDesktop, totalPages: pages.length };
 }
 
 function summarizeGsc(rows) {
@@ -4524,7 +4557,51 @@ function summarizeGsc(rows) {
       if (p > 0) queryDeltas[q.name] = { recent: r, prior: p, delta: (r - p) / p };
     });
   }
-  return { queries, queryDeltas };
+  /* Per-page aggregation. Mirror the per-query block but key on the
+     Page (URL) column. Adds: top-pages-by-clicks table and a W/W
+     avg-position delta per page so we can flag rank drops. */
+  const pageMap = {};
+  rows.forEach(r => {
+    const k = r.Page || '—';
+    if (k === '—') return;
+    const e = pageMap[k] || (pageMap[k] = { name: k, brand: r.brand || null, Clicks: 0, Impressions: 0, posRecent: { sum: 0, n: 0 }, posPrior: { sum: 0, n: 0 }, posAll: { sum: 0, n: 0 } });
+    if (!e.brand && r.brand) e.brand = r.brand;
+    e.Clicks += Number(r.Clicks) || 0;
+    e.Impressions += Number(r.Impressions) || 0;
+    const p = Number(r['Avg Position']);
+    if (!isNaN(p)) {
+      e.posAll.sum += p; e.posAll.n += 1;
+      const d = typeof r.Date === 'string' ? r.Date.slice(0, 10) : '';
+      if (d) {
+        if (dayKeys.length >= 14) {
+          if (dayKeys.slice(-7).includes(d))         { e.posRecent.sum += p; e.posRecent.n += 1; }
+          else if (dayKeys.slice(-14, -7).includes(d)) { e.posPrior.sum += p;  e.posPrior.n += 1; }
+        }
+      }
+    }
+  });
+  const pages = Object.values(pageMap).map(p => {
+    const avgPos       = p.posAll.n    ? p.posAll.sum    / p.posAll.n    : null;
+    const avgPosRecent = p.posRecent.n ? p.posRecent.sum / p.posRecent.n : null;
+    const avgPosPrior  = p.posPrior.n  ? p.posPrior.sum  / p.posPrior.n  : null;
+    /* Position delta convention matches SemRush: **negative = improved**
+       (moved up toward #1). A positive delta means the page got worse. */
+    const posDelta = (avgPosRecent != null && avgPosPrior != null) ? (avgPosRecent - avgPosPrior) : null;
+    return {
+      url: p.name, brand: p.brand,
+      Clicks: p.Clicks, Impressions: p.Impressions,
+      ctr: p.Impressions ? p.Clicks / p.Impressions * 100 : 0,
+      avgPos, avgPosRecent, avgPosPrior, posDelta,
+    };
+  }).sort((a, b) => b.Clicks - a.Clicks);
+  /* "Indexed pages" proxy: distinct pages that received any
+     impressions in the active range. Not the same as Google's
+     Coverage-report "indexed" count (which we don't have access
+     to without an Indexing API integration), but it's the closest
+     truthful answer from this data — a page invisible in search
+     for the entire window probably isn't surfacing in Google. */
+  const indexedPages = pages.filter(p => p.Impressions > 0).length;
+  return { queries, queryDeltas, pages, indexedPages };
 }
 
 function summarizeGa(rows) {
@@ -6096,11 +6173,13 @@ function renderSeo({ rows, source, reason }, insight) {
   const impr = sum(rows, 'Impressions');
   const ctr = impr > 0 ? clicks/impr*100 : 0;
   const pos = avg(rows, 'Avg Position');
+  const gscSum = summarizeGsc(rows);
   renderKpis('seoKpis', [
     { label: `Clicks (${rangeSuffix()})`, value: fmt(clicks) },
     { label: 'Impressions', value: fmt(impr) },
     { label: 'CTR', value: fmtPct(ctr) },
     { label: 'Avg Position', value: pos ? pos.toFixed(1) : '—' },
+    { label: 'Pages indexed', value: fmt(gscSum.indexedPages), delta: 'with impressions in range' },
   ]);
   document.getElementById('seoClicks').textContent = fmt(clicks);
 
@@ -6155,6 +6234,31 @@ function renderSeo({ rows, source, reason }, insight) {
         </tr>`).join('')
     : `<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No page-2 opportunities detected.</td></tr>`;
   document.getElementById('seoOpps').innerHTML = oppsHtml;
+
+  /* Top 50 pages by clicks with W/W avg-position delta. Position
+     convention: negative = moved up toward #1 (improved); positive =
+     dropped. Δ ≥ +1.0 highlighted red, ≥ +0.3 amber. */
+  const topPagesBody = document.getElementById('seoTopPages');
+  if (topPagesBody) {
+    const top50 = gscSum.pages.slice(0, 50);
+    const fmtPos = v => v == null ? '—' : v.toFixed(1);
+    const fmtDelta = d => {
+      if (d == null) return '<span style="color:var(--text3)">—</span>';
+      const sign = d > 0 ? '+' : '';
+      const color = d >= 1 ? 'var(--red)' : d >= 0.3 ? 'var(--amber)' : d <= -0.3 ? 'var(--green)' : 'var(--text2)';
+      return `<span style="color:${color}">${sign}${d.toFixed(1)}</span>`;
+    };
+    topPagesBody.innerHTML = top50.length
+      ? top50.map(p => `
+          <tr>
+            <td><span title="${escapeHtml(p.url)}">${escapeHtml(p.url.length > 60 ? p.url.slice(0, 57) + '…' : p.url)}</span></td>
+            <td class="num">${fmt(p.Clicks)}</td>
+            <td class="num">${fmt(p.Impressions)}</td>
+            <td class="num">${fmtPos(p.avgPos)}</td>
+            <td class="num">${fmtDelta(p.posDelta)}</td>
+          </tr>`).join('')
+      : `<tr><td colspan="5" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No page-grain GSC rows in range.</td></tr>`;
+  }
 }
 
 function renderGa({ rows, source, reason }, insight) {
@@ -6527,9 +6631,16 @@ function renderPagespeed({ rows, source, reason }, insight) {
   const failingLcp = sum.pages.filter(p => p.lcp != null && p.lcp > 2.5).length;
   const failingCls = sum.pages.filter(p => p.cls != null && p.cls > 0.1).length;
   const failingInp = sum.pages.filter(p => p.inp != null && p.inp > 200).length;
+  /* Site-wide score split by device. Lighthouse runs each URL twice
+     (mobile + desktop) with very different budgets — combining them
+     hides which profile is actually struggling. Show both as the
+     headline numbers; the legacy combined median is still computed
+     and surfaced via the chat / decisions paths. */
+  const fmtScore = v => v != null ? Math.round(v) : '—';
   renderKpis('pagespeedKpis', [
     { label: 'URLs sampled', value: fmt(sum.totalPages) },
-    { label: 'Median Perf Score', value: sum.medPerf != null ? Math.round(sum.medPerf) : '—' },
+    { label: 'Site Perf · Mobile',  value: fmtScore(sum.medPerfMobile),  delta: 'median across pages' },
+    { label: 'Site Perf · Desktop', value: fmtScore(sum.medPerfDesktop), delta: 'median across pages' },
     { label: 'Failing LCP', value: fmt(failingLcp) },
     { label: 'Failing CLS', value: fmt(failingCls) },
     { label: 'Failing INP', value: fmt(failingInp) },
@@ -6575,6 +6686,66 @@ function renderPagespeed({ rows, source, reason }, insight) {
           <td class="num">${fmtMs(p.tbt)}</td>
           <td class="num">${fmtPerf(p.perf)}</td>`)).join('')
       : `<tr><td colspan="5" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No INP samples in range.</td></tr>`;
+  }
+
+  /* CWV regressions on top pages by GSC clicks. For each of the top
+     20 pages by clicks, compute median LCP / CLS / INP for last 7
+     days vs prior 7 days from the per-day pagespeed rows; flag when
+     the metric got worse AND is now in the failing band (LCP > 2.5s,
+     CLS > 0.1, INP > 200ms). Mobile and desktop tracked separately —
+     a page with mobile LCP regression but stable desktop is a real
+     mobile-network or mobile-render bug worth surfacing on its own. */
+  const regBody = document.getElementById('pagespeedRegressions');
+  if (regBody) {
+    const gsc = state._lastScoped && state._lastScoped.gsc ? state._lastScoped.gsc.rows : [];
+    const gscSum = summarizeGsc(gsc || []);
+    const topUrls = new Set(gscSum.pages.slice(0, 20).map(p => p.url));
+    /* Group raw pagespeed rows by (url, device, day) so we can compute
+       a daily median, then split into recent / prior weeks. */
+    const dayKeys = [...new Set((rows || []).map(r => typeof r.Date === 'string' ? r.Date.slice(0, 10) : null).filter(Boolean))].sort();
+    if (topUrls.size && dayKeys.length >= 7) {
+      const recent = new Set(dayKeys.slice(-7));
+      const prior  = new Set(dayKeys.slice(-14, -7));
+      const med = arr => { if (!arr.length) return null; const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+      const buckets = {};
+      (rows || []).forEach(r => {
+        const url = r.URL || r.Page;
+        if (!url || !topUrls.has(url)) return;
+        const dev = (r.Device || '').toLowerCase() || 'all';
+        const d = typeof r.Date === 'string' ? r.Date.slice(0, 10) : null;
+        if (!d) return;
+        const k = `${url}::${dev}`;
+        const b = buckets[k] || (buckets[k] = { url, device: dev, recent: { lcp: [], cls: [], inp: [] }, prior: { lcp: [], cls: [], inp: [] } });
+        const bucket = recent.has(d) ? b.recent : prior.has(d) ? b.prior : null;
+        if (!bucket) return;
+        const push = (arr, v) => { const n = Number(v); if (!isNaN(n)) arr.push(n); };
+        push(bucket.lcp, r.LCP); push(bucket.cls, r.CLS); push(bucket.inp, r.INP);
+      });
+      /* A regression = current is failing AND got measurably worse W/W.
+         Thresholds match the existing CWV bands. Δ stored as a fraction
+         so the renderer can highlight magnitude. */
+      const regs = [];
+      Object.values(buckets).forEach(b => {
+        const r = { lcp: med(b.recent.lcp), cls: med(b.recent.cls), inp: med(b.recent.inp) };
+        const p = { lcp: med(b.prior.lcp),  cls: med(b.prior.cls),  inp: med(b.prior.inp) };
+        const reasons = [];
+        if (r.lcp != null && p.lcp != null && r.lcp > 2.5 && r.lcp - p.lcp >= 0.3) reasons.push(`LCP ${p.lcp.toFixed(2)}s → ${r.lcp.toFixed(2)}s`);
+        if (r.cls != null && p.cls != null && r.cls > 0.1 && r.cls - p.cls >= 0.05) reasons.push(`CLS ${p.cls.toFixed(3)} → ${r.cls.toFixed(3)}`);
+        if (r.inp != null && p.inp != null && r.inp > 200 && r.inp - p.inp >= 50) reasons.push(`INP ${Math.round(p.inp)}ms → ${Math.round(r.inp)}ms`);
+        if (reasons.length) regs.push({ url: b.url, device: b.device, reasons });
+      });
+      regBody.innerHTML = regs.length
+        ? regs.map(reg => `
+            <tr>
+              <td><span title="${escapeHtml(reg.url)}">${escapeHtml(reg.url.length > 60 ? reg.url.slice(0, 57) + '…' : reg.url)}</span></td>
+              <td>${escapeHtml(reg.device)}</td>
+              <td><span style="color:var(--red)">${reg.reasons.map(escapeHtml).join(' · ')}</span></td>
+            </tr>`).join('')
+        : `<tr><td colspan="3" style="color:var(--text3);font-style:italic;padding:0.75rem 0">No CWV regressions on top pages this week.</td></tr>`;
+    } else {
+      const why = !topUrls.size ? 'No GSC top-pages data — connect Search Console.' : 'Need ≥ 14 days of Page Speed history to compare W/W.';
+      regBody.innerHTML = `<tr><td colspan="3" style="color:var(--text3);font-style:italic;padding:0.75rem 0">${why}</td></tr>`;
+    }
   }
 }
 
@@ -7810,6 +7981,19 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'SEO + Page Speed: indexed pages, top-50 pages with rank deltas, mobile/desktop scores, CWV regressions',
+    tags: ['Feature'],
+    bullets: [
+      'SEO page picks up two new things. Headline KPIs now include **Pages indexed** — distinct pages that received any GSC impressions in the active range. Honest framing: this is "pages surfacing in search", not Google\'s Coverage-report "indexed" count (we don\'t have Indexing API access from a static HTML dashboard), but it\'s the truthful proxy the data actually supports.',
+      'New SEO section: **Top 50 pages by clicks** with a Δ Pos W/W column. Position convention matches the rest of the dashboard — negative is good (moved up toward #1), positive means rankings dropped. Δ ≥ +1.0 highlighted red, ≥ +0.3 amber, ≤ −0.3 green. Investigate red rows first; they\'re where you\'re losing organic traffic week-on-week.',
+      'Page Speed page: the single "Median Perf Score" KPI was hiding which device profile is struggling — replaced with **Site Perf · Mobile** and **Site Perf · Desktop** as separate tiles, each the median across all sampled URLs for that device.',
+      'New Page Speed section: **CWV regressions on top pages**. Joins GSC top-20-by-clicks against per-day Pagespeed data, computes last-7d vs prior-7d medians for LCP / CLS / INP, and flags pages where any metric got measurably worse AND landed in the failing band (LCP > 2.5s, CLS > 0.1, INP > 200ms). Mobile and desktop tracked separately so a mobile-only regression surfaces on its own.',
+      'Not shipped per the user\'s earlier triage: GA4 landing-page top-20 + W/W (blocked on adding the `landingPage` dimension to the Coefficient export); 404 / de-indexed detection (not possible without an active crawler — GSC strips both invisibly).',
+      'Build tag bumped to r18.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Vicki brand mark now consistent across topbar + sidebar foot + page foot',

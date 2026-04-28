@@ -104,24 +104,27 @@ The dashboard never *writes* to any sheet. It is a read-only view.
 
 | Field | Value |
 | --- | --- |
-| Spreadsheet ID | `1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk` |
-| Tab / gid | gid = `1914162846` (named "Posts" in the workbook) |
-| Headers row | default (1) |
-| Source system | **Metricool** export — one row per post (`network, post_type, date, url, text, reach, impressions, engagement, likes, comments, shares, …`) |
-| Date format quirk | Metricool drops the timestamp into `date` as a serialized struct, e.g. `{timezone=Europe/Madrid, dateTime=2026-04-21T23:53:57, date=2026-04-21, dayOfMonth=21}`. `normalizeSocialRows` extracts the inner `dateTime` / `date` substring before normalizing. |
+| Spreadsheet ID | `1ka0jq2aL4FZVBmV-DTMj4Tw2moqRMIqf2En5dq4ho1Q` (Metricool_Social_Data_Template) |
+| Tab | `raw_social_post` (resolved by sheet name) |
+| Headers row | 1 |
+| Source system | **Metricool** export — one row per post (`date, published_at, network, account, account_id, post_type, content_type_normalized, post_id, url, text, campaign, tag, impressions, reach, views, likes, comments, shares, saves, clicks, engagements, engagement_rate, day_of_week, hour, source, raw_json`) |
+| Date format quirk | Column A `date` is exported as the broken stub `[object Ob`. The real timestamp lives in column B `published_at` as a serialized struct, e.g. `{dateTime=2026-04-21T23:53:57, timezone=Europe/Madrid}`. `normalizeSocialRows` reads `published_at` first, extracts the inner `dateTime` / `date` substring, then normalizes. |
 | Refresh cadence | Metricool's Sheets export — TBD: confirm whether scheduled or manual |
-| Brand mapping | Currently shared across brands (no per-brand split). When the user toggles to via/liq, the brand-pending banner shows because rows aren't tagged. |
+| Brand mapping | Currently shared across brands (no per-brand split). The `account` column is exported but populates as null on current rows; once Metricool fills it, brand inference can split via vs liquidatenow accounts (see Open Items #4). |
+| Replaced | The legacy workbook `1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk` (gid `1914162846`) on 2026-04-27. Schema added `published_at`, `account`, `account_id`, `content_type_normalized`, `post_id`, `campaign`, `tag`, `views`, `saves`, `clicks`, `engagement_rate`, `day_of_week`, `hour`, `source`, `raw_json` and renamed `engagement` → `engagements`. |
 
-### 6b. Metricool · Analytics (daily snapshots)
+### 6b. Metricool · Account daily (daily snapshots, wide format)
 
 | Field | Value |
 | --- | --- |
-| Spreadsheet ID | `1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk` (same workbook as Posts) |
-| Tab | `Analytics` (resolved by sheet name, not gid) |
+| Spreadsheet ID | `1ka0jq2aL4FZVBmV-DTMj4Tw2moqRMIqf2En5dq4ho1Q` (same workbook as Posts) |
+| Tab | `raw_social_account_daily` (resolved by sheet name) |
 | Headers row | 1 |
-| Source system | Metricool export — one row per `(network, metric, date)` with a `value` column. `metric` is `followers` (and possibly `impressions` / `engagement`). |
+| Source system | Metricool export — one **wide** row per `(network, date)` with `followers, followers_delta, impressions, reach, profile_views, page_views, video_views, watch_time, likes, comments, shares, clicks, engagements, engagement_rate` as columns. |
 | Used for | "Followers", "Followers Growth", "Growth Rate" KPIs on the Social page. Earliest + latest snapshot per network within the active range = absolute and percent growth. |
+| Date format | Column A is a real `Date` type (not a string), so the default 60-day gviz `where date >= date 'YYYY-MM-DD'` filter applies cleanly via `dateColumn: 'A'`. |
 | Brand mapping | Single tab, no per-brand split. |
+| Replaced | The legacy `Analytics` tab on the old workbook on 2026-04-27. Format changed **long → wide** — was one row per `(network, metric, date)` with a `value` column; now metrics are columns. `summarizeSocialAnalytics` was rewritten accordingly; `followers_delta` is exposed for future daily-growth charts. |
 
 ### 7. Page Speed (Lighthouse / Core Web Vitals)
 
@@ -220,4 +223,4 @@ The only thing in this repo is the read-side: `cmo/index.html`.
 
 ---
 
-_Last updated: 2026-04-26 — alongside the Page Speed connector + Aircall PT pin commits._
+_Last updated: 2026-04-27 — Metricool data source swapped to the new `Metricool_Social_Data_Template` workbook (`raw_social_post` + `raw_social_account_daily`); old `1_4zK8GX…PGjk` workbook retired._

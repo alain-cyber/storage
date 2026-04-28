@@ -2817,7 +2817,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r9', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r10', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -2873,18 +2873,28 @@ const SHEETS = {
   aircall: { id: '1CGuD9KSonB6wUX-EDJyJKnTdh1a9hQRsRYkLc6b8zc0', label: 'Aircall', headers: 2,
     /* Aircall's Started At is column B and is a datetime, not a plain date. */
     dateColumn: 'B', dateType: 'datetime' },
-  /* Metricool Posts: skip dateColumn — the date is a nested struct
-     (`{timezone=…, dateTime=…, date=…}`) that gviz tq can't compare
-     against a date literal. The sheet is small enough not to need it. */
-  social:  { id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk', gid: 1914162846, label: 'Metricool · Posts' },
-  /* Metricool Analytics tab — daily follower / impression / engagement
-     snapshot per network. Schema: network, metric, date, value. Lives in
-     the same workbook as the Posts tab but a different sheet. */
+  /* Metricool · Posts (per-post data). Lives in the new
+     Metricool_Social_Data_Template workbook (replaces the legacy
+     `1_4zK8GX…PGjk` sheet that had only Posts + Analytics). Skip
+     dateColumn — column A `date` is exported as a broken "[object Ob"
+     stub and column B `published_at` is a nested struct
+     (`{dateTime=…, timezone=…}`) that gviz tq can't compare against a
+     date literal. normalizeSocialRows pulls the inner dateTime out. */
+  social: {
+    id: '1ka0jq2aL4FZVBmV-DTMj4Tw2moqRMIqf2En5dq4ho1Q',
+    sheetName: 'raw_social_post',
+    label: 'Metricool · Posts', headers: 1,
+  },
+  /* Metricool · Account daily (replaces the old Analytics tab).
+     One row per (network, date) — wide format with `followers`,
+     `followers_delta`, `impressions`, `reach`, etc. as columns
+     (the old tab was long format with `metric`/`value` rows).
+     Column A `date` is a real Date type → default `date` filter works. */
   social_analytics: {
-    id: '1_4zK8GXJeMVtghAPm1APuriEC7GQMRMZPQnEAySPGjk',
-    sheetName: 'Analytics',
-    label: 'Metricool · Analytics', headers: 1,
-    dateColumn: 'C',
+    id: '1ka0jq2aL4FZVBmV-DTMj4Tw2moqRMIqf2En5dq4ho1Q',
+    sheetName: 'raw_social_account_daily',
+    label: 'Metricool · Account daily', headers: 1,
+    dateColumn: 'A',
   },
   /* Keyword-grain Ads data — split out of the Google Ads sheet when it hit the
      10M cell cap. Same Coefficient banner-on-row-1 quirk → headers: 2. */
@@ -3387,7 +3397,9 @@ const COLUMN_ALIASES = {
     Date:         ['Day', 'Report date'],
     CTR:          ['Ctr', 'ctr'],
   },
-  /* Metricool Analytics tab. Schema: network, metric, date, value. */
+  /* Metricool raw_social_account_daily tab. Wide schema: one row per
+     (network, date) with followers / followers_delta / impressions /
+     reach / engagements / engagement_rate as columns. */
   social_analytics: {
     Date: ['date', 'Day'],
   },
@@ -3439,34 +3451,37 @@ function normalizeByKey(key, rows, cols) {
    renderer reads `r.network`, `r.reach`, `r.post_type` directly, but `byDay`
    and the source-health card key on `r.Date` (capital D). Promote it here so
    downstream code finds a canonical Date. Also coerce `reach` to Number. */
-/* Metricool's Analytics tab is one row per (network, metric, date) — each
-   metric ("followers", "impressions", "engagement") on its own row. We
-   only need to canonicalize Date and coerce value to a number. */
+/* Metricool's raw_social_account_daily tab is wide — one row per
+   (network, date) with followers / followers_delta / impressions /
+   reach / etc. as columns (the legacy Analytics tab was long-format
+   with metric/value rows; the swap to wide happened with the move to
+   the Metricool_Social_Data_Template workbook on 2026-04-27).
+   Canonicalize Date and coerce every numeric column to a number. */
 function normalizeSocialAnalyticsRows(rows, _cols) {
   if (!rows || !rows.length) return rows;
+  const NUMERIC = ['followers','followers_delta','impressions','reach','profile_views','page_views','video_views','likes','comments','shares','clicks','engagements','engagement_rate'];
   return rows.map(r => {
     const out = { ...r };
     const iso = toISODate(out.Date) || toISODate(out.date);
     if (iso) out.Date = iso;
-    if (out.value != null && typeof out.value !== 'number') {
-      const n = Number(out.value);
-      if (!isNaN(n)) out.value = n;
-    }
-    if (typeof out.metric === 'string') out.metric = out.metric.toLowerCase();
+    NUMERIC.forEach(k => {
+      if (out[k] != null && typeof out[k] !== 'number') {
+        const n = Number(out[k]);
+        if (!isNaN(n)) out[k] = n;
+      }
+    });
     return out;
   });
 }
 
 function normalizeSocialRows(rows, _cols) {
   if (!rows || !rows.length) return rows;
-  /* Metricool's Posts export drops the timestamp into the `date` column as
-     a serialized struct, e.g.
-     "{timezone=Europe/Madrid, dateTime=2026-04-21T23:53:57, date=2026-04-21, ...}"
-     — toISODate can't parse that and every row was being filtered out
-     even though 406 rows were live. Pull the inner dateTime / date
-     substring first, then run toISODate, which still covers ISO, ISO
-     datetime, localized strings, slash forms, Date objects, and numeric
-     timestamps. */
+  /* Metricool's per-post export drops the timestamp into a serialized
+     struct, e.g. "{dateTime=2026-04-21T23:53:57, timezone=Europe/Madrid}"
+     — toISODate can't parse that, so every row used to be filtered out
+     even though hundreds were live. Pull the inner dateTime / date
+     substring first, then run toISODate (covers ISO, ISO datetime,
+     localized strings, slash forms, Date objects, numeric timestamps). */
   const extractDate = v => {
     if (typeof v !== 'string' || !v.includes('=')) return v;
     const dt = v.match(/\bdateTime\s*=\s*([^,}\s]+)/i);
@@ -3475,18 +3490,16 @@ function normalizeSocialRows(rows, _cols) {
     if (d) return d[1];
     return v;
   };
-  /* Reject placeholder / legacy dates older than 5 years. Metricool
-     occasionally exports rows with dates like 1970-01-01 or 2007-04-24
-     left over from imports / test posts, which dragged the date-range
-     readout to "Apr 24, 2007 → Apr 24, 2026" and broke the min on every
-     time-axis chart. Five-year cutoff is generous — no real social
-     manager cares about posts older than that. */
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - 5);
   const cutoffIso = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
   return rows.map(r => {
     const out = { ...r };
-    const raw = extractDate(out.Date) || extractDate(out.date);
+    /* New raw_social_post schema: column A `date` is exported as the
+       string "[object Ob" (broken stub); column B `published_at` is the
+       real `{dateTime=…, timezone=…}` struct. Prefer published_at, fall
+       back to Date / date for resilience against future schema swings. */
+    const raw = extractDate(out.published_at) || extractDate(out.Date) || extractDate(out.date);
     let iso = toISODate(raw);
     if (iso && iso < cutoffIso) iso = '';
     if (iso) out.Date = iso;
@@ -4431,12 +4444,16 @@ function summarizeGa(rows) {
 function summarizeSocialAnalytics(rows) {
   const empty = { followers: { total: 0, byNetwork: [], growth: 0, growthPct: null, earliestDate: null, latestDate: null } };
   if (!rows || !rows.length) return empty;
-  const followerRows = rows.filter(r => String(r.metric || '').toLowerCase() === 'followers');
+  /* Wide schema (raw_social_account_daily): one row per (network, date)
+     with followers as a direct column. Filter to rows that actually
+     carry a follower count — Metricool sometimes writes a row with only
+     impressions / reach and no followers value. */
+  const followerRows = rows.filter(r => r.followers != null && !isNaN(Number(r.followers)));
   if (!followerRows.length) return empty;
   const byNet = {};
   followerRows.forEach(r => {
     const n = r.network || '—';
-    const v = Number(r.value);
+    const v = Number(r.followers);
     const d = typeof r.Date === 'string' ? r.Date.slice(0, 10) : '';
     if (!d || isNaN(v)) return;
     (byNet[n] || (byNet[n] = [])).push({ d, v });
@@ -5172,8 +5189,9 @@ const REQUIRED_COLS = {
   aircall: [],
   /* Social: Metricool export — one row per post */
   social:  ['network'],
-  /* Social Analytics: Metricool Analytics tab — one row per (network, metric, date). */
-  social_analytics: ['metric', 'value'],
+  /* Social Analytics: raw_social_account_daily tab — one wide row per (network, date),
+     followers exposed as a direct column. */
+  social_analytics: ['network', 'followers'],
   /* Keywords: keyword-grain ads export — Spend + Clicks are enough to drive
      KILL/NEGATE/SCALE rules. Impressions checked too because NEGATE keys on it. */
   keywords:['Spend', 'Clicks'],
@@ -5199,8 +5217,8 @@ const SOURCE_DETAIL_REPORT = [
   { key: 'ga',          prop: 'ga',          label: 'Google Analytics 4',      bucket: 'Web Analytics' },
   { key: 'pagespeed',   prop: 'pagespeed',   label: 'Page Speed (Lighthouse)', bucket: 'Page Speed' },
   { key: 'aircall',     prop: 'ac',          label: 'Aircall',                 bucket: 'Calls' },
-  { key: 'social',           prop: 'social',           label: 'Metricool · Posts',     bucket: 'Social' },
-  { key: 'social_analytics', prop: 'social_analytics', label: 'Metricool · Analytics', bucket: 'Social' },
+  { key: 'social',           prop: 'social',           label: 'Metricool · Posts',         bucket: 'Social' },
+  { key: 'social_analytics', prop: 'social_analytics', label: 'Metricool · Account daily', bucket: 'Social' },
 ];
 
 function dateRangeFromRows(rows) {
@@ -7630,6 +7648,17 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Metricool data source swapped to the new Social Data Template workbook',
+    tags: ['Foundation', 'Fix'],
+    bullets: [
+      'Repointed the Social page from the legacy Metricool workbook (1_4zK8GX…PGjk, two tabs: Posts + Analytics) to the new Metricool_Social_Data_Template workbook (1ka0jq2a…ho1Q). Two raw tabs are now wired: raw_social_post replaces Posts, raw_social_account_daily replaces Analytics. Five other tabs in the new workbook (sum_social_post, sum_social_account, actions_social, import_log, README) are not consumed by the dashboard yet.',
+      'raw_social_post: column A `date` is exported as a broken `[object Ob` stub, so normalizeSocialRows now reads from column B `published_at` (the real `{dateTime=…, timezone=…}` struct) before falling back. New columns the export now carries — published_at, account, account_id, content_type_normalized, post_id, campaign, tag, views, saves, clicks, engagement_rate, day_of_week, hour, source, raw_json — pass through to the renderer, available for future surfaces. `engagement` was renamed `engagements` (plural); summarizeSocial does not read either column, so no impact.',
+      'raw_social_account_daily: format flipped long → wide. The old Analytics tab was one row per (network, metric, date) with a `value` column; the new tab puts followers / followers_delta / impressions / reach / engagements / engagement_rate as direct columns. summarizeSocialAnalytics was rewritten to read the `followers` column directly per (network, date) row; REQUIRED_COLS bumped from `["metric","value"]` to `["network","followers"]`. Column A is a real Date type, so the default 60-day gviz date filter applies via `dateColumn: "A"`. Followers KPI, Followers Growth, and Growth Rate keep the same surface — just sourced from the new shape.',
+      'Build tag bumped to r10. SYSTEM_STATE.md sections 6 + 6b rewritten to document the new IDs, tab names, and column schemas.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Tightened gviz date filter from 120 days to 60 days',

@@ -1,4 +1,4 @@
-# Marketing Intelligence — System State
+# CMO Command Center — System State
 
 Snapshot of every data source the dashboard reads, where it comes from, how
 it lands in the spreadsheet, and the cadence the dashboard depends on. Update

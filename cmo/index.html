@@ -2817,7 +2817,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r15', startedAt: new Date() };
+const CMO_BUILD = { tag: 'JSONP · 60-day filter · built 2026-04-27 r16', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -6996,7 +6996,7 @@ function saveCachedDecisions(storage, key, decisions, raw) {
   } catch {}
 }
 
-const LLM_DECISIONS_PROMPT = `You are a CMO copilot reviewing the marketing data summarized below for the period the user selected. Pick the 12–20 highest-leverage decisions for the team — diverse across sources, with at least one per source that has signal. Skip boilerplate ("monitor performance"); only return decisions backed by a number in the data. Output strict JSON: {"decisions":[{"title":"…","source":"ads|keywords|gsc|semrush_kw|semrush_bl|ga|pagespeed|social|aircall|cross","brand":"all|via|liq","priority":"HIGH|MEDIUM|LOW","entity":"…","reason":"…","metric_trigger":"…"}]}`;
+const LLM_DECISIONS_PROMPT = `You are **Vicki**, the marketing intelligence copilot for ViaTrading and LiquidateNow, reviewing the marketing data summarized below for the period the user selected. Pick the 12–20 highest-leverage decisions for the team — diverse across sources, with at least one per source that has signal. Skip boilerplate ("monitor performance"); only return decisions backed by a number in the data. Output strict JSON: {"decisions":[{"title":"…","source":"ads|keywords|gsc|semrush_kw|semrush_bl|ga|pagespeed|social|aircall|cross","brand":"all|via|liq","priority":"HIGH|MEDIUM|LOW","entity":"…","reason":"…","metric_trigger":"…"}]}`;
 
 async function callClaudeAPI(payload, apiKey, opts = {}) {
   const userContent = opts.userContent || `${LLM_DECISIONS_PROMPT}\n\nDATA:\n${JSON.stringify(payload)}`;
@@ -7770,6 +7770,16 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 27, 2026',
+    title: 'Chat + Decisions personas now branded as Vicki',
+    tags: ['Polish'],
+    bullets: [
+      'The dashboard\'s visual identity is "Vicki Intelligence" everywhere — sidebar mark, topbar mark, footer, chat textarea placeholder ("Chat with Vicki about our data"), empty-state hint ("Vicki has the current scope loaded…"). The LLM system prompts were the one place still saying "You are a CMO copilot…", so answers came back generic and brand-flat.',
+      'Both the chat (`sendChatMessage` system prompt) and the Decisions pages (`LLM_DECISIONS_PROMPT`) now open with **"You are Vicki, the marketing intelligence copilot for ViaTrading and LiquidateNow"** and explicitly tell the model to self-reference as Vicki — never as "the assistant" or "a CMO copilot". Net effect: when a user asks the chat "who are you?" or "what can you do?", the answer carries the same brand the rest of the UI does.',
+      'Build tag bumped to r16.',
+    ],
+  },
   {
     date: 'Apr 27, 2026',
     title: 'Aircall missed-call metrics now respect business hours + US holidays',
@@ -8807,7 +8817,7 @@ async function sendChatMessage() {
      reads (5-min TTL); cuts the per-turn docs cost ~10×. OpenAI auto-
      caches identical prefixes ≥1024 tokens, so concatenated string
      order matters — static first, dynamic second. */
-  const staticPrefix = `You are a CMO copilot for the dashboard. You answer two kinds of questions:\n\n1. Data questions (e.g. "what's our reach this month?", "which campaign is wasting spend?") — use the **scoped dashboard data** block. Cite specific numbers.\n2. System / config questions (e.g. "where does GSC data come from?", "what counts as a missed call?", "is the social source loading right now?", "what's the threshold for missed-call rate?") — use the **system docs** and **runtime status** blocks.\n\nAnswer concisely (2–4 sentences). If a question can't be answered from any of the three blocks, say so plainly.\n\n${docsBlock}`;
+  const staticPrefix = `You are **Vicki**, the marketing intelligence copilot for ViaTrading and LiquidateNow. The dashboard you are embedded in is branded "Vicki Intelligence" — refer to yourself as Vicki when you self-reference (never as "the assistant", "the AI", or "a CMO copilot"). You answer two kinds of questions:\n\n1. Data questions (e.g. "what's our reach this month?", "which campaign is wasting spend?") — use the **scoped dashboard data** block. Cite specific numbers.\n2. System / config questions (e.g. "where does GSC data come from?", "what counts as a missed call?", "is the social source loading right now?", "what's the threshold for missed-call rate?") — use the **system docs** and **runtime status** blocks.\n\nAnswer concisely (2–4 sentences). If a question can't be answered from any of the three blocks, say so plainly.\n\n${docsBlock}`;
   const dynamicSuffix = `# Runtime status (JSON — current toggle, date window, per-source live/demo/fail, thresholds)\n${JSON.stringify(runtime)}\n\n# Scoped dashboard data (JSON)\n${JSON.stringify(payload)}`;
   /* Last N turns of history, excluding the system context. Anthropic requires
      the first message to be `user` — drop any leading assistant messages from

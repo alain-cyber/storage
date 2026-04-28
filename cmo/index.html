@@ -1705,6 +1705,23 @@
   .tracking-empty {
     padding: 2rem 1rem; text-align: center; color: var(--text3); font-style: italic;
   }
+  .track-metric-cell { cursor: help; }
+  .track-info-icon {
+    display: inline-block; margin-left: 4px; color: var(--text3);
+    font-size: 0.75rem; font-style: normal; cursor: help;
+  }
+  .track-info-icon:hover { color: var(--text2); }
+  .cmo-derivation-note {
+    margin-top: 0.6rem;
+    padding: 0.55rem 0.7rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.74rem;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+  .cmo-derivation-note strong { color: var(--text); font-weight: 600; }
   .action-counter-value.confirmed { color: var(--blue); }
   .action-counter-value.progress  { color: var(--amber); }
 
@@ -2906,7 +2923,7 @@
   <section class="section" id="trackingSection">
     <div class="section-head">
       <div class="section-title">Decision Tracking</div>
-      <div class="section-meta">Lifecycle &amp; outcomes across rule, Claude, and GPT decisions. Statuses, owners, notes, and metric snapshots persist across refresh.</div>
+      <div class="section-meta">Lifecycle &amp; outcomes across rule, Claude, and GPT decisions. Statuses, owners, notes, and metric snapshots persist across refresh. <strong>Hover the Before / After numbers</strong> for the KPI name, when it was snapped, and where it came from.</div>
     </div>
     <div class="action-bar">
       <div class="action-counters" id="trackingCounters"></div>
@@ -3126,7 +3143,7 @@
    plumbing changes. Surfaces in the in-app Diagnostics page AND the
    browser console so iPad users without Web Inspector can still confirm
    which code is loaded. */
-const CMO_BUILD = { tag: 'Decision lifecycle · built 2026-04-28 r24', startedAt: new Date() };
+const CMO_BUILD = { tag: 'Decision lifecycle · built 2026-04-28 r25', startedAt: new Date() };
 
 /* dlog: buffer the last N log entries in memory so the in-app
    Diagnostics page can render them without needing Safari Web Inspector.
@@ -8334,6 +8351,44 @@ function trackingRowHtml(a) {
     : a.status === 'CONFIRM_TO_DO' ? a.date_confirmed
     : a.date_created;
   const conf = Number.isFinite(Number(a.confidence_score)) ? Number(a.confidence_score) : 0;
+
+  /* Derivation hints. The "Before" and "After" numbers are otherwise just
+     anonymous decimals; the tooltip + sub-line tell the user WHAT KPI it is,
+     WHEN it was snapped, and WHERE it came from. The before tooltip also
+     names the rule trigger or LLM rationale that fired the action so it's
+     clear why this number became the baseline. */
+  const beforeAt = a.metric_before_at || a.date_created || a.created_at;
+  const beforeWindow = a.data_window || '—';
+  const beforeSourceLine = `${sourceLabel || a.source || '—'} → ${a.entity_name || a.entity_id || '—'}`;
+  const beforeReason = provider === 'RULES'
+    ? `Rule trigger: ${a.metric_trigger || '(no trigger recorded)'}`
+    : `${provider} self-reported value`;
+  const beforeTooltip = before == null
+    ? `${a.metric_name || 'metric'} not captured (no numeric data at decision time)`
+    : `${a.metric_name || 'metric'} = ${fmtTrackingNumber(before)}\n` +
+      `Snapped: ${beforeAt ? new Date(beforeAt).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) : '—'}\n` +
+      `Window:  ${beforeWindow}\n` +
+      `From:    ${beforeSourceLine}\n` +
+      `${beforeReason}\n` +
+      `(Frozen on first sight — never recomputed even if rule re-fires.)`;
+  const beforeSub = a.metric_name
+    ? `<span class="track-decision-sub">${escapeHtml(a.metric_name)}<span class="track-info-icon" title="${escapeHtml(beforeTooltip)}">ⓘ</span></span>`
+    : '';
+
+  const afterAt = a.metric_after_at;
+  const afterWindowDays = afterAt && a.date_completed
+    ? Math.max(0, Math.round((new Date(afterAt) - new Date(a.date_completed)) / (24*60*60*1000)))
+    : null;
+  const afterTooltip = after == null
+    ? (a.status === 'COMPLETED'
+        ? `Observation period — auto-captures from live drilldown data ${TRACKING_OBSERVATION_DAYS} days after completion. Locks once captured.`
+        : `Captured ${TRACKING_OBSERVATION_DAYS} days after status moves to Completed.`)
+    : `${a.metric_name || 'metric'} = ${fmtTrackingNumber(after)}\n` +
+      `Captured: ${afterAt ? new Date(afterAt).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) : '—'}\n` +
+      (afterWindowDays != null ? `Window:   ${afterWindowDays} day${afterWindowDays === 1 ? '' : 's'} after completion\n` : '') +
+      `From:     live ${beforeSourceLine}\n` +
+      `(Frozen once captured. ↻ recapture overrides.)`;
+
   const decisionPayload = encodeURIComponent(JSON.stringify({
     kind: a._llm ? 'llm' : 'rule',
     provider,
@@ -8349,7 +8404,9 @@ function trackingRowHtml(a) {
     status: a.status,
     confidence_score: a.confidence_score,
     metric_name: a.metric_name,
-    metric_before: a.metric_before, metric_after: a.metric_after,
+    metric_before: a.metric_before, metric_before_at: a.metric_before_at,
+    metric_after: a.metric_after, metric_after_at: a.metric_after_at,
+    data_window: a.data_window,
     actual_impact: a.actual_impact, outcome: a.outcome,
     expected_impact: a.expected_impact,
     owner: a.owner, notes: a.notes || a.impact_notes || '',
@@ -8370,8 +8427,13 @@ function trackingRowHtml(a) {
       <td class="track-status-cell">
         <select class="track-status-select" data-action-id="${escapeHtml(a.action_id)}">${statusOptions}</select>
       </td>
-      <td class="num" title="${escapeHtml(a.metric_name || '')}">${fmtTrackingNumber(before)}</td>
-      <td class="num">${fmtTrackingNumber(after)}${recaptureBtn}</td>
+      <td class="num track-metric-cell" title="${escapeHtml(beforeTooltip)}">
+        ${fmtTrackingNumber(before)}
+        ${beforeSub}
+      </td>
+      <td class="num track-metric-cell" title="${escapeHtml(afterTooltip)}">
+        ${fmtTrackingNumber(after)}${recaptureBtn}
+      </td>
       <td class="num ${impactClass}">${impact == null ? '—' : (impact > 0 ? '+' : '') + fmtTrackingNumber(impact)}</td>
       <td>${outcomeBadge}</td>
       <td><input type="text" class="track-owner-input" data-action-id="${escapeHtml(a.action_id)}" data-field="owner" value="${escapeHtml(a.owner || '')}" placeholder="—"/></td>
@@ -8651,10 +8713,26 @@ function openDecisionModal(payload) {
       { label: 'Outcome', value: payload.outcome || (payload.status === 'COMPLETED' ? 'observing…' : '—') },
       { label: 'Expected', value: payload.expected_impact || '—' },
     ];
+    /* Plain-English derivation note so the user knows where Before came from
+       and when After will be available. Mirrors the row tooltip but lives in
+       the modal too for users who never hover. */
+    const beforeAt = payload.metric_before_at ? new Date(payload.metric_before_at).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—';
+    const beforeReason = payload.provider === 'RULES' || !payload.provider
+      ? `the rule trigger "${payload.metric_trigger || '—'}"`
+      : `${payload.provider}'s self-reported reading`;
+    const beforeNote = payload.metric_before == null
+      ? `<strong>Before</strong> wasn\'t captured — there was no numeric ${escapeHtml(payload.metric_name || 'metric')} value at decision time.`
+      : `<strong>Before</strong> = <strong>${escapeHtml(fmtN(payload.metric_before))}</strong> (${escapeHtml(payload.metric_name || 'metric')}). Snapped on <strong>${escapeHtml(beforeAt)}</strong> from ${escapeHtml(beforeReason)} over the <strong>${escapeHtml(payload.data_window || 'current')}</strong> window. Frozen on first sight — never recomputed even if the rule re-fires.`;
+    const afterNote = payload.metric_after != null
+      ? `<strong>After</strong> = <strong>${escapeHtml(fmtN(payload.metric_after))}</strong>, captured ${payload.metric_after_at ? `on <strong>${escapeHtml(new Date(payload.metric_after_at).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric' }))}</strong>` : ''} from live drilldown data. Frozen unless you hit ↻ Recapture.`
+      : (payload.status === 'COMPLETED'
+        ? `<strong>After</strong> auto-captures from live data <strong>${TRACKING_OBSERVATION_DAYS} days</strong> after status moves to Completed, then locks. Until then this stays "observing…".`
+        : `<strong>After</strong> is captured once the decision is marked Completed and ${TRACKING_OBSERVATION_DAYS} days have passed.`);
     lifecycleHtml = `
       <div>
         <div class="cmo-modal-section-title">Lifecycle</div>
         ${_renderKVGrid(lifeKPIs)}
+        <div class="cmo-derivation-note">${beforeNote}<br>${afterNote}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.6rem">
           <label style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.72rem;color:var(--text3)">
             Owner
@@ -9030,6 +9108,18 @@ function renderLowHanging(scoped) {
      'Foundation' – under-the-hood plumbing that unlocks later features
    ──────────────────────────────────────────────────────────────────── */
 const APP_HISTORY = [
+  {
+    date: 'Apr 28, 2026',
+    title: 'Tracking page Before / After numbers explain themselves',
+    tags: ['Polish'],
+    bullets: [
+      'The Before and After columns on the Decision Tracking page were just bare decimals — no indication of what the KPI was, when it was snapped, or where it came from. Each cell now shows the **metric name** (e.g. "CPA", "CTR", "LCP") as a sub-line under the number, plus a small **ⓘ icon**. Hovering the cell or the icon surfaces a tooltip with the full derivation: the value, the snap timestamp, the data window at capture time, the source → entity, the rule trigger or LLM rationale that fired the action, and a "frozen on first sight" reminder.',
+      'After-cell tooltip explains the observation logic in plain English: when no value exists yet it tells you it auto-captures 14 days after Completion and locks; once captured it shows the exact timestamp + how many days post-completion it was taken, plus the ↻ Recapture override.',
+      'The decision modal\'s Lifecycle section gained a matching **derivation note** — same explanation in sentence form for users who never hover.',
+      'Top of the page now hints "Hover the Before / After numbers for the KPI name…" so the tooltips are discoverable.',
+      'Build tag bumped to r25.',
+    ],
+  },
   {
     date: 'Apr 28, 2026',
     title: 'Decision lifecycle tracking — confidence scores, frozen baselines, outcomes',
